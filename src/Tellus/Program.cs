@@ -2,7 +2,7 @@
 using MoonWorks;
 using MoonWorks.Graphics;
 
-namespace MoonworksLibrary;
+namespace Tellus;
 
 internal class Program
 {
@@ -11,7 +11,7 @@ internal class Program
 		AppInfo appInfo = new
 		(
 			OrganizationName: "babybluesheep",
-			ApplicationName: "MoonworksLibrary"
+			ApplicationName: "Tellus"
 		);
 
 		WindowCreateInfo windowCreateInfo = new
@@ -27,7 +27,7 @@ internal class Program
 
 		FramePacingSettings framePacingSettings = FramePacingSettings.CreateLatencyOptimized(60);
 
-		MoonworksLibraryGame game = new(appInfo, windowCreateInfo, framePacingSettings);
+		TellusGame game = new(appInfo, windowCreateInfo, framePacingSettings);
 		game.Run();
 	}
 }

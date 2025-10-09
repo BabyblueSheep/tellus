@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
 
-namespace MoonworksLibrary.Graphics;
+namespace Tellus.Graphics;
 
 [StructLayout(LayoutKind.Explicit, Size = 48)]
 file struct SpriteInstanceData
@@ -54,14 +54,16 @@ file struct PositionTextureColorVertex : IVertexType
 
 public class SpriteBatch : GraphicsResource
 {
-    private GraphicsPipeline _graphicsPipeline;
-    private ComputePipeline _computePipeline;
+    private readonly GraphicsPipeline _graphicsPipeline;
+    private readonly ComputePipeline _computePipeline;
 
-    private TransferBuffer _instanceTransferBuffer;
+    private readonly TransferBuffer _instanceTransferBuffer;
     private int _highestInstanceIndex;
-    private Buffer _instanceBuffer;
-    private Buffer _vertexBuffer;
-    private Buffer _indexBuffer;
+    private readonly Buffer _instanceBuffer;
+    private readonly Buffer _vertexBuffer;
+    private readonly Buffer _indexBuffer;
+
+    private readonly Sampler _sampler;
 
     private const uint MAXIMUM_SPRITE_AMOUNT = 2048;
     private const uint MAXIMUM_VERTEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 4;
@@ -73,7 +75,7 @@ public class SpriteBatch : GraphicsResource
         var vertexShader = ShaderCross.Create(
             graphicsDevice,
             titleStorage,
-            "Assets/TexturedQuad.vert",
+            "Assets/TexturedQuad.vert.hlsl",
             "main",
             ShaderCross.ShaderFormat.HLSL,
             ShaderStage.Vertex
@@ -82,7 +84,7 @@ public class SpriteBatch : GraphicsResource
         var fragmentShader = ShaderCross.Create(
             graphicsDevice,
             titleStorage,
-             "Assets/TexturedQuad.frag",
+             "Assets/TexturedQuad.frag.hlsl",
             "main",
             ShaderCross.ShaderFormat.HLSL,
             ShaderStage.Fragment
@@ -114,11 +116,13 @@ public class SpriteBatch : GraphicsResource
         _computePipeline = ShaderCross.Create(
             graphicsDevice,
             titleStorage,
-            "Assets/SpriteBatch.comp",
+            "Assets/SpriteBatch.comp.hlsl",
             "main",
             ShaderCross.ShaderFormat.HLSL
         );
         #endregion
+
+        _sampler = Sampler.Create(graphicsDevice, SamplerCreateInfo.PointClamp);
 
         #region Create buffers
         _instanceTransferBuffer = TransferBuffer.Create<SpriteInstanceData>
@@ -171,7 +175,7 @@ public class SpriteBatch : GraphicsResource
 
         var commandBuffer = graphicsDevice.AcquireCommandBuffer();
         var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.UploadToBuffer(_instanceTransferBuffer, _instanceBuffer, false);
+        copyPass.UploadToBuffer(indexTransferBuffer, _indexBuffer, false);
         commandBuffer.EndCopyPass(copyPass);
         graphicsDevice.Submit(commandBuffer);
         #endregion
@@ -191,12 +195,46 @@ public class SpriteBatch : GraphicsResource
         instanceData[_highestInstanceIndex].Rotation = rotation;
         instanceData[_highestInstanceIndex].Scale = scale;
         instanceData[_highestInstanceIndex].Color = color.ToVector4();
+
+        _highestInstanceIndex++;
     }
 
-    public void End()
+    public void End(MoonWorks.Graphics.CommandBuffer commandBuffer, Texture textureToDrawTo, Texture textureToSample)
     {
         _instanceTransferBuffer.Unmap();
 
+        Matrix4x4 cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
+        (
+            0,
+            640,
+            480,
+            0,
+            0,
+            -1f
+        );
 
+        var copyPass = commandBuffer.BeginCopyPass();
+        copyPass.UploadToBuffer(_instanceTransferBuffer, _instanceBuffer, true);
+        commandBuffer.EndCopyPass(copyPass);
+
+        var computePass = commandBuffer.BeginComputePass
+        (
+            new StorageBufferReadWriteBinding(_vertexBuffer, true)
+        );
+        computePass.BindComputePipeline(_computePipeline);
+        computePass.BindStorageBuffers(_instanceBuffer);
+        computePass.Dispatch(1, 1, 1);
+        commandBuffer.EndComputePass(computePass);
+
+        var renderPass = commandBuffer.BeginRenderPass(
+            new ColorTargetInfo(textureToDrawTo, Color.Black)
+        );
+        commandBuffer.PushVertexUniformData(cameraMatrix);
+        renderPass.BindGraphicsPipeline(_graphicsPipeline);
+        renderPass.BindVertexBuffers(_vertexBuffer);
+        renderPass.BindIndexBuffer(_indexBuffer, IndexElementSize.ThirtyTwo);
+        renderPass.BindFragmentSamplers(new TextureSamplerBinding(textureToSample, _sampler));
+        renderPass.DrawIndexedPrimitives(MAXIMUM_INDEX_AMOUNT, 1, 0, 0, 0);
+        commandBuffer.EndRenderPass(renderPass);
     }
 }
