@@ -3,40 +3,91 @@ using MoonWorks.Graphics;
 using MoonWorks.Storage;
 using System.Drawing;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
 
 namespace MoonworksLibrary.Graphics;
 
-public class SpriteBatch
+[StructLayout(LayoutKind.Explicit, Size = 48)]
+file struct SpriteInstanceData
 {
-    private struct CachedSpriteDrawInformation
-    {
-        public Texture Texture;
-        public Vector2 TextureOrigin;
-        public Rectangle TextureSourceRectangle;
-        public Vector2 Position;
-        public float Rotation;
-        public Vector2 Scale;
-        public Color Color;
-        public float Depth;
-    }
+    [FieldOffset(0)]
+    public Vector3 Position;
 
+    [FieldOffset(12)]
+    public float Rotation;
+
+    [FieldOffset(16)]
+    public Vector2 Scale;
+
+    [FieldOffset(32)]
+    public Vector4 Color;
+}
+
+[StructLayout(LayoutKind.Explicit, Size = 48)]
+file struct PositionTextureColorVertex : IVertexType
+{
+    [FieldOffset(0)]
+    public Vector4 Position;
+
+    [FieldOffset(16)]
+    public Vector2 TexCoord;
+
+    [FieldOffset(32)]
+    public Vector4 Color;
+
+    public static VertexElementFormat[] Formats { get; } =
+    [
+        VertexElementFormat.Float4,
+        VertexElementFormat.Float2,
+        VertexElementFormat.Float4
+    ];
+
+    public static uint[] Offsets { get; } =
+    [
+        0,
+        16,
+        32
+    ];
+}
+
+public class SpriteBatch : GraphicsResource
+{
     private GraphicsPipeline _graphicsPipeline;
-    private Sampler _sampler;
-    private TransferBuffer _vertexTransferBuffer;
+    private ComputePipeline _computePipeline;
+
+    private TransferBuffer _instanceTransferBuffer;
+    private int _highestInstanceIndex;
+    private Buffer _instanceBuffer;
     private Buffer _vertexBuffer;
     private Buffer _indexBuffer;
 
-    private CachedSpriteDrawInformation[] _cachedSpriteDrawInformation;
-    private uint _lastCachedSpriteDrawInformationIndex;
-
     private const uint MAXIMUM_SPRITE_AMOUNT = 2048;
     private const uint MAXIMUM_VERTEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 4;
-    private const uint MAXIMUM_INDEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 4;
+    private const uint MAXIMUM_INDEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 6;
 
-    public SpriteBatch(GraphicsDevice graphicsDevice, Shader vertexShader, Shader fragmentShader, TextureFormat renderTextureFormat)
+    public SpriteBatch(GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat renderTextureFormat) : base(graphicsDevice)
     {
+        #region Create pipelines
+        var vertexShader = ShaderCross.Create(
+            graphicsDevice,
+            titleStorage,
+            "Assets/TexturedQuad.vert",
+            "main",
+            ShaderCross.ShaderFormat.HLSL,
+            ShaderStage.Vertex
+        );
+
+        var fragmentShader = ShaderCross.Create(
+            graphicsDevice,
+            titleStorage,
+             "Assets/TexturedQuad.frag",
+            "main",
+            ShaderCross.ShaderFormat.HLSL,
+            ShaderStage.Fragment
+        );
+
         var graphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
         {
             VertexShader = vertexShader,
@@ -48,7 +99,7 @@ public class SpriteBatch
             DepthStencilState = DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo()
             {
-                ColorTargetDescriptions = 
+                ColorTargetDescriptions =
                 [
                     new ColorTargetDescription()
                     {
@@ -60,13 +111,31 @@ public class SpriteBatch
         };
         _graphicsPipeline = GraphicsPipeline.Create(graphicsDevice, graphicsPipelineCreateInfo);
 
-        _sampler = Sampler.Create(graphicsDevice, SamplerCreateInfo.PointClamp);
+        _computePipeline = ShaderCross.Create(
+            graphicsDevice,
+            titleStorage,
+            "Assets/SpriteBatch.comp",
+            "main",
+            ShaderCross.ShaderFormat.HLSL
+        );
+        #endregion
 
-        _vertexTransferBuffer = TransferBuffer.Create<PositionTextureColorVertex>(
+        #region Create buffers
+        _instanceTransferBuffer = TransferBuffer.Create<SpriteInstanceData>
+        (
             graphicsDevice,
             TransferBufferUsage.Upload,
-            MAXIMUM_VERTEX_AMOUNT
+            MAXIMUM_SPRITE_AMOUNT
         );
+
+        _instanceBuffer = Buffer.Create<SpriteInstanceData>
+        (
+            graphicsDevice,
+            BufferUsageFlags.ComputeStorageRead,
+            MAXIMUM_SPRITE_AMOUNT
+        );
+
+        _highestInstanceIndex = 0;
 
         _vertexBuffer = Buffer.Create<PositionTextureColorVertex>
         (
@@ -102,41 +171,32 @@ public class SpriteBatch
 
         var commandBuffer = graphicsDevice.AcquireCommandBuffer();
         var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.UploadToBuffer(indexTransferBuffer, _indexBuffer, false);
+        copyPass.UploadToBuffer(_instanceTransferBuffer, _instanceBuffer, false);
         commandBuffer.EndCopyPass(copyPass);
         graphicsDevice.Submit(commandBuffer);
-
-        _cachedSpriteDrawInformation = new CachedSpriteDrawInformation[MAXIMUM_SPRITE_AMOUNT];
+        #endregion
     }
 
-    public void RenderSprite(Texture texture, Vector2 textureOrigin, Rectangle textureSourceRectangle, Vector2 position, float rotation, Vector2 scale, Color color, float depth)
+    public void Begin()
     {
-        _cachedSpriteDrawInformation[0] = new CachedSpriteDrawInformation()
-        {
-            Texture = texture,
-            TextureOrigin = textureOrigin,
-            TextureSourceRectangle = textureSourceRectangle,
-            Position = position,
-            Rotation = rotation,
-            Scale = scale,
-            Color = color,
-            Depth = depth
-        };
+        _instanceTransferBuffer.Map(true);
+        _highestInstanceIndex = 0;
     }
 
-    public void RenderBatch(GraphicsDevice graphicsDevice, Texture textureToDrawTo)
+    public void Draw(Vector2 textureOrigin, Rectangle textureSourceRectangle, Vector2 position, float rotation, Vector2 scale, Color color, float depth)
     {
-        Matrix4x4 cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
-        (
-            0,
-            640,
-            480,
-            0,
-            0,
-            -1f
-        );
+        var instanceData = _instanceTransferBuffer.MappedSpan<SpriteInstanceData>();
 
-        MoonWorks.Graphics.CommandBuffer cmdbuf = graphicsDevice.AcquireCommandBuffer();
-        _vertexTransferBuffer
+        instanceData[_highestInstanceIndex].Position = new Vector3(position, depth);
+        instanceData[_highestInstanceIndex].Rotation = rotation;
+        instanceData[_highestInstanceIndex].Scale = scale;
+        instanceData[_highestInstanceIndex].Color = color.ToVector4();
+    }
+
+    public void End()
+    {
+        _instanceTransferBuffer.Unmap();
+
+
     }
 }

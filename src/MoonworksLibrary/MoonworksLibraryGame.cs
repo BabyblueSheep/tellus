@@ -43,7 +43,7 @@ internal class MoonworksLibraryGame : Game
             ShaderStage.Fragment
         );
 
-        _spriteBatch = new SpriteBatch(GraphicsDevice, vertexShader, fragmentShader, MainWindow.SwapchainFormat);
+        _spriteBatch = new SpriteBatch(GraphicsDevice, RootTitleStorage, MainWindow.SwapchainFormat);
     }
 
     protected override void Update(TimeSpan delta)
