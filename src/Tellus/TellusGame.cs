@@ -67,7 +67,7 @@ internal class TellusGame : Game
             (
                 Vector2.Zero,
                 Rectangle.Empty,
-                new Vector2(1, 1),
+                new Vector2(2, 2),
                 0f,
                 new Vector2(64, 64),
                 Color.White,

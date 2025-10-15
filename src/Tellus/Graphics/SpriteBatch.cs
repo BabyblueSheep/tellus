@@ -206,8 +206,8 @@ public class SpriteBatch : GraphicsResource
         Matrix4x4 cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
         (
             0,
-            640,
-            480,
+            textureToDrawTo.Width,
+            textureToDrawTo.Height,
             0,
             0,
             -1f
@@ -227,7 +227,7 @@ public class SpriteBatch : GraphicsResource
         commandBuffer.EndComputePass(computePass);
 
         var renderPass = commandBuffer.BeginRenderPass(
-            new ColorTargetInfo(textureToDrawTo, Color.Black)
+            new ColorTargetInfo(textureToDrawTo, Color.Red)
         );
         commandBuffer.PushVertexUniformData(cameraMatrix);
         renderPass.BindGraphicsPipeline(_graphicsPipeline);
