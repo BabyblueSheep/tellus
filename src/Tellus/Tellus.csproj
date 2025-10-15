@@ -20,8 +20,6 @@
 	
 	<ItemGroup>
 	  <Content Update="Assets\SpriteBatch.comp.hlsl" Link="Assets\SpriteBatch.comp.hlsl" />
-	  <Content Update="Assets\TexturedQuad.frag.hlsl" Link="Assets\TexturedQuad.frag.hlsl" />
-	  <Content Update="Assets\TexturedQuad.vert.hlsl" Link="Assets\TexturedQuad.vert.hlsl" />
 	</ItemGroup>
 
 </Project>

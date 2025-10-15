@@ -3,6 +3,7 @@ struct SpriteInstanceData
     float3 Position;
     float Rotation;
     float2 Scale;
+    float2 TextureOrigin;
     float4 Color;
 };
 
@@ -30,12 +31,12 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float4(0.0f, 0.0f, 0.0f, 1.0f)
     );
 
-    float c = cos(currentSpriteData.Rotation);
-    float s = sin(currentSpriteData.Rotation);
+    float cosine = cos(currentSpriteData.Rotation);
+    float sine = sin(currentSpriteData.Rotation);
 
     float4x4 Rotation = float4x4(
-        float4(   c,    s, 0.0f, 0.0f),
-        float4(  -s,    c, 0.0f, 0.0f),
+        float4(cosine, sine, 0.0f, 0.0f),
+        float4(-sine, cosine, 0.0f, 0.0f),
         float4(0.0f, 0.0f, 1.0f, 0.0f),
         float4(0.0f, 0.0f, 0.0f, 1.0f)
     );
@@ -46,8 +47,22 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float4(0.0f, 0.0f, 1.0f, 0.0f),
         float4(currentSpriteData.Position.x, currentSpriteData.Position.y, currentSpriteData.Position.z, 1.0f)
     );
+    
+    float4x4 OffsetTranslation = float4x4(
+        float4(1.0f, 0.0f, 0.0f, 0.0f),
+        float4(0.0f, 1.0f, 0.0f, 0.0f),
+        float4(0.0f, 0.0f, 1.0f, 0.0f),
+        float4(currentSpriteData.TextureOrigin.x, currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
+    );
+    
+    float4x4 ReverseOffsetTranslation = float4x4(
+        float4(1.0f, 0.0f, 0.0f, 0.0f),
+        float4(0.0f, 1.0f, 0.0f, 0.0f),
+        float4(0.0f, 0.0f, 1.0f, 0.0f),
+        float4(-currentSpriteData.TextureOrigin.x, -currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
+    );
 
-    float4x4 Model = mul(Scale, mul(Rotation, Translation));
+    float4x4 Model = mul(Scale, mul(ReverseOffsetTranslation, mul(Rotation, mul(OffsetTranslation, Translation))));
 
     float4 topLeft = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float4 topRight = float4(1.0f, 0.0f, 0.0f, 1.0f);

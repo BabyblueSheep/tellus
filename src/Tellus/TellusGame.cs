@@ -13,6 +13,7 @@ internal class TellusGame : Game
     private readonly SpriteBatch _spriteBatch;
 
     private readonly Texture _spriteTexture;
+    private float _time;
 
     public TellusGame
     (
@@ -46,7 +47,7 @@ internal class TellusGame : Game
 
     protected override void Update(TimeSpan delta)
     {
-        
+        _time += delta.Milliseconds * 0.01f;
     }
 
     protected override void Draw(double alpha)
@@ -59,22 +60,44 @@ internal class TellusGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
-            cmdbuf.EndRenderPass(renderPass);
-
             _spriteBatch.Begin();
 
             _spriteBatch.Draw
             (
-                Vector2.Zero,
+                new Vector2(0, 0),
                 Rectangle.Empty,
-                new Vector2(2, 2),
-                0f,
-                new Vector2(64, 64),
+                new Vector2(200, 200),
+                _time,
+                new Vector2(128, 128),
                 Color.White,
                 1f
             );
 
-            _spriteBatch.End(cmdbuf, swapchainTexture, _spriteTexture);
+            _spriteBatch.Draw
+            (
+                new Vector2(64, 64),
+                Rectangle.Empty,
+                new Vector2(100, 100),
+                _time,
+                new Vector2(128, 128),
+                Color.White,
+                0.9f
+            );
+
+            _spriteBatch.Draw
+            (
+                new Vector2(0, 0),
+                Rectangle.Empty,
+                new Vector2(100, 100),
+                _time,
+                new Vector2(128, 128),
+                Color.White,
+                0.9f
+            );
+
+            _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, _spriteTexture);
+
+            cmdbuf.EndRenderPass(renderPass);
         }
         GraphicsDevice.Submit(cmdbuf);
     }

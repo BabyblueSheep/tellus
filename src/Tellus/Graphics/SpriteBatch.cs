@@ -9,7 +9,7 @@ using Color = MoonWorks.Graphics.Color;
 
 namespace Tellus.Graphics;
 
-[StructLayout(LayoutKind.Explicit, Size = 48)]
+[StructLayout(LayoutKind.Explicit, Size = 56)]
 file struct SpriteInstanceData
 {
     [FieldOffset(0)]
@@ -20,6 +20,9 @@ file struct SpriteInstanceData
 
     [FieldOffset(16)]
     public Vector2 Scale;
+
+    [FieldOffset(24)]
+    public Vector2 TextureOrigin;
 
     [FieldOffset(32)]
     public Vector4 Color;
@@ -144,7 +147,7 @@ public class SpriteBatch : GraphicsResource
         _vertexBuffer = Buffer.Create<PositionTextureColorVertex>
         (
             graphicsDevice,
-            BufferUsageFlags.Vertex,
+            BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.Vertex,
             MAXIMUM_VERTEX_AMOUNT
         );
 
@@ -178,6 +181,8 @@ public class SpriteBatch : GraphicsResource
         copyPass.UploadToBuffer(indexTransferBuffer, _indexBuffer, false);
         commandBuffer.EndCopyPass(copyPass);
         graphicsDevice.Submit(commandBuffer);
+
+        indexTransferBuffer.Dispose();
         #endregion
     }
 
@@ -195,15 +200,16 @@ public class SpriteBatch : GraphicsResource
         instanceData[_highestInstanceIndex].Rotation = rotation;
         instanceData[_highestInstanceIndex].Scale = scale;
         instanceData[_highestInstanceIndex].Color = color.ToVector4();
+        instanceData[_highestInstanceIndex].TextureOrigin = textureOrigin;
 
         _highestInstanceIndex++;
     }
 
-    public void End(MoonWorks.Graphics.CommandBuffer commandBuffer, Texture textureToDrawTo, Texture textureToSample)
+    public void End(MoonWorks.Graphics.CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, Texture textureToSample)
     {
         _instanceTransferBuffer.Unmap();
 
-        Matrix4x4 cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
+        var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
         (
             0,
             textureToDrawTo.Width,
@@ -223,18 +229,14 @@ public class SpriteBatch : GraphicsResource
         );
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_instanceBuffer);
-        computePass.Dispatch(1, 1, 1);
+        computePass.Dispatch(((uint)_highestInstanceIndex + 63) / 64, 1, 1);
         commandBuffer.EndComputePass(computePass);
 
-        var renderPass = commandBuffer.BeginRenderPass(
-            new ColorTargetInfo(textureToDrawTo, Color.Red)
-        );
         commandBuffer.PushVertexUniformData(cameraMatrix);
         renderPass.BindGraphicsPipeline(_graphicsPipeline);
         renderPass.BindVertexBuffers(_vertexBuffer);
         renderPass.BindIndexBuffer(_indexBuffer, IndexElementSize.ThirtyTwo);
         renderPass.BindFragmentSamplers(new TextureSamplerBinding(textureToSample, _sampler));
-        renderPass.DrawIndexedPrimitives(MAXIMUM_INDEX_AMOUNT, 1, 0, 0, 0);
-        commandBuffer.EndRenderPass(renderPass);
+        renderPass.DrawIndexedPrimitives((uint)_highestInstanceIndex * 6, 1, 0, 0, 0);
     }
 }
