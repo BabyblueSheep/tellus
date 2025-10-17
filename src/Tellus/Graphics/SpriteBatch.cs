@@ -78,7 +78,7 @@ public class SpriteBatch : GraphicsResource
     private const uint MAXIMUM_VERTEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 4;
     private const uint MAXIMUM_INDEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 6;
 
-    public SpriteBatch(GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat renderTextureFormat) : base(graphicsDevice)
+    public SpriteBatch(GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat depthTextureFormat) : base(graphicsDevice)
     {
         #region Create pipelines
         var vertexShader = ShaderCross.Create(
@@ -107,7 +107,12 @@ public class SpriteBatch : GraphicsResource
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = RasterizerState.CCW_CullNone,
             MultisampleState = MultisampleState.None,
-            DepthStencilState = DepthStencilState.Disable,
+            DepthStencilState = new DepthStencilState()
+            {
+                EnableDepthTest = true,
+                EnableDepthWrite = true,
+                CompareOp = CompareOp.LessOrEqual,
+            },
             TargetInfo = new GraphicsPipelineTargetInfo()
             {
                 ColorTargetDescriptions =
@@ -118,6 +123,8 @@ public class SpriteBatch : GraphicsResource
                         BlendState = ColorTargetBlendState.PremultipliedAlphaBlend,
                     }
                 ],
+                HasDepthStencilTarget = true,
+                DepthStencilFormat = depthTextureFormat,
             },
         };
         _graphicsPipeline = GraphicsPipeline.Create(graphicsDevice, graphicsPipelineCreateInfo);
@@ -198,7 +205,8 @@ public class SpriteBatch : GraphicsResource
         _highestInstanceIndex = 0;
     }
 
-    public void Draw(Vector2 textureOrigin, Rectangle textureSourceRectangle, Vector2 position, float rotation, Vector2 scale, Color color, float depth)
+    // TODO: make textureSourceRectangle Rectangle, it's only a Vector4 temporarily 
+    public void Draw(Vector2 textureOrigin, Vector4 textureSourceRectangle, Vector2 position, float rotation, Vector2 scale, Color color, float depth)
     {
         var instanceData = _instanceTransferBuffer.MappedSpan<SpriteInstanceData>();
 
@@ -207,6 +215,7 @@ public class SpriteBatch : GraphicsResource
         instanceData[_highestInstanceIndex].Scale = scale;
         instanceData[_highestInstanceIndex].Color = color.ToVector4();
         instanceData[_highestInstanceIndex].TextureOrigin = textureOrigin;
+        instanceData[_highestInstanceIndex].TextureSourceRectangle = textureSourceRectangle;
 
         _highestInstanceIndex++;
     }

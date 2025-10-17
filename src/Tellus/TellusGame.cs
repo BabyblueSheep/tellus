@@ -13,6 +13,7 @@ internal class TellusGame : Game
     private readonly SpriteBatch _spriteBatch;
 
     private readonly Texture _spriteTexture;
+    private Texture _depthTexture;
     private float _time;
 
     public TellusGame
@@ -30,7 +31,7 @@ internal class TellusGame : Game
         debugMode
     )
     {
-        _spriteBatch = new SpriteBatch(GraphicsDevice, RootTitleStorage, MainWindow.SwapchainFormat);
+        _spriteBatch = new SpriteBatch(GraphicsDevice, RootTitleStorage, MainWindow.SwapchainFormat, TextureFormat.D16Unorm);
 
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 
@@ -43,6 +44,8 @@ internal class TellusGame : Game
 
         resourceUploader.Upload();
         resourceUploader.Dispose();
+
+        _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
     }
 
     protected override void Update(TimeSpan delta)
@@ -56,7 +59,13 @@ internal class TellusGame : Game
         Texture swapchainTexture = cmdbuf.AcquireSwapchainTexture(MainWindow);
         if (swapchainTexture != null)
         {
+            if (_depthTexture.Width != swapchainTexture.Width || _depthTexture.Height != swapchainTexture.Height)
+            {
+                _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", swapchainTexture.Width, swapchainTexture.Height, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
+            }
+
             var renderPass = cmdbuf.BeginRenderPass(
+                new DepthStencilTargetInfo(_depthTexture, 1),
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
@@ -65,23 +74,34 @@ internal class TellusGame : Game
             _spriteBatch.Draw
             (
                 new Vector2(0, 0),
-                Rectangle.Empty,
-                new Vector2(0, 0),
-                _time,
+                new Vector4(0, 0, 1f, 1f),
+                new Vector2(150, 150),
+                0,
                 new Vector2(128, 128),
-                Color.Blue,
+                Color.White,
                 0.5f
             );
 
             _spriteBatch.Draw
             (
-                new Vector2(64, 64),
-                Rectangle.Empty,
                 new Vector2(0, 0),
-                _time,
+                new Vector4(0, 0, 1f, 1f),
+                new Vector2(150, 130),
+                0,
+                new Vector2(128, 128),
+                Color.Blue,
+                0.6f
+            );
+
+            _spriteBatch.Draw
+            (
+                new Vector2(0, 0),
+                new Vector4(0, 0, 1f, 1f),
+                new Vector2(150, 180),
+                0,
                 new Vector2(128, 128),
                 Color.Red,
-                1f
+                0.4f
             );
 
             _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, _spriteTexture);

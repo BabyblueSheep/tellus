@@ -20,7 +20,7 @@ RWStructuredBuffer<SpriteVertexData> VertexBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    float2 TextureSize : packoffset(c0);
+    float2 TextureSize : packoffset(c0); // TODO: use this later, MoonWorks is currently bugged. lol!
 };
 
 [numthreads(64, 1, 1)]
@@ -72,13 +72,16 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	VertexBuffer[n * 4u + 1].Position = mul(topRight, Model);
 	VertexBuffer[n * 4u + 2].Position = mul(bottomLeft, Model);
 	VertexBuffer[n * 4u + 3].Position = mul(bottomRight, Model);
-    
-    float4 textureTopLeft = float2(TextureSize.x, 0.0f);
 
-	VertexBuffer[n * 4u].TextureCoordinate = float2(0.0f, 0.0f);
-	VertexBuffer[n * 4u + 1].TextureCoordinate = float2(1.0f, 0.0f);
-	VertexBuffer[n * 4u + 2].TextureCoordinate = float2(0.0f, 1.0f);
-	VertexBuffer[n * 4u + 3].TextureCoordinate = float2(1.0f, 1.0f);
+    float2 textureTopLeft = float2(currentSpriteData.TextureSourceRectangle.x, currentSpriteData.TextureSourceRectangle.y);
+    float2 textureTopRight = float2(currentSpriteData.TextureSourceRectangle.x + currentSpriteData.TextureSourceRectangle.z, currentSpriteData.TextureSourceRectangle.y);
+    float2 textureBottomLeft = float2(currentSpriteData.TextureSourceRectangle.x, currentSpriteData.TextureSourceRectangle.y + currentSpriteData.TextureSourceRectangle.w);
+    float2 textureBottomRight = float2(currentSpriteData.TextureSourceRectangle.x + currentSpriteData.TextureSourceRectangle.z, currentSpriteData.TextureSourceRectangle.y + currentSpriteData.TextureSourceRectangle.w);
+    
+    VertexBuffer[n * 4u].TextureCoordinate = textureTopLeft;
+    VertexBuffer[n * 4u + 1].TextureCoordinate = textureTopRight;
+    VertexBuffer[n * 4u + 2].TextureCoordinate = textureBottomLeft;
+    VertexBuffer[n * 4u + 3].TextureCoordinate = textureBottomRight;
 
     VertexBuffer[n * 4u]    .Color = currentSpriteData.Color;
     VertexBuffer[n * 4u + 1].Color = currentSpriteData.Color;
