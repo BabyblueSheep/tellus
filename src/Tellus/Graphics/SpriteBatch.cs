@@ -26,6 +26,9 @@ file struct SpriteInstanceData
 
     [FieldOffset(32)]
     public Vector4 Color;
+
+    [FieldOffset(48)]
+    public Vector4 TextureSourceRectangle;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 48)]
@@ -67,6 +70,9 @@ public class SpriteBatch : GraphicsResource
     private readonly Buffer _indexBuffer;
 
     private readonly Sampler _sampler;
+
+    record struct SpriteBatchComputeUniforms(Vector2 TextureSize);
+    private SpriteBatchComputeUniforms _spriteBatchComputeUniforms;
 
     private const uint MAXIMUM_SPRITE_AMOUNT = 2048;
     private const uint MAXIMUM_VERTEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 4;
@@ -227,8 +233,10 @@ public class SpriteBatch : GraphicsResource
         (
             new StorageBufferReadWriteBinding(_vertexBuffer, true)
         );
+        _spriteBatchComputeUniforms.TextureSize = new Vector2(textureToSample.Width, textureToSample.Height);
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_instanceBuffer);
+        commandBuffer.PushComputeUniformData(_spriteBatchComputeUniforms);
         computePass.Dispatch(((uint)_highestInstanceIndex + 63) / 64, 1, 1);
         commandBuffer.EndComputePass(computePass);
 

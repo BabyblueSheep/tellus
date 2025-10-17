@@ -5,6 +5,7 @@ struct SpriteInstanceData
     float2 Scale;
     float2 TextureOrigin;
     float4 Color;
+    float4 TextureSourceRectangle;
 };
 
 struct SpriteVertexData
@@ -16,6 +17,11 @@ struct SpriteVertexData
 
 StructuredBuffer<SpriteInstanceData> InstanceBuffer : register(t0, space0);
 RWStructuredBuffer<SpriteVertexData> VertexBuffer : register(u0, space1);
+
+cbuffer UniformBlock : register(b0, space2)
+{
+    float2 TextureSize : packoffset(c0);
+};
 
 [numthreads(64, 1, 1)]
 void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
@@ -52,17 +58,10 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float4(1.0f, 0.0f, 0.0f, 0.0f),
         float4(0.0f, 1.0f, 0.0f, 0.0f),
         float4(0.0f, 0.0f, 1.0f, 0.0f),
-        float4(currentSpriteData.TextureOrigin.x, currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
-    );
-    
-    float4x4 ReverseOffsetTranslation = float4x4(
-        float4(1.0f, 0.0f, 0.0f, 0.0f),
-        float4(0.0f, 1.0f, 0.0f, 0.0f),
-        float4(0.0f, 0.0f, 1.0f, 0.0f),
         float4(-currentSpriteData.TextureOrigin.x, -currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
     );
 
-    float4x4 Model = mul(Scale, mul(ReverseOffsetTranslation, mul(Rotation, mul(OffsetTranslation, Translation))));
+    float4x4 Model = mul(Scale, mul(OffsetTranslation, mul(Rotation, Translation)));
 
     float4 topLeft = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float4 topRight = float4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -73,6 +72,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	VertexBuffer[n * 4u + 1].Position = mul(topRight, Model);
 	VertexBuffer[n * 4u + 2].Position = mul(bottomLeft, Model);
 	VertexBuffer[n * 4u + 3].Position = mul(bottomRight, Model);
+    
+    float4 textureTopLeft = float2(TextureSize.x, 0.0f);
 
 	VertexBuffer[n * 4u].TextureCoordinate = float2(0.0f, 0.0f);
 	VertexBuffer[n * 4u + 1].TextureCoordinate = float2(1.0f, 0.0f);

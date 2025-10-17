@@ -66,33 +66,22 @@ internal class TellusGame : Game
             (
                 new Vector2(0, 0),
                 Rectangle.Empty,
-                new Vector2(200, 200),
+                new Vector2(0, 0),
                 _time,
                 new Vector2(128, 128),
-                Color.White,
-                1f
+                Color.Blue,
+                0.5f
             );
 
             _spriteBatch.Draw
             (
                 new Vector2(64, 64),
                 Rectangle.Empty,
-                new Vector2(100, 100),
-                _time,
-                new Vector2(128, 128),
-                Color.White,
-                0.9f
-            );
-
-            _spriteBatch.Draw
-            (
                 new Vector2(0, 0),
-                Rectangle.Empty,
-                new Vector2(100, 100),
                 _time,
                 new Vector2(128, 128),
-                Color.White,
-                0.9f
+                Color.Red,
+                1f
             );
 
             _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, _spriteTexture);
