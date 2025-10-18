@@ -1,10 +1,12 @@
 ﻿using MoonWorks;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 using System.Drawing;
 using System.Numerics;
 using Tellus.Graphics;
 
 using Color = MoonWorks.Graphics.Color;
+using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace Tellus;
 
@@ -77,6 +79,7 @@ internal class TellusGame : Game
         {
             if (_depthTexture.Width != swapchainTexture.Width || _depthTexture.Height != swapchainTexture.Height)
             {
+                _depthTexture.Dispose();
                 _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", swapchainTexture.Width, swapchainTexture.Height, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
             }
 
@@ -139,5 +142,10 @@ internal class TellusGame : Game
             cmdbuf.EndRenderPass(renderPass);
         }
         GraphicsDevice.Submit(cmdbuf);
+    }
+
+    protected override void Destroy()
+    {
+        _depthTexture.Dispose();
     }
 }

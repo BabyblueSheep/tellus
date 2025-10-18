@@ -6,30 +6,9 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
+using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace Tellus.Graphics;
-
-[StructLayout(LayoutKind.Explicit, Size = 56)]
-file struct SpriteInstanceData
-{
-    [FieldOffset(0)]
-    public Vector3 Position;
-
-    [FieldOffset(12)]
-    public float Rotation;
-
-    [FieldOffset(16)]
-    public Vector2 Scale;
-
-    [FieldOffset(24)]
-    public Vector2 TextureOrigin;
-
-    [FieldOffset(32)]
-    public Vector4 Color;
-
-    [FieldOffset(48)]
-    public Vector4 TextureSourceRectangle;
-}
 
 [StructLayout(LayoutKind.Explicit, Size = 48)]
 file struct PositionTextureColorVertex : IVertexType
@@ -80,16 +59,34 @@ public class SpriteBatch : GraphicsResource
         public float Depth;
     }
 
-    private GraphicsPipeline? _graphicsPipeline;
+    [StructLayout(LayoutKind.Explicit, Size = 56)]
+    private struct SpriteInstanceData
+    {
+        [FieldOffset(0)]
+        public Vector3 Position;
+
+        [FieldOffset(12)]
+        public float Rotation;
+
+        [FieldOffset(16)]
+        public Vector2 Scale;
+
+        [FieldOffset(24)]
+        public Vector2 TextureOrigin;
+
+        [FieldOffset(32)]
+        public Vector4 Color;
+
+        [FieldOffset(48)]
+        public Vector4 TextureSourceRectangle;
+    }
+
     private readonly ComputePipeline _computePipeline;
 
     private readonly TransferBuffer _instanceTransferBuffer;
-    private int _highestInstanceIndex;
     private readonly Buffer _instanceBuffer;
     private readonly Buffer _vertexBuffer;
     private readonly Buffer _indexBuffer;
-
-    private Sampler? _sampler;
 
     private bool _hasBeginBeenCalled;
 
@@ -160,8 +157,6 @@ public class SpriteBatch : GraphicsResource
             BufferUsageFlags.ComputeStorageRead,
             MAXIMUM_SPRITE_AMOUNT
         );
-
-        _highestInstanceIndex = 0;
 
         _vertexBuffer = Buffer.Create<PositionTextureColorVertex>
         (
@@ -276,7 +271,7 @@ public class SpriteBatch : GraphicsResource
 
     public void End
     (
-        MoonWorks.Graphics.CommandBuffer commandBuffer, 
+        CommandBuffer commandBuffer, 
         RenderPass renderPass, 
         Texture textureToDrawTo,
         TextureFormat drawTextureFormat,
@@ -288,6 +283,60 @@ public class SpriteBatch : GraphicsResource
             throw new InvalidOperationException("Begin hasn't been called!");
         }
 
+        if (_drawOperations.Count == 0)
+        {
+            return;
+        }    
+
+        void AddInstanceDataToBuffer(ref Span<SpriteInstanceData> span, int index, DrawOperation operation)
+        {
+            span[index].Position = new Vector3(operation.Position, operation.Depth);
+            span[index].Rotation = operation.Rotation;
+            span[index].Scale = operation.Scale;
+            span[index].Color = operation.Color.ToVector4();
+            span[index].TextureOrigin = operation.TextureOrigin;
+            span[index].TextureSourceRectangle = operation.TextureSourceRectangle;
+        }
+
+        var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
+        (
+            0,
+            textureToDrawTo.Width,
+            textureToDrawTo.Height,
+            0,
+            0,
+            -1f
+        );
+
+        GraphicsPipeline graphicsPipeline;
+        Sampler sampler;
+
+        void DrawBatch(Texture textureToSample, uint spriteAmount)
+        {
+            var copyPass = commandBuffer.BeginCopyPass();
+            copyPass.UploadToBuffer(_instanceTransferBuffer, _instanceBuffer, true);
+            commandBuffer.EndCopyPass(copyPass);
+
+            var lastComputePass = commandBuffer.BeginComputePass
+            (
+                new StorageBufferReadWriteBinding(_vertexBuffer, true)
+            );
+            _spriteBatchComputeUniforms.TextureSize = new Vector2(textureToSample.Width, textureToSample.Height);
+            lastComputePass.BindComputePipeline(_computePipeline);
+            lastComputePass.BindStorageBuffers(_instanceBuffer);
+            commandBuffer.PushComputeUniformData(_spriteBatchComputeUniforms);
+            lastComputePass.Dispatch((spriteAmount + 63) / 64, 1, 1);
+            commandBuffer.EndComputePass(lastComputePass);
+
+            commandBuffer.PushVertexUniformData(cameraMatrix);
+            renderPass.BindGraphicsPipeline(graphicsPipeline);
+            renderPass.BindVertexBuffers(_vertexBuffer);
+            renderPass.BindIndexBuffer(_indexBuffer, IndexElementSize.ThirtyTwo);
+            renderPass.BindFragmentSamplers(new TextureSamplerBinding(textureToSample, sampler));
+            renderPass.DrawIndexedPrimitives(spriteAmount * 6, 1, 0, 0, 0);
+        }
+
+        #region Prepare render state
         var graphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
         {
             VertexShader = _savedVertexShader,
@@ -309,27 +358,15 @@ public class SpriteBatch : GraphicsResource
                 ],
             },
         };
-
         if (depthTextureFormat.HasValue)
         {
             graphicsPipelineCreateInfo.DepthStencilState = _savedDepthStencilState;
             graphicsPipelineCreateInfo.TargetInfo.DepthStencilFormat = depthTextureFormat.Value;
             graphicsPipelineCreateInfo.TargetInfo.HasDepthStencilTarget = true;
         }
-        _graphicsPipeline = GraphicsPipeline.Create(Device, graphicsPipelineCreateInfo);
-
-        _sampler = Sampler.Create(Device, _savedSamplerCreateInfo);
-
-        var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
-        (
-            0,
-            textureToDrawTo.Width,
-            textureToDrawTo.Height,
-            0,
-            0,
-            -1f
-        );
-
+        graphicsPipeline = GraphicsPipeline.Create(Device, graphicsPipelineCreateInfo);
+        sampler = Sampler.Create(Device, _savedSamplerCreateInfo);
+        
         switch (_savedSpriteSortMode)
         {
             case SpriteSortMode.Deferred:
@@ -344,92 +381,49 @@ public class SpriteBatch : GraphicsResource
                 _drawOperations = _drawOperations.OrderByDescending(x => x.Depth).ToList();
                 break;
         }
+        #endregion
 
-        DrawOperation firstDrawOperation = _drawOperations[0];
+        #region Render
+        DrawOperation previousDrawOperation = _drawOperations[0];
 
         var instanceDataSpan = _instanceTransferBuffer.Map<SpriteInstanceData>(true);
         var highestInstanceIndex = 0;
 
-        instanceDataSpan[highestInstanceIndex].Position = new Vector3(firstDrawOperation.Position, firstDrawOperation.Depth);
-        instanceDataSpan[highestInstanceIndex].Rotation = firstDrawOperation.Rotation;
-        instanceDataSpan[highestInstanceIndex].Scale = firstDrawOperation.Scale;
-        instanceDataSpan[highestInstanceIndex].Color = firstDrawOperation.Color.ToVector4();
-        instanceDataSpan[highestInstanceIndex].TextureOrigin = firstDrawOperation.TextureOrigin;
-        instanceDataSpan[highestInstanceIndex].TextureSourceRectangle = firstDrawOperation.TextureSourceRectangle;
+        AddInstanceDataToBuffer(ref instanceDataSpan, highestInstanceIndex, previousDrawOperation);
         highestInstanceIndex++;
+
 
         for (int i = 1; i < _drawOperations.Count; i++)
         {
-            int previousIndex = Math.Max(i - 1, 0);
             DrawOperation currentDrawOperation = _drawOperations[i];
-            DrawOperation previousDrawOperation = _drawOperations[previousIndex];
 
             if (currentDrawOperation.TextureIndex != previousDrawOperation.TextureIndex)
             {
                 Texture textureToSample = _drawOperationTextures[previousDrawOperation.TextureIndex];
                 _instanceTransferBuffer.Unmap();
 
-                var copyPass = commandBuffer.BeginCopyPass();
-                copyPass.UploadToBuffer(_instanceTransferBuffer, _instanceBuffer, true);
-                commandBuffer.EndCopyPass(copyPass);
-
-                var computePass = commandBuffer.BeginComputePass
-                (
-                    new StorageBufferReadWriteBinding(_vertexBuffer, true)
-                );
-                _spriteBatchComputeUniforms.TextureSize = new Vector2(textureToSample.Width, textureToSample.Height);
-                computePass.BindComputePipeline(_computePipeline);
-                computePass.BindStorageBuffers(_instanceBuffer);
-                commandBuffer.PushComputeUniformData(_spriteBatchComputeUniforms);
-                computePass.Dispatch(((uint)highestInstanceIndex + 63) / 64, 1, 1);
-                commandBuffer.EndComputePass(computePass);
-
-                commandBuffer.PushVertexUniformData(cameraMatrix);
-                renderPass.BindGraphicsPipeline(_graphicsPipeline);
-                renderPass.BindVertexBuffers(_vertexBuffer);
-                renderPass.BindIndexBuffer(_indexBuffer, IndexElementSize.ThirtyTwo);
-                renderPass.BindFragmentSamplers(new TextureSamplerBinding(textureToSample, _sampler));
-                renderPass.DrawIndexedPrimitives((uint)highestInstanceIndex * 6, 1, 0, 0, 0);
+                DrawBatch(textureToSample, (uint)highestInstanceIndex);
 
                 instanceDataSpan = _instanceTransferBuffer.Map<SpriteInstanceData>(true);
                 highestInstanceIndex = 0;
             }
 
-            instanceDataSpan[highestInstanceIndex].Position = new Vector3(currentDrawOperation.Position, currentDrawOperation.Depth);
-            instanceDataSpan[highestInstanceIndex].Rotation = currentDrawOperation.Rotation;
-            instanceDataSpan[highestInstanceIndex].Scale = currentDrawOperation.Scale;
-            instanceDataSpan[highestInstanceIndex].Color = currentDrawOperation.Color.ToVector4();
-            instanceDataSpan[highestInstanceIndex].TextureOrigin = currentDrawOperation.TextureOrigin;
-            instanceDataSpan[highestInstanceIndex].TextureSourceRectangle = currentDrawOperation.TextureSourceRectangle;
+            AddInstanceDataToBuffer(ref instanceDataSpan, highestInstanceIndex, currentDrawOperation);
             highestInstanceIndex++;
+
+            previousDrawOperation = currentDrawOperation;
         }
 
         DrawOperation lastDrawOperation = _drawOperations[^1];
         Texture lastTextureToSample = _drawOperationTextures[lastDrawOperation.TextureIndex];
         _instanceTransferBuffer.Unmap();
 
-        var lastCopyPass = commandBuffer.BeginCopyPass();
-        lastCopyPass.UploadToBuffer(_instanceTransferBuffer, _instanceBuffer, true);
-        commandBuffer.EndCopyPass(lastCopyPass);
-
-        var lastComputePass = commandBuffer.BeginComputePass
-        (
-            new StorageBufferReadWriteBinding(_vertexBuffer, true)
-        );
-        _spriteBatchComputeUniforms.TextureSize = new Vector2(lastTextureToSample.Width, lastTextureToSample.Height);
-        lastComputePass.BindComputePipeline(_computePipeline);
-        lastComputePass.BindStorageBuffers(_instanceBuffer);
-        commandBuffer.PushComputeUniformData(_spriteBatchComputeUniforms);
-        lastComputePass.Dispatch(((uint)highestInstanceIndex + 63) / 64, 1, 1);
-        commandBuffer.EndComputePass(lastComputePass);
-
-        commandBuffer.PushVertexUniformData(cameraMatrix);
-        renderPass.BindGraphicsPipeline(_graphicsPipeline);
-        renderPass.BindVertexBuffers(_vertexBuffer);
-        renderPass.BindIndexBuffer(_indexBuffer, IndexElementSize.ThirtyTwo);
-        renderPass.BindFragmentSamplers(new TextureSamplerBinding(lastTextureToSample, _sampler));
-        renderPass.DrawIndexedPrimitives((uint)highestInstanceIndex * 6, 1, 0, 0, 0);
+        DrawBatch(lastTextureToSample, (uint)highestInstanceIndex);
+        #endregion
 
         _hasBeginBeenCalled = false;
+
+        graphicsPipeline.Dispose();
+        sampler.Dispose();
     }
 }
