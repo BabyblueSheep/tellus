@@ -114,7 +114,8 @@ public class SpriteBatch : GraphicsResource
 
     public SpriteBatch(GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat depthTextureFormat) : base(graphicsDevice)
     {
-        _defaultVertexShader = ShaderCross.Create(
+        /*
+         * _defaultVertexShader = ShaderCross.Create(
             Device,
             titleStorage,
             "Assets/TexturedQuad.vert.hlsl",
@@ -139,6 +140,28 @@ public class SpriteBatch : GraphicsResource
             "main",
             ShaderCross.ShaderFormat.HLSL
         );
+        */
+
+        Utils.LoadShaderFromManifest(Device, "Assets.TexturedQuad.vert", new ShaderCreateInfo()
+        {
+            Stage = ShaderStage.Vertex,
+            NumUniformBuffers = 1,
+        }, out _defaultVertexShader);
+
+        Utils.LoadShaderFromManifest(Device, "Assets.TexturedQuad.frag", new ShaderCreateInfo()
+        {
+            Stage = ShaderStage.Fragment,
+            NumStorageTextures = 1,
+            NumSamplers = 1,
+        }, out _defaultFragmentShader);
+
+        Utils.LoadShaderFromManifest(Device, "Assets.SpriteBatch.comp", new ComputePipelineCreateInfo()
+        {
+            NumReadonlyStorageBuffers = 1,
+            NumReadWriteStorageBuffers = 1,
+            NumUniformBuffers = 1,
+            ThreadCountX = 64, ThreadCountY = 1, ThreadCountZ = 1
+        }, out _computePipeline);
 
         _drawOperationTextures = [];
         _drawOperations = [];

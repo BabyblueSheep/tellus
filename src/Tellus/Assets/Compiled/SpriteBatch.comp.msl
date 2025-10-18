@@ -1,0 +1,63 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct SpriteInstanceData
+{
+    packed_float3 Position;
+    float Rotation;
+    float2 Scale;
+    float2 TextureOrigin;
+    float4 Color;
+    float4 TextureSourceRectangle;
+};
+
+struct type_StructuredBuffer_SpriteInstanceData
+{
+    SpriteInstanceData _m0[1];
+};
+
+struct SpriteVertexData
+{
+    float4 Position;
+    float2 TextureCoordinate;
+    float4 Color;
+};
+
+struct type_RWStructuredBuffer_SpriteVertexData
+{
+    SpriteVertexData _m0[1];
+};
+
+struct type_UniformBlock
+{
+    float2 TextureSize;
+};
+
+kernel void main0(const device type_StructuredBuffer_SpriteInstanceData& InstanceBuffer [[buffer(1)]], device type_RWStructuredBuffer_SpriteVertexData& VertexBuffer [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    SpriteInstanceData _52 = InstanceBuffer._m0[gl_GlobalInvocationID.x];
+    float _64 = cos(_52.Rotation);
+    float _65 = sin(_52.Rotation);
+    float4x4 _83 = ((float4x4(float4(1.0, 0.0, 0.0, 0.0), float4(0.0, 1.0, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(_52.Position[0], _52.Position[1], _52.Position[2], 1.0)) * float4x4(float4(_64, _65, 0.0, 0.0), float4(-_65, _64, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(0.0, 0.0, 0.0, 1.0))) * float4x4(float4(1.0, 0.0, 0.0, 0.0), float4(0.0, 1.0, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(-_52.TextureOrigin.x, -_52.TextureOrigin.y, 0.0, 1.0))) * float4x4(float4(_52.Scale.x, 0.0, 0.0, 0.0), float4(0.0, _52.Scale.y, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(0.0, 0.0, 0.0, 1.0));
+    uint _85 = gl_GlobalInvocationID.x * 4u;
+    VertexBuffer._m0[_85].Position = _83 * float4(0.0, 0.0, 0.0, 1.0);
+    uint _88 = _85 + 1u;
+    VertexBuffer._m0[_88].Position = _83 * float4(1.0, 0.0, 0.0, 1.0);
+    uint _91 = _85 + 2u;
+    VertexBuffer._m0[_91].Position = _83 * float4(0.0, 1.0, 0.0, 1.0);
+    uint _94 = _85 + 3u;
+    VertexBuffer._m0[_94].Position = _83 * float4(1.0, 1.0, 0.0, 1.0);
+    float _100 = _52.TextureSourceRectangle.x + _52.TextureSourceRectangle.z;
+    float _103 = _52.TextureSourceRectangle.y + _52.TextureSourceRectangle.w;
+    VertexBuffer._m0[_85].TextureCoordinate = float2(_52.TextureSourceRectangle.xy);
+    VertexBuffer._m0[_88].TextureCoordinate = float2(_100, _52.TextureSourceRectangle.y);
+    VertexBuffer._m0[_91].TextureCoordinate = float2(_52.TextureSourceRectangle.x, _103);
+    VertexBuffer._m0[_94].TextureCoordinate = float2(_100, _103);
+    VertexBuffer._m0[_85].Color = _52.Color;
+    VertexBuffer._m0[_88].Color = _52.Color;
+    VertexBuffer._m0[_91].Color = _52.Color;
+    VertexBuffer._m0[_94].Color = _52.Color;
+}
+

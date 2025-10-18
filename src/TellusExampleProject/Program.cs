@@ -2,7 +2,7 @@
 using MoonWorks;
 using MoonWorks.Graphics;
 
-namespace Tellus;
+namespace TellusExampleProject;
 
 internal class Program
 {
@@ -11,7 +11,7 @@ internal class Program
 		AppInfo appInfo = new
 		(
 			OrganizationName: "babybluesheep",
-			ApplicationName: "Tellus"
+			ApplicationName: "Tellus Example Project"
 		);
 
 		WindowCreateInfo windowCreateInfo = new

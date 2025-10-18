@@ -8,7 +8,7 @@ using Tellus.Graphics;
 using Color = MoonWorks.Graphics.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
-namespace Tellus;
+namespace TellusExampleProject;
 
 internal class TellusGame : Game
 {
