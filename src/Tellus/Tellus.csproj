@@ -19,6 +19,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+	  <Content Update="Assets\image1.png" Link="Assets\image1.png" />
 	  <Content Update="Assets\SpriteBatch.comp.hlsl" Link="Assets\SpriteBatch.comp.hlsl" />
 	</ItemGroup>
 

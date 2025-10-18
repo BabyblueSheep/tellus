@@ -12,7 +12,9 @@ internal class TellusGame : Game
 {
     private readonly SpriteBatch _spriteBatch;
 
-    private readonly Texture _spriteTexture;
+    private readonly Texture _spriteTexture1;
+    private readonly Texture _spriteTexture2;
+    private readonly Texture _spriteTexture3;
     private Texture _depthTexture;
     private float _time;
 
@@ -35,9 +37,23 @@ internal class TellusGame : Game
 
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 
-        _spriteTexture = resourceUploader.CreateTexture2DFromCompressed(
+        _spriteTexture1 = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "Assets/image.png",
+            "Assets/image1.png",
+            TextureFormat.R8G8B8A8Unorm,
+            TextureUsageFlags.Sampler
+        );
+
+        _spriteTexture2 = resourceUploader.CreateTexture2DFromCompressed(
+            RootTitleStorage,
+            "Assets/image2.png",
+            TextureFormat.R8G8B8A8Unorm,
+            TextureUsageFlags.Sampler
+        );
+
+        _spriteTexture3 = resourceUploader.CreateTexture2DFromCompressed(
+            RootTitleStorage,
+            "Assets/image3.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -69,42 +85,56 @@ internal class TellusGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
-            _spriteBatch.Begin();
+            _spriteBatch.Begin(
+                SpriteSortMode.Deferred,
+                ColorTargetBlendState.PremultipliedAlphaBlend,
+                SamplerCreateInfo.PointWrap,
+                new DepthStencilState()
+                {
+                    EnableDepthTest = true,
+                    EnableDepthWrite = true,
+                    CompareOp = CompareOp.LessOrEqual,
+                },
+                RasterizerState.CCW_CullNone,
+                null, null, null);
 
             _spriteBatch.Draw
             (
+                _spriteTexture1,
                 new Vector2(0, 0),
                 new Vector4(0, 0, 1f, 1f),
-                new Vector2(150, 150),
+                new Vector2(350, 200),
                 0,
                 new Vector2(128, 128),
-                Color.White,
-                0.5f
+                Color.Red,
+                0.3f
             );
 
             _spriteBatch.Draw
             (
+                _spriteTexture3,
                 new Vector2(0, 0),
                 new Vector4(0, 0, 1f, 1f),
-                new Vector2(150, 130),
+                new Vector2(300, 300),
                 0,
                 new Vector2(128, 128),
-                Color.Blue,
+                Color.Green,
                 0.6f
             );
 
             _spriteBatch.Draw
             (
+                _spriteTexture2,
                 new Vector2(0, 0),
                 new Vector4(0, 0, 1f, 1f),
-                new Vector2(150, 180),
+                new Vector2(400, 300),
                 0,
                 new Vector2(128, 128),
-                Color.Red,
-                0.4f
+                Color.Blue,
+                1f
             );
 
-            _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, _spriteTexture);
+            _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
 
             cmdbuf.EndRenderPass(renderPass);
         }
