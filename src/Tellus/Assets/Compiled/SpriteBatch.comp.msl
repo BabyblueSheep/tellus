@@ -35,7 +35,7 @@ struct type_UniformBlock
     float2 TextureSize;
 };
 
-kernel void main0(const device type_StructuredBuffer_SpriteInstanceData& InstanceBuffer [[buffer(1)]], device type_RWStructuredBuffer_SpriteVertexData& VertexBuffer [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_SpriteInstanceData& InstanceBuffer [[buffer(1)]], device type_RWStructuredBuffer_SpriteVertexData& VertexBuffer [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     SpriteInstanceData _52 = InstanceBuffer._m0[gl_GlobalInvocationID.x];
     float _64 = cos(_52.Rotation);
@@ -49,12 +49,12 @@ kernel void main0(const device type_StructuredBuffer_SpriteInstanceData& Instanc
     VertexBuffer._m0[_91].Position = _83 * float4(0.0, 1.0, 0.0, 1.0);
     uint _94 = _85 + 3u;
     VertexBuffer._m0[_94].Position = _83 * float4(1.0, 1.0, 0.0, 1.0);
-    float _100 = _52.TextureSourceRectangle.x + _52.TextureSourceRectangle.z;
-    float _103 = _52.TextureSourceRectangle.y + _52.TextureSourceRectangle.w;
-    VertexBuffer._m0[_85].TextureCoordinate = float2(_52.TextureSourceRectangle.xy);
-    VertexBuffer._m0[_88].TextureCoordinate = float2(_100, _52.TextureSourceRectangle.y);
-    VertexBuffer._m0[_91].TextureCoordinate = float2(_52.TextureSourceRectangle.x, _103);
-    VertexBuffer._m0[_94].TextureCoordinate = float2(_100, _103);
+    float _103 = _52.TextureSourceRectangle.x + _52.TextureSourceRectangle.z;
+    float _107 = _52.TextureSourceRectangle.y + _52.TextureSourceRectangle.w;
+    VertexBuffer._m0[_85].TextureCoordinate = float2(_52.TextureSourceRectangle.xy) / UniformBlock.TextureSize;
+    VertexBuffer._m0[_88].TextureCoordinate = float2(_103, _52.TextureSourceRectangle.y) / UniformBlock.TextureSize;
+    VertexBuffer._m0[_91].TextureCoordinate = float2(_52.TextureSourceRectangle.x, _107) / UniformBlock.TextureSize;
+    VertexBuffer._m0[_94].TextureCoordinate = float2(_103, _107) / UniformBlock.TextureSize;
     VertexBuffer._m0[_85].Color = _52.Color;
     VertexBuffer._m0[_88].Color = _52.Color;
     VertexBuffer._m0[_91].Color = _52.Color;

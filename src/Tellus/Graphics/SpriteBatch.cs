@@ -51,7 +51,7 @@ public class SpriteBatch : GraphicsResource
     {
         public int TextureIndex;
         public Vector2 TextureOrigin;
-        public Vector4 TextureSourceRectangle; // TODO: change this to Rectangle
+        public Rectangle TextureSourceRectangle;
         public Vector2 Position;
         public float Rotation;
         public Vector2 Scale;
@@ -114,34 +114,6 @@ public class SpriteBatch : GraphicsResource
 
     public SpriteBatch(GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat depthTextureFormat) : base(graphicsDevice)
     {
-        /*
-         * _defaultVertexShader = ShaderCross.Create(
-            Device,
-            titleStorage,
-            "Assets/TexturedQuad.vert.hlsl",
-            "main",
-            ShaderCross.ShaderFormat.HLSL,
-            ShaderStage.Vertex
-        );
-
-        _defaultFragmentShader = ShaderCross.Create(
-            Device,
-            titleStorage,
-             "Assets/TexturedQuad.frag.hlsl",
-            "main",
-            ShaderCross.ShaderFormat.HLSL,
-            ShaderStage.Fragment
-        );
-
-        _computePipeline = ShaderCross.Create(
-            Device,
-            titleStorage,
-            "Assets/SpriteBatch.comp.hlsl",
-            "main",
-            ShaderCross.ShaderFormat.HLSL
-        );
-        */
-
         Utils.LoadShaderFromManifest(Device, "Assets.TexturedQuad.vert", new ShaderCreateInfo()
         {
             Stage = ShaderStage.Vertex,
@@ -254,12 +226,11 @@ public class SpriteBatch : GraphicsResource
         _drawOperationTextures.Clear();
     }
 
-    // TODO: make textureSourceRectangle Rectangle, it's only a Vector4 temporarily 
     public void Draw
     (
         Texture texture,
         Vector2 textureOrigin, 
-        Vector4 textureSourceRectangle, 
+        Rectangle textureSourceRectangle, 
         Vector2 position, 
         float rotation, 
         Vector2 scale, 
@@ -318,7 +289,7 @@ public class SpriteBatch : GraphicsResource
             span[index].Scale = operation.Scale;
             span[index].Color = operation.Color.ToVector4();
             span[index].TextureOrigin = operation.TextureOrigin;
-            span[index].TextureSourceRectangle = operation.TextureSourceRectangle;
+            span[index].TextureSourceRectangle = new Vector4(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y, operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Height); ;
         }
 
         var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter

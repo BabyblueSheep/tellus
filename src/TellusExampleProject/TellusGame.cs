@@ -105,7 +105,7 @@ internal class TellusGame : Game
             (
                 _spriteTexture1,
                 new Vector2(0, 0),
-                new Vector4(0, 0, 1f, 1f),
+                new Rectangle(0, 0, 64, 64),
                 new Vector2(350, 200),
                 0,
                 new Vector2(128, 128),
@@ -117,7 +117,7 @@ internal class TellusGame : Game
             (
                 _spriteTexture3,
                 new Vector2(0, 0),
-                new Vector4(0, 0, 1f, 1f),
+                new Rectangle(0, 0, 64, 64),
                 new Vector2(300, 300),
                 0,
                 new Vector2(128, 128),
@@ -129,7 +129,7 @@ internal class TellusGame : Game
             (
                 _spriteTexture2,
                 new Vector2(0, 0),
-                new Vector4(0, 0, 1f, 1f),
+                new Rectangle(0, 0, 64, 64),
                 new Vector2(400, 300),
                 0,
                 new Vector2(128, 128),

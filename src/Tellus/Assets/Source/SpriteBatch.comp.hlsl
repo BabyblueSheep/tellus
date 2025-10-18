@@ -20,7 +20,7 @@ RWStructuredBuffer<SpriteVertexData> VertexBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    float2 TextureSize : packoffset(c0); // TODO: use this later, MoonWorks is currently bugged. lol!
+    float2 TextureSize : packoffset(c0);
 };
 
 [numthreads(64, 1, 1)]
@@ -74,9 +74,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	VertexBuffer[n * 4u + 3].Position = mul(bottomRight, Model);
 
     float2 textureTopLeft = float2(currentSpriteData.TextureSourceRectangle.x, currentSpriteData.TextureSourceRectangle.y);
+    textureTopLeft = textureTopLeft / TextureSize;
     float2 textureTopRight = float2(currentSpriteData.TextureSourceRectangle.x + currentSpriteData.TextureSourceRectangle.z, currentSpriteData.TextureSourceRectangle.y);
+    textureTopRight = textureTopRight / TextureSize;
     float2 textureBottomLeft = float2(currentSpriteData.TextureSourceRectangle.x, currentSpriteData.TextureSourceRectangle.y + currentSpriteData.TextureSourceRectangle.w);
+    textureBottomLeft = textureBottomLeft / TextureSize;
     float2 textureBottomRight = float2(currentSpriteData.TextureSourceRectangle.x + currentSpriteData.TextureSourceRectangle.z, currentSpriteData.TextureSourceRectangle.y + currentSpriteData.TextureSourceRectangle.w);
+    textureBottomRight = textureBottomRight / TextureSize;
     
     VertexBuffer[n * 4u].TextureCoordinate = textureTopLeft;
     VertexBuffer[n * 4u + 1].TextureCoordinate = textureTopRight;
