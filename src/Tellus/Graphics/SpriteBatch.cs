@@ -391,7 +391,7 @@ public class SpriteBatch : GraphicsResource
         {
             DrawOperation currentDrawOperation = _drawOperations[i];
 
-            if (currentDrawOperation.TextureIndex != previousDrawOperation.TextureIndex)
+            if (currentDrawOperation.TextureIndex != previousDrawOperation.TextureIndex || highestInstanceIndex >= MAXIMUM_SPRITE_AMOUNT)
             {
                 Texture textureToSample = _drawOperationTextures[previousDrawOperation.TextureIndex];
                 _instanceTransferBuffer.Unmap();
