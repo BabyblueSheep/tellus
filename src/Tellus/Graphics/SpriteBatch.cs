@@ -3,7 +3,9 @@ using MoonWorks.Graphics;
 using MoonWorks.Storage;
 using System.Drawing;
 using System.Numerics;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
+using WellspringCS;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
@@ -45,7 +47,7 @@ public enum SpriteSortMode
     FrontToBack,
 }
 
-public class SpriteBatch : GraphicsResource
+public sealed class SpriteBatch : GraphicsResource
 {
     private struct DrawOperation
     {
@@ -112,7 +114,7 @@ public class SpriteBatch : GraphicsResource
     private const uint MAXIMUM_VERTEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 4;
     private const uint MAXIMUM_INDEX_AMOUNT = MAXIMUM_SPRITE_AMOUNT * 6;
 
-    public SpriteBatch(GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat depthTextureFormat) : base(graphicsDevice)
+    public SpriteBatch(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
         Utils.LoadShaderFromManifest(Device, "Assets.TexturedQuad.vert", new ShaderCreateInfo()
         {
@@ -419,5 +421,23 @@ public class SpriteBatch : GraphicsResource
 
         graphicsPipeline.Dispose();
         sampler.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!IsDisposed)
+        {
+            if (disposing)
+            {
+                _computePipeline.Dispose();
+                _instanceTransferBuffer.Dispose();
+                _instanceBuffer.Dispose();
+                _vertexBuffer.Dispose();
+                _indexBuffer.Dispose();
+                _defaultVertexShader?.Dispose();
+                _defaultFragmentShader?.Dispose();
+            }
+        }
+        base.Dispose(disposing);
     }
 }

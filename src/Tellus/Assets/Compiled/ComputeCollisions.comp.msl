@@ -1,0 +1,45 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct ColliderShapeData
+{
+    int ColliderIndex;
+    uint ShapeType;
+    float2 ShapeFieldOne;
+    float2 ShapeFieldTwo;
+};
+
+struct type_StructuredBuffer_ColliderShapeData
+{
+    ColliderShapeData _m0[1];
+};
+
+struct CollisionResultData
+{
+    int ColliderIndexOne;
+    int ColliderIndexTwo;
+    float2 CollisionResultInformation;
+};
+
+struct type_AppendStructuredBuffer_CollisionResultData
+{
+    CollisionResultData _m0[1];
+};
+
+struct type_ACSBuffer_counter
+{
+    int counter;
+};
+
+struct type_UniformBlock
+{
+    int CollderShapeBufferOneLength;
+    int CollderShapeBufferTwoLength;
+};
+
+kernel void main0()
+{
+}
+

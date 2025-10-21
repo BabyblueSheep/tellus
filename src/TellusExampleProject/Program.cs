@@ -27,7 +27,7 @@ internal class Program
 
 		FramePacingSettings framePacingSettings = FramePacingSettings.CreateLatencyOptimized(60);
 
-		TellusGame game = new(appInfo, windowCreateInfo, framePacingSettings);
+		var game = new CollisionGame(appInfo, windowCreateInfo, framePacingSettings);
 		game.Run();
 	}
 }

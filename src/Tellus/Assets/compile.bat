@@ -20,3 +20,10 @@
 .\bin\shadercross.exe ".\Compiled\SpriteBatch.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o ".\Compiled\SpriteBatch.comp.dxbc"
 .\bin\shadercross.exe ".\Compiled\SpriteBatch.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o ".\Compiled\SpriteBatch.comp.dxil"
 .\bin\shadercross.exe ".\Compiled\SpriteBatch.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o ".\Compiled\SpriteBatch.comp.msl"
+
+
+.\bin\shadercross.exe ".\Source\ComputeCollisions.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o ".\Compiled\ComputeCollisions.comp.spv"
+
+.\bin\shadercross.exe ".\Compiled\ComputeCollisions.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o ".\Compiled\ComputeCollisions.comp.dxbc"
+.\bin\shadercross.exe ".\Compiled\ComputeCollisions.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o ".\Compiled\ComputeCollisions.comp.dxil"
+.\bin\shadercross.exe ".\Compiled\ComputeCollisions.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o ".\Compiled\ComputeCollisions.comp.msl"

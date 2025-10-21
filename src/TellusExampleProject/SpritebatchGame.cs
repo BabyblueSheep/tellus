@@ -10,7 +10,7 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace TellusExampleProject;
 
-internal class TellusGame : Game
+internal class SpritebatchGame : Game
 {
     private readonly SpriteBatch _spriteBatch;
 
@@ -20,7 +20,7 @@ internal class TellusGame : Game
     private Texture _depthTexture;
     private float _time;
 
-    public TellusGame
+    public SpritebatchGame
     (
         AppInfo appInfo,
         WindowCreateInfo windowCreateInfo,
@@ -35,7 +35,7 @@ internal class TellusGame : Game
         debugMode
     )
     {
-        _spriteBatch = new SpriteBatch(GraphicsDevice, RootTitleStorage, MainWindow.SwapchainFormat, TextureFormat.D16Unorm);
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
 
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 

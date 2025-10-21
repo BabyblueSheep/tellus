@@ -13,6 +13,9 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<EmbeddedResource Include="Assets/Compiled/ComputeCollisions.comp.dxbc" Visible="false">
+			<LogicalName>Tellus.Assets.ComputeCollisions.comp.dxbc</LogicalName>
+		</EmbeddedResource>
 		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.dxbc" Visible="false">
 			<LogicalName>Tellus.Assets.SpriteBatch.comp.dxbc</LogicalName>
 		</EmbeddedResource>
@@ -22,7 +25,10 @@
 		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.dxbc" Visible="false">
 			<LogicalName>Tellus.Assets.TexturedQuad.frag.dxbc</LogicalName>
 		</EmbeddedResource>
-		
+
+		<EmbeddedResource Include="Assets/Compiled/ComputeCollisions.comp.dxil" Visible="false">
+			<LogicalName>Tellus.Assets.ComputeCollisions.comp.dxil</LogicalName>
+		</EmbeddedResource>
 		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.dxil" Visible="false">
 			<LogicalName>Tellus.Assets.SpriteBatch.comp.dxil</LogicalName>
 		</EmbeddedResource>
@@ -32,7 +38,10 @@
 		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.dxil" Visible="false">
 			<LogicalName>Tellus.Assets.TexturedQuad.frag.dxil</LogicalName>
 		</EmbeddedResource>
-		
+
+		<EmbeddedResource Include="Assets/Compiled/ComputeCollisions.comp.msl" Visible="false">
+			<LogicalName>Tellus.Assets.ComputeCollisions.comp.msl</LogicalName>
+		</EmbeddedResource>
 		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.msl" Visible="false">
 			<LogicalName>Tellus.Assets.SpriteBatch.comp.msl</LogicalName>
 		</EmbeddedResource>
@@ -42,7 +51,10 @@
 		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.msl" Visible="false">
 			<LogicalName>Tellus.Assets.TexturedQuad.frag.msl</LogicalName>
 		</EmbeddedResource>
-		
+
+		<EmbeddedResource Include="Assets/Compiled/ComputeCollisions.comp.spv" Visible="false">
+			<LogicalName>Tellus.Assets.ComputeCollisions.comp.spv</LogicalName>
+		</EmbeddedResource>
 		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.spv" Visible="false">
 			<LogicalName>Tellus.Assets.SpriteBatch.comp.spv</LogicalName>
 		</EmbeddedResource>
