@@ -21,13 +21,13 @@ public sealed class CollisionHandler : GraphicsResource
         public int ColliderIndex;
 
         [FieldOffset(4)]
-        public uint ShapeType;
+        public uint Type;
 
         [FieldOffset(8)]
-        public Vector2 ShapeFieldOne;
+        public Vector2 Center;
 
         [FieldOffset(16)]
-        public Vector2 ShapeFieldTwo;
+        public Vector2 FieldsOne;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -118,15 +118,15 @@ public sealed class CollisionHandler : GraphicsResource
                     uploadColliderShapes[index].ColliderIndex = i;
                     if (colliderShape is CircleCollider circleColliderShape)
                     {
-                        uploadColliderShapes[index].ShapeType = 0;
-                        uploadColliderShapes[index].ShapeFieldOne = circleColliderShape.Center;
-                        uploadColliderShapes[index].ShapeFieldTwo = new Vector2(circleColliderShape.Radius, 0);
+                        uploadColliderShapes[index].Type = 0;
+                        uploadColliderShapes[index].Center = circleColliderShape.Center;
+                        uploadColliderShapes[index].FieldsOne = new Vector2(circleColliderShape.Radius, 0);
                     }
                     else if (colliderShape is LineCollider lineColliderShape)
                     {
-                        uploadColliderShapes[index].ShapeType = 1;
-                        uploadColliderShapes[index].ShapeFieldOne = lineColliderShape.PointOne;
-                        uploadColliderShapes[index].ShapeFieldTwo = lineColliderShape.PointTwo;
+                        uploadColliderShapes[index].Type = 1;
+                        uploadColliderShapes[index].Center = lineColliderShape.StartPoint;
+                        uploadColliderShapes[index].FieldsOne = lineColliderShape.EndPoint;
                     }
 
                     index++;
