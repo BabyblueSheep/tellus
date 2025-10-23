@@ -14,7 +14,7 @@ namespace Tellus.Collision;
 
 public sealed class CollisionHandler : GraphicsResource
 {
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    [StructLayout(LayoutKind.Explicit, Size = 28)]
     private struct ColliderShapeData
     {
         [FieldOffset(0)]
@@ -27,7 +27,7 @@ public sealed class CollisionHandler : GraphicsResource
         public Vector2 Center;
 
         [FieldOffset(16)]
-        public Vector2 FieldsOne;
+        public Vector3 Fields;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -120,13 +120,13 @@ public sealed class CollisionHandler : GraphicsResource
                     {
                         uploadColliderShapes[index].Type = 0;
                         uploadColliderShapes[index].Center = circleColliderShape.Center;
-                        uploadColliderShapes[index].FieldsOne = new Vector2(circleColliderShape.Radius, 0);
+                        uploadColliderShapes[index].Fields = new Vector3(circleColliderShape.Radius, 0, 0);
                     }
-                    else if (colliderShape is LineCollider lineColliderShape)
+                    else if (colliderShape is RectangleCollider rectangleCollider)
                     {
                         uploadColliderShapes[index].Type = 1;
-                        uploadColliderShapes[index].Center = lineColliderShape.StartPoint;
-                        uploadColliderShapes[index].FieldsOne = lineColliderShape.EndPoint;
+                        uploadColliderShapes[index].Center = rectangleCollider.Center;
+                        uploadColliderShapes[index].Fields = new Vector3(rectangleCollider.Angle, rectangleCollider.SideHalfLength, rectangleCollider.SideHalfWidth);
                     }
 
                     index++;

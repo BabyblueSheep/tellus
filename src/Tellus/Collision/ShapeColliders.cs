@@ -27,14 +27,18 @@ public struct CircleCollider : IColliderShape
     }
 }
 
-public struct LineCollider : IColliderShape
+public struct RectangleCollider : IColliderShape
 {
-    public Vector2 StartPoint;
-    public Vector2 EndPoint;
+    public Vector2 Center;
+    public float Angle;
+    public float SideHalfLength;
+    public float SideHalfWidth;
 
-    public LineCollider(Vector2 startPoint, Vector2 endPoint)
+    public RectangleCollider(Vector2 center, float angle, float halfLength, float halfWidth)
     {
-        StartPoint = startPoint;
-        EndPoint = endPoint;
+        Center = center;
+        Angle = angle;
+        SideHalfLength = halfLength;
+        SideHalfWidth = halfWidth;
     }
 }
