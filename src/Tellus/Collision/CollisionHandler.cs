@@ -31,12 +31,17 @@ public sealed class CollisionHandler : GraphicsResource
     }
 
     private readonly ComputePipeline _computePipeline;
+
     private readonly TransferBuffer _colliderShapesTransferBuffer;
     private readonly Buffer _colliderShapesBufferOne;
     private readonly Buffer _colliderShapesBufferTwo;
+
+    private readonly TransferBuffer _collisionResultsTransferUploadBuffer;
+    private readonly TransferBuffer _collisionResultsTransferDownloadBuffer;
     private readonly Buffer _collisionResultsBufferOne;
     private readonly Buffer _collisionResultsBufferTwo;
-    private readonly TransferBuffer _collisionResultsTransferBuffer;
+    private readonly int[] _defaultCollisionResults;
+    private readonly int[] _collisionResultTransition;
 
     record struct CollisionComputeUniforms(int ColliderShapeBufferOneLength, int ColliderShapeBufferTwoLength);
     private CollisionComputeUniforms _collisionComputeUniforms;
@@ -91,11 +96,20 @@ public sealed class CollisionHandler : GraphicsResource
             COLLISION_RESULT_AMOUNT
         );
 
-        _collisionResultsTransferBuffer = TransferBuffer.Create<int>(
+        _collisionResultsTransferUploadBuffer = TransferBuffer.Create<int>(
+            Device,
+            TransferBufferUsage.Upload,
+            COLLISION_RESULT_AMOUNT
+        );
+
+        _collisionResultsTransferDownloadBuffer = TransferBuffer.Create<int>(
             Device,
             TransferBufferUsage.Download,
             COLLISION_RESULT_AMOUNT
         );
+
+        _defaultCollisionResults = Enumerable.Repeat(-1, COLLISION_RESULT_AMOUNT).ToArray();
+        _collisionResultTransition = new int[COLLISION_RESULT_AMOUNT];
     }
 
     
@@ -133,6 +147,16 @@ public sealed class CollisionHandler : GraphicsResource
             return index;
         }
 
+        
+        var transferUploadSpan = _collisionResultsTransferUploadBuffer.Map<int>(false);
+        _defaultCollisionResults.CopyTo(transferUploadSpan);
+        _collisionResultsTransferUploadBuffer.Unmap();
+
+        var collisionResultCopyPass = commandBuffer.BeginCopyPass();
+        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBufferOne, true);
+        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBufferTwo, true);
+        commandBuffer.EndCopyPass(collisionResultCopyPass);
+
         _collisionComputeUniforms.ColliderShapeBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne);
 
         var bufferOneCopyPass = commandBuffer.BeginCopyPass();
@@ -159,23 +183,46 @@ public sealed class CollisionHandler : GraphicsResource
         computePass.Dispatch(((uint)colliderShapesGroupOne.Count + 15) / 16, ((uint)colliderShapesGroupTwo.Count + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
 
-        var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.DownloadFromBuffer(_collisionResultsBufferOne, _collisionResultsTransferBuffer);
-        commandBuffer.EndCopyPass(copyPass);
+        int[] CopyBufferToArray(Buffer buffer)
+        {
+            CommandBuffer copyCommandBuffer = Device.AcquireCommandBuffer();
 
-        var fence = Device.SubmitAndAcquireFence(commandBuffer);
-        Device.WaitForFence(fence);
-        Device.ReleaseFence(fence);
+            var copyPass = copyCommandBuffer.BeginCopyPass();
+            copyPass.DownloadFromBuffer(buffer, _collisionResultsTransferDownloadBuffer);
+            copyCommandBuffer.EndCopyPass(copyPass);
 
-        var transferSpan = _collisionResultsTransferBuffer.Map<int>(false);
+            var fence = Device.SubmitAndAcquireFence(copyCommandBuffer);
+            Device.WaitForFence(fence);
+            Device.ReleaseFence(fence);
 
-        List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
-        foreach (var item in transferSpan) 
-        { 
-            
+            var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(false);
+            transferDownloadSpan.CopyTo(_collisionResultTransition);
+            _collisionResultsTransferDownloadBuffer.Unmap();
+
+            return _collisionResultTransition;
         }
 
-        _collisionResultsTransferBuffer.Unmap();
+        int[] collisionResultsOne = CopyBufferToArray(_collisionResultsBufferOne);
+        int[] collisionResultsTwo = CopyBufferToArray(_collisionResultsBufferTwo);
+        
+        List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
+        List<(int, int)> resultIndexList = [];
+        for (int i = 0; i < collisionResultsOne.Length; i++)
+        {
+            int indexOne = collisionResultsOne[i];
+            int indexTwo = collisionResultsTwo[i];
+
+            bool resultIsUnique = !resultIndexList.Contains((indexOne, indexTwo));
+            bool resultIsValid = indexOne != -1 && indexTwo != -1;
+
+            if (resultIsUnique && resultIsValid)
+            {
+                resultList.Add((colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]));
+                resultIndexList.Add((indexOne, indexTwo));
+            }
+        }
+
+        _collisionResultsTransferDownloadBuffer.Unmap();
 
         return resultList;
     }

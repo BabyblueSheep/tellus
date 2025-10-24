@@ -63,7 +63,7 @@ internal class CollisionGame : Game
         };
         _colliderTest2 = new ColliderTest()
         {
-            Center = new Vector2(10, 0),
+            Center = new Vector2(2, 0),
             Radius = 5
         };
 
@@ -86,7 +86,12 @@ internal class CollisionGame : Game
 
     protected override void Update(TimeSpan delta)
     {
-        _collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
+        var collisionResults = _collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
+        /*foreach (var collisionResult in collisionResults)
+        {
+            Logger.LogInfo($"{collisionResult.Item1} {collisionResult.Item2}");
+        }*/
+        Logger.LogInfo(collisionResults.Count.ToString());
     }
 
     protected override void Draw(double alpha)

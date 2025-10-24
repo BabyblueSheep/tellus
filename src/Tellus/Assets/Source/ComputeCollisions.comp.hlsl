@@ -6,12 +6,6 @@ struct ColliderShapeData
     float3 Fields;
 };
 
-struct CollisionResultData
-{
-    int ColliderIndexOne;
-    int ColliderIndexTwo;
-};
-
 StructuredBuffer<ColliderShapeData> ColliderShapeBufferOne : register(t0, space0);
 StructuredBuffer<ColliderShapeData> ColliderShapeBufferTwo : register(t1, space0);
 RWByteAddressBuffer CollisionResultOneBuffer : register(u0, space1);
@@ -88,10 +82,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     ColliderShapeData colliderShapeDataOne = ColliderShapeBufferOne[x];
     ColliderShapeData colliderShapeDataTwo = ColliderShapeBufferTwo[y];
     
-    CollisionResultData resultData = (CollisionResultData)0;
-    resultData.ColliderIndexOne = colliderShapeDataOne.ColliderIndex;
-    resultData.ColliderIndexTwo = colliderShapeDataTwo.ColliderIndex;
-        
     float2 scanPoint = colliderShapeDataOne.Center;
     float2 scanDirection = normalize(colliderShapeDataTwo.Center - colliderShapeDataOne.Center);
     
