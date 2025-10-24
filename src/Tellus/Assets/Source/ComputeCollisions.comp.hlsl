@@ -14,13 +14,16 @@ struct CollisionResultData
 
 StructuredBuffer<ColliderShapeData> ColliderShapeBufferOne : register(t0, space0);
 StructuredBuffer<ColliderShapeData> ColliderShapeBufferTwo : register(t1, space0);
-AppendStructuredBuffer<CollisionResultData> CollisionResultBuffer : register(u0, space1);
+RWByteAddressBuffer CollisionResultOneBuffer : register(u0, space1);
+RWByteAddressBuffer CollisionResultTwoBuffer : register(u1, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    int CollderShapeBufferOneLength : packoffset(c0);
-    int CollderShapeBufferTwoLength : packoffset(c1);
+    int ColliderShapeBufferOneLength : packoffset(c0);
+    int ColliderShapeBufferTwoLength : packoffset(c1);
 };
+
+groupshared uint collisionResultBufferIndex;
 
 #define CIRCLE_TYPE 0
 #define RECTANGLE_TYPE 1
@@ -72,7 +75,12 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     uint x = GlobalInvocationID.x;
     uint y = GlobalInvocationID.y;
     
-    if (x >= CollderShapeBufferOneLength || y >= CollderShapeBufferTwoLength)
+    if (x == 0 && y == 0)
+    {
+        collisionResultBufferIndex = 0;
+    }
+    
+    if (x >= ColliderShapeBufferOneLength || y >= ColliderShapeBufferTwoLength)
     {
         return;
     }
@@ -90,10 +98,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     while (distanceFromShapeData(colliderShapeDataOne, scanPoint) < 0)
     {
         float distanceFromShapeTwo = distanceFromShapeData(colliderShapeDataTwo, scanPoint);
-        if (distanceFromShapeTwo > 0)
+        if (distanceFromShapeTwo < 0)
         {
-            // add to buffer to report success
-            CollisionResultBuffer.Append(resultData);
+            uint _ = 0;
+            CollisionResultOneBuffer.InterlockedAdd(collisionResultBufferIndex, colliderShapeDataOne.ColliderIndex, _);
+            CollisionResultTwoBuffer.InterlockedAdd(collisionResultBufferIndex, colliderShapeDataTwo.ColliderIndex, _);
+            InterlockedAdd(collisionResultBufferIndex, 1);
+            return;
 
         }
         scanPoint += scanDirection * distanceFromShapeTwo;

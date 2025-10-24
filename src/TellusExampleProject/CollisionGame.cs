@@ -86,7 +86,7 @@ internal class CollisionGame : Game
 
     protected override void Update(TimeSpan delta)
     {
-        //_collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
+        _collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
     }
 
     protected override void Draw(double alpha)

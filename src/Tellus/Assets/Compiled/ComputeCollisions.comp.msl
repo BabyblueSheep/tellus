@@ -19,20 +19,9 @@ struct type_StructuredBuffer_ColliderShapeData
     ColliderShapeData _m0[1];
 };
 
-struct CollisionResultData
+struct type_RWByteAddressBuffer
 {
-    int ColliderIndexOne;
-    int ColliderIndexTwo;
-};
-
-struct type_AppendStructuredBuffer_CollisionResultData
-{
-    CollisionResultData _m0[1];
-};
-
-struct type_ACSBuffer_counter
-{
-    int counter;
+    uint _m0[1];
 };
 
 struct type_UniformBlock
@@ -42,102 +31,125 @@ struct type_UniformBlock
     int CollderShapeBufferTwoLength;
 };
 
-kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferTwo [[buffer(2)]], device type_AppendStructuredBuffer_CollisionResultData& CollisionResultBuffer [[buffer(3)]], device type_ACSBuffer_counter& counter_var_CollisionResultBuffer [[buffer(4)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultOneBuffer [[buffer(3)]], device type_RWByteAddressBuffer& CollisionResultTwoBuffer [[buffer(4)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
+    threadgroup uint collisionResultBufferIndex;
     do
     {
-        bool _62;
-        if (!(gl_GlobalInvocationID.x >= uint(UniformBlock.CollderShapeBufferOneLength)))
+        bool _56;
+        if (gl_GlobalInvocationID.x == 0u)
         {
-            _62 = gl_GlobalInvocationID.y >= uint(UniformBlock.CollderShapeBufferTwoLength);
+            _56 = gl_GlobalInvocationID.y == 0u;
         }
         else
         {
-            _62 = true;
+            _56 = false;
         }
-        if (_62)
+        if (_56)
+        {
+            collisionResultBufferIndex = 0u;
+        }
+        bool _70;
+        if (!(gl_GlobalInvocationID.x >= uint(UniformBlock.CollderShapeBufferOneLength)))
+        {
+            _70 = gl_GlobalInvocationID.y >= uint(UniformBlock.CollderShapeBufferTwoLength);
+        }
+        else
+        {
+            _70 = true;
+        }
+        if (_70)
         {
             break;
         }
-        ColliderShapeData _66 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
-        ColliderShapeData _72 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
-        float2 _78 = fast::normalize(_72.Center - _66.Center);
-        float2 _80;
-        _80 = _66.Center;
-        float2 _81;
+        ColliderShapeData _74 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
+        ColliderShapeData _80 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
+        float2 _86 = fast::normalize(_80.Center - _74.Center);
+        float2 _88;
+        _88 = _74.Center;
+        float2 _89;
+        bool _206;
         for (;;)
         {
-            float _132;
+            float _140;
             do
             {
-                float2 _87 = _80 - _66.Center;
-                if (_66.Type == 0u)
+                float2 _95 = _88 - _74.Center;
+                if (_74.Type == 0u)
                 {
-                    _132 = length(_87) - _66.Fields.x;
+                    _140 = length(_95) - _74.Fields.x;
                     break;
                 }
                 else
                 {
-                    if (_66.Type == 1u)
+                    if (_74.Type == 1u)
                     {
-                        float2 _103 = float2(cos(_66.Fields.x), sin(_66.Fields.x));
-                        float2 _104 = _103 * _66.Fields.y;
-                        float2 _106 = (-_103) * _66.Fields.y;
-                        float2 _107 = _106 - _104;
-                        float _108 = length(_107);
-                        float2 _110 = _107 / float2(_108);
-                        float _115 = _110.y;
-                        float2 _124 = abs((_87 - ((_104 + _106) * 0.5)) * float2x2(float2(_110.x, -_115), float2(_115, _110.x))) - (float2(_108, _66.Fields.z) * 0.5);
-                        _132 = length(precise::max(_124, float2(0.0))) + precise::min(precise::max(_124.x, _124.y), 0.0);
+                        float2 _111 = float2(cos(_74.Fields.x), sin(_74.Fields.x));
+                        float2 _112 = _111 * _74.Fields.y;
+                        float2 _114 = (-_111) * _74.Fields.y;
+                        float2 _115 = _114 - _112;
+                        float _116 = length(_115);
+                        float2 _118 = _115 / float2(_116);
+                        float _123 = _118.y;
+                        float2 _132 = abs((_95 - ((_112 + _114) * 0.5)) * float2x2(float2(_118.x, -_123), float2(_123, _118.x))) - (float2(_116, _74.Fields.z) * 0.5);
+                        _140 = length(precise::max(_132, float2(0.0))) + precise::min(precise::max(_132.x, _132.y), 0.0);
                         break;
                     }
                 }
-                _132 = 0.0;
+                _140 = 0.0;
                 break;
             } while(false);
-            if (_132 < 0.0)
+            if (_140 < 0.0)
             {
-                float _182;
+                float _190;
                 do
                 {
-                    float2 _137 = _80 - _72.Center;
-                    if (_72.Type == 0u)
+                    float2 _145 = _88 - _80.Center;
+                    if (_80.Type == 0u)
                     {
-                        _182 = length(_137) - _72.Fields.x;
+                        _190 = length(_145) - _80.Fields.x;
                         break;
                     }
                     else
                     {
-                        if (_72.Type == 1u)
+                        if (_80.Type == 1u)
                         {
-                            float2 _153 = float2(cos(_72.Fields.x), sin(_72.Fields.x));
-                            float2 _154 = _153 * _72.Fields.y;
-                            float2 _156 = (-_153) * _72.Fields.y;
-                            float2 _157 = _156 - _154;
-                            float _158 = length(_157);
-                            float2 _160 = _157 / float2(_158);
-                            float _165 = _160.y;
-                            float2 _174 = abs((_137 - ((_154 + _156) * 0.5)) * float2x2(float2(_160.x, -_165), float2(_165, _160.x))) - (float2(_158, _72.Fields.z) * 0.5);
-                            _182 = length(precise::max(_174, float2(0.0))) + precise::min(precise::max(_174.x, _174.y), 0.0);
+                            float2 _161 = float2(cos(_80.Fields.x), sin(_80.Fields.x));
+                            float2 _162 = _161 * _80.Fields.y;
+                            float2 _164 = (-_161) * _80.Fields.y;
+                            float2 _165 = _164 - _162;
+                            float _166 = length(_165);
+                            float2 _168 = _165 / float2(_166);
+                            float _173 = _168.y;
+                            float2 _182 = abs((_145 - ((_162 + _164) * 0.5)) * float2x2(float2(_168.x, -_173), float2(_173, _168.x))) - (float2(_166, _80.Fields.z) * 0.5);
+                            _190 = length(precise::max(_182, float2(0.0))) + precise::min(precise::max(_182.x, _182.y), 0.0);
                             break;
                         }
                     }
-                    _182 = 0.0;
+                    _190 = 0.0;
                     break;
                 } while(false);
-                if (_182 > 0.0)
+                if (_190 < 0.0)
                 {
-                    int _187 = atomic_fetch_add_explicit((device atomic_int*)&counter_var_CollisionResultBuffer.counter, 1, memory_order_relaxed);
-                    CollisionResultBuffer._m0[_187] = CollisionResultData{ _66.ColliderIndex, _72.ColliderIndex };
+                    uint _198 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultOneBuffer._m0[collisionResultBufferIndex >> 2u], uint(_74.ColliderIndex), memory_order_relaxed);
+                    uint _203 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultTwoBuffer._m0[collisionResultBufferIndex >> 2u], uint(_80.ColliderIndex), memory_order_relaxed);
+                    uint _204 = atomic_fetch_add_explicit((threadgroup atomic_uint*)&collisionResultBufferIndex, 1u, memory_order_relaxed);
+                    _206 = true;
+                    break;
                 }
-                _81 = _80 + (_78 * _182);
-                _80 = _81;
+                _89 = _88 + (_86 * _190);
+                _88 = _89;
                 continue;
             }
             else
             {
+                _206 = false;
                 break;
             }
+        }
+        if (_206)
+        {
+            break;
         }
         break;
     } while(false);
