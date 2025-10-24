@@ -64,7 +64,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
         }
         ColliderShapeData _74 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
         ColliderShapeData _80 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
-        float2 _86 = fast::normalize(_80.Center - _74.Center);
+        float2 _86 = fast::normalize(_74.Center - _80.Center);
         float2 _88;
         _88 = _74.Center;
         float2 _89;
@@ -74,7 +74,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             float _140;
             do
             {
-                float2 _95 = _88 - _74.Center;
+                float2 _95 = _74.Center - _88;
                 if (_74.Type == 0u)
                 {
                     _140 = length(_95) - _74.Fields.x;
@@ -104,7 +104,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                 float _190;
                 do
                 {
-                    float2 _145 = _88 - _80.Center;
+                    float2 _145 = _80.Center - _88;
                     if (_80.Type == 0u)
                     {
                         _190 = length(_145) - _80.Fields.x;

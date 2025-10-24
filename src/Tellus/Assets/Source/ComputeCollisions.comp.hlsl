@@ -83,7 +83,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     ColliderShapeData colliderShapeDataTwo = ColliderShapeBufferTwo[y];
     
     float2 scanPoint = colliderShapeDataOne.Center;
-    float2 scanDirection = normalize(colliderShapeDataTwo.Center - colliderShapeDataOne.Center);
+    float2 scanDirection = normalize(colliderShapeDataOne.Center - colliderShapeDataTwo.Center);
     
     while (distanceFromShapeData(colliderShapeDataOne, scanPoint) < 0)
     {

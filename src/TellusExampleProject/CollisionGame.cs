@@ -11,7 +11,7 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace TellusExampleProject;
 
-internal class ColliderTest : IHasColliderShapes
+internal class ColliderTestCircle : IHasColliderShapes
 {
     public Vector2 Center;
     public float Radius;
@@ -33,8 +33,8 @@ internal class CollisionGame : Game
     private readonly CollisionHandler _collisionHandler;
     private readonly SpriteBatch _spriteBatch;
 
-    private ColliderTest _colliderTest1;
-    private ColliderTest _colliderTest2;
+    private ColliderTestCircle _colliderTest1;
+    private ColliderTestCircle _colliderTest2;
 
     private readonly Texture _spriteTexture;
     private Texture _depthTexture;
@@ -56,14 +56,14 @@ internal class CollisionGame : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        _colliderTest1 = new ColliderTest()
+        _colliderTest1 = new ColliderTestCircle()
         {
             Center = new Vector2(0, 0),
             Radius = 5
         };
-        _colliderTest2 = new ColliderTest()
+        _colliderTest2 = new ColliderTestCircle()
         {
-            Center = new Vector2(2, 0),
+            Center = new Vector2(30, 0),
             Radius = 5
         };
 
@@ -87,11 +87,12 @@ internal class CollisionGame : Game
     protected override void Update(TimeSpan delta)
     {
         var collisionResults = _collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
-        /*foreach (var collisionResult in collisionResults)
+        foreach (var collisionResult in collisionResults)
         {
-            Logger.LogInfo($"{collisionResult.Item1} {collisionResult.Item2}");
-        }*/
-        Logger.LogInfo(collisionResults.Count.ToString());
+            ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
+            ColliderTestCircle item2 = (ColliderTestCircle)collisionResult.Item2;
+            Logger.LogInfo($"{item1.Center} {item1.Radius}; {item2.Center} {item2.Radius}");
+        }
     }
 
     protected override void Draw(double alpha)
