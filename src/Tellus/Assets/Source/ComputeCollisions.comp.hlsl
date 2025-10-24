@@ -10,7 +10,6 @@ struct CollisionResultData
 {
     int ColliderIndexOne;
     int ColliderIndexTwo;
-    float2 CollisionResultInformation;
 };
 
 StructuredBuffer<ColliderShapeData> ColliderShapeBufferOne : register(t0, space0);
@@ -80,6 +79,10 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
     ColliderShapeData colliderShapeDataOne = ColliderShapeBufferOne[x];
     ColliderShapeData colliderShapeDataTwo = ColliderShapeBufferTwo[y];
+    
+    CollisionResultData resultData = (CollisionResultData)0;
+    resultData.ColliderIndexOne = colliderShapeDataOne.ColliderIndex;
+    resultData.ColliderIndexTwo = colliderShapeDataTwo.ColliderIndex;
         
     float2 scanPoint = colliderShapeDataOne.Center;
     float2 scanDirection = normalize(colliderShapeDataTwo.Center - colliderShapeDataOne.Center);
@@ -90,6 +93,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         if (distanceFromShapeTwo > 0)
         {
             // add to buffer to report success
+            CollisionResultBuffer.Append(resultData);
+
         }
         scanPoint += scanDirection * distanceFromShapeTwo;
     }

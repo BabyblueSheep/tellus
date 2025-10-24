@@ -30,7 +30,7 @@ public sealed class CollisionHandler : GraphicsResource
         public Vector3 Fields;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     private struct CollisionResultData
     {
         [FieldOffset(0)]
@@ -38,9 +38,6 @@ public sealed class CollisionHandler : GraphicsResource
 
         [FieldOffset(4)]
         public uint ColliderIndexTwo;
-
-        [FieldOffset(8)]
-        public Vector2 CollisionResultInformation;
     }
 
     private readonly ComputePipeline _computePipeline;
@@ -61,7 +58,8 @@ public sealed class CollisionHandler : GraphicsResource
     {
         Utils.LoadShaderFromManifest(Device, "Assets.ComputeCollisions.comp", new ComputePipelineCreateInfo()
         {
-            NumReadonlyStorageBuffers = 3,
+            NumReadonlyStorageBuffers = 2,
+            NumReadWriteStorageBuffers = 1,
             NumUniformBuffers = 1,
             ThreadCountX = 16,
             ThreadCountY = 16,
