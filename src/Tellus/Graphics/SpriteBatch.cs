@@ -83,6 +83,13 @@ public sealed class SpriteBatch : GraphicsResource
         public Vector4 TextureSourceRectangle;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ComputeUniforms
+    {
+        public Matrix4x4 TransformationMatrix;
+        public Vector2 TextureSize;
+    }
+
     private readonly ComputePipeline _computePipeline;
 
     private readonly TransferBuffer _instanceTransferBuffer;
@@ -101,11 +108,10 @@ public sealed class SpriteBatch : GraphicsResource
     private Shader? _savedFragmentShader;
     private Matrix4x4 _savedTransformationMatrix;
 
+    private ComputeUniforms _computeUniforms;
+
     private readonly Shader _defaultVertexShader;
     private readonly Shader _defaultFragmentShader;
-
-    record struct SpriteBatchComputeUniforms(Vector2 TextureSize);
-    private SpriteBatchComputeUniforms _spriteBatchComputeUniforms;
 
     private List<Texture> _drawOperationTextures;
     private List<DrawOperation> _drawOperations;
@@ -317,10 +323,11 @@ public sealed class SpriteBatch : GraphicsResource
             (
                 new StorageBufferReadWriteBinding(_vertexBuffer, true)
             );
-            _spriteBatchComputeUniforms.TextureSize = new Vector2(textureToSample.Width, textureToSample.Height);
+            _computeUniforms.TextureSize = new Vector2(textureToSample.Width, textureToSample.Height);
+
             lastComputePass.BindComputePipeline(_computePipeline);
             lastComputePass.BindStorageBuffers(_instanceBuffer);
-            commandBuffer.PushComputeUniformData(_spriteBatchComputeUniforms);
+            commandBuffer.PushComputeUniformData(_computeUniforms);
             lastComputePass.Dispatch((spriteAmount + 63) / 64, 1, 1);
             commandBuffer.EndComputePass(lastComputePass);
 
@@ -377,6 +384,8 @@ public sealed class SpriteBatch : GraphicsResource
                 _drawOperations = _drawOperations.OrderByDescending(x => x.Depth).ToList();
                 break;
         }
+
+        _computeUniforms.TransformationMatrix = _savedTransformationMatrix;
         #endregion
 
         #region Render

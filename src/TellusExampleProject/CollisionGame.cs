@@ -1,7 +1,9 @@
 ﻿using MoonWorks;
 using MoonWorks.Graphics;
+using MoonWorks.Input;
 using MoonWorks.Storage;
 using System.Drawing;
+using System.Net.Http.Headers;
 using System.Numerics;
 using Tellus.Collision;
 using Tellus.Graphics;
@@ -13,6 +15,8 @@ namespace TellusExampleProject;
 
 internal class ColliderTestCircle : IHasColliderShapes
 {
+    public bool CollidedThisFrame;
+
     public Vector2 Center;
     public float Radius;
 
@@ -36,7 +40,7 @@ internal class CollisionGame : Game
     private ColliderTestCircle _colliderTest1;
     private ColliderTestCircle _colliderTest2;
 
-    private readonly Texture _spriteTexture;
+    private readonly Texture _circleSprite;
     private Texture _depthTexture;
 
     public CollisionGame
@@ -59,21 +63,21 @@ internal class CollisionGame : Game
         _colliderTest1 = new ColliderTestCircle()
         {
             Center = new Vector2(0, 0),
-            Radius = 5
+            Radius = 128
         };
         _colliderTest2 = new ColliderTestCircle()
         {
-            Center = new Vector2(15, 0),
-            Radius = 5
+            Center = new Vector2(120, 50),
+            Radius = 256
         };
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
 
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 
-        _spriteTexture = resourceUploader.CreateTexture2DFromCompressed(
+        _circleSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "Assets/image1.png",
+            "Assets/image_circle.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -86,12 +90,21 @@ internal class CollisionGame : Game
 
     protected override void Update(TimeSpan delta)
     {
+        _colliderTest1.CollidedThisFrame = false;
+        _colliderTest2.CollidedThisFrame = false;
+
+        _colliderTest1.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
+
         var collisionResults = _collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
         foreach (var collisionResult in collisionResults)
         {
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
             ColliderTestCircle item2 = (ColliderTestCircle)collisionResult.Item2;
-            Logger.LogInfo($"{item1.Center} {item1.Radius}; {item2.Center} {item2.Radius}");
+
+            Logger.LogInfo($"{item1.Radius}");
+
+            item1.CollidedThisFrame = true;
+            item2.CollidedThisFrame = true;
         }
     }
 
@@ -127,14 +140,26 @@ internal class CollisionGame : Game
 
             _spriteBatch.Draw
             (
-                _spriteTexture,
-                new Vector2(0, 0),
-                new Rectangle(0, 0, 8, 8),
-                new Vector2(350, 200),
+                _circleSprite,
+                new Vector2(_colliderTest1.Radius),
+                new Rectangle(0, 0, 64, 64),
+                _colliderTest1.Center,
                 0,
-                new Vector2(128, 128),
-                Color.Red,
-                0.3f
+                new Vector2(_colliderTest1.Radius * 2),
+                _colliderTest1.CollidedThisFrame ? Color.Red : Color.White,
+                0.5f
+            );
+
+            _spriteBatch.Draw
+            (
+                _circleSprite,
+                new Vector2(_colliderTest2.Radius),
+                new Rectangle(0, 0, 64, 64),
+                _colliderTest2.Center,
+                0,
+                new Vector2(_colliderTest2.Radius * 2),
+                Color.White,
+                1f
             );
 
             _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);

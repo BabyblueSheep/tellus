@@ -9,5 +9,5 @@ struct Input
 
 float4 main(Input input) : SV_Target0
 {
-    return input.Color * Texture.Sample(Sampler, input.TexCoord);
+    return input.Color + Texture.Sample(Sampler, input.TexCoord);
 }

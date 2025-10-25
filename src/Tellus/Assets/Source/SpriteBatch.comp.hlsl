@@ -20,7 +20,8 @@ RWStructuredBuffer<SpriteVertexData> VertexBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    float2 TextureSize : packoffset(c0);
+    float4x4 TransformationMatrix : packoffset(c0);
+    float2 TextureSize : packoffset(c4);
 };
 
 [numthreads(64, 1, 1)]
@@ -58,21 +59,29 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float4(1.0f, 0.0f, 0.0f, 0.0f),
         float4(0.0f, 1.0f, 0.0f, 0.0f),
         float4(0.0f, 0.0f, 1.0f, 0.0f),
+        float4(currentSpriteData.TextureOrigin.x, currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
+    );
+    
+    float4x4 ReverseOffsetTranslation = float4x4(
+        float4(1.0f, 0.0f, 0.0f, 0.0f),
+        float4(0.0f, 1.0f, 0.0f, 0.0f),
+        float4(0.0f, 0.0f, 1.0f, 0.0f),
         float4(-currentSpriteData.TextureOrigin.x, -currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
     );
 
-    float4x4 Model = mul(Scale, mul(OffsetTranslation, mul(Rotation, Translation)));
+    float4x4 Model = mul(Scale, mul(ReverseOffsetTranslation, mul(Rotation, Translation)));
+    Model = mul(TransformationMatrix, Model);
 
     float4 topLeft = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float4 topRight = float4(1.0f, 0.0f, 0.0f, 1.0f);
     float4 bottomLeft = float4(0.0f, 1.0f, 0.0f, 1.0f);
     float4 bottomRight = float4(1.0f, 1.0f, 0.0f, 1.0f);
 
-	VertexBuffer[n * 4u].Position = mul(topLeft, Model);
-	VertexBuffer[n * 4u + 1].Position = mul(topRight, Model);
-	VertexBuffer[n * 4u + 2].Position = mul(bottomLeft, Model);
-	VertexBuffer[n * 4u + 3].Position = mul(bottomRight, Model);
-
+    VertexBuffer[n * 4u + 0].Position = mul(topLeft, Model);
+    VertexBuffer[n * 4u + 1].Position = mul(topRight, Model);
+    VertexBuffer[n * 4u + 2].Position = mul(bottomLeft, Model);
+    VertexBuffer[n * 4u + 3].Position = mul(bottomRight, Model);
+    
     float2 textureTopLeft = float2(currentSpriteData.TextureSourceRectangle.x, currentSpriteData.TextureSourceRectangle.y);
     textureTopLeft = textureTopLeft / TextureSize;
     float2 textureTopRight = float2(currentSpriteData.TextureSourceRectangle.x + currentSpriteData.TextureSourceRectangle.z, currentSpriteData.TextureSourceRectangle.y);
@@ -82,12 +91,12 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     float2 textureBottomRight = float2(currentSpriteData.TextureSourceRectangle.x + currentSpriteData.TextureSourceRectangle.z, currentSpriteData.TextureSourceRectangle.y + currentSpriteData.TextureSourceRectangle.w);
     textureBottomRight = textureBottomRight / TextureSize;
     
-    VertexBuffer[n * 4u].TextureCoordinate = textureTopLeft;
+    VertexBuffer[n * 4u + 0].TextureCoordinate = textureTopLeft;
     VertexBuffer[n * 4u + 1].TextureCoordinate = textureTopRight;
     VertexBuffer[n * 4u + 2].TextureCoordinate = textureBottomLeft;
     VertexBuffer[n * 4u + 3].TextureCoordinate = textureBottomRight;
 
-    VertexBuffer[n * 4u]    .Color = currentSpriteData.Color;
+    VertexBuffer[n * 4u + 0].Color = currentSpriteData.Color;
     VertexBuffer[n * 4u + 1].Color = currentSpriteData.Color;
     VertexBuffer[n * 4u + 2].Color = currentSpriteData.Color;
     VertexBuffer[n * 4u + 3].Color = currentSpriteData.Color;

@@ -16,8 +16,8 @@ cbuffer UniformBlock : register(b0, space2)
     uint ColliderShapeBufferTwoLength;
 };
 
-#define CIRCLE_TYPE 0
-#define RECTANGLE_TYPE 1
+#define CIRCLE_TYPE 1
+#define RECTANGLE_TYPE 2
 
 // https://iquilezles.org/articles/distfunctions2d/
 // Rewritten for readability (I'm not sure if that's gonna help, though...)
@@ -84,14 +84,15 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float distanceToShapeOne = distanceFromShapeData(colliderShapeDataOne, scanPoint);
         float distanceToShapeTwo = distanceFromShapeData(colliderShapeDataTwo, scanPoint);
         
-        if (distanceToShapeOne >= 0.001)
+        if (distanceToShapeOne > 0.001)
         {
             break;
         }
-        if (distanceToShapeTwo <= 0.001)
+        if (distanceToShapeTwo < -0.001)
         {
-            uint addressBytes = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
-            CollisionResultBuffer.Store(addressBytes * 4, 1);
+            uint index = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
+            uint _ = 0;
+            CollisionResultBuffer.InterlockedAdd(index * 4, 1, _);
             return;
         }
     
@@ -108,14 +109,15 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float distanceToShapeOne = distanceFromShapeData(colliderShapeDataOne, scanPoint);
         float distanceToShapeTwo = distanceFromShapeData(colliderShapeDataTwo, scanPoint);
         
-        if (distanceToShapeTwo >= 0.001)
+        if (distanceToShapeTwo > 0.001)
         {
             break;
         }
-        if (distanceToShapeOne <= 0.001)
+        if (distanceToShapeOne < -0.001)
         {
-            uint addressBytes = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
-            CollisionResultBuffer.Store(addressBytes * 4, 1);
+            uint index = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
+            uint _ = 0;
+            CollisionResultBuffer.InterlockedAdd(index * 4, 1, _);
             return;
         }
     

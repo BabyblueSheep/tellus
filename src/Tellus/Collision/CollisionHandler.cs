@@ -14,7 +14,7 @@ namespace Tellus.Collision;
 
 public sealed class CollisionHandler : GraphicsResource
 {
-    [StructLayout(LayoutKind.Explicit, Size = 28)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     private struct ColliderShapeData
     {
         [FieldOffset(0)]
@@ -113,7 +113,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         uint MapGroupToBuffer(List<IHasColliderShapes> group)
         {
-            var uploadColliderShapes = _colliderShapesTransferBuffer.Map<ColliderShapeData>(true);
+            var uploadColliderShapes = _colliderShapesTransferBuffer.Map<ColliderShapeData>(false);
             int index = 0;
             for (int i = 0; i < group.Count; i++)
             {
@@ -122,13 +122,13 @@ public sealed class CollisionHandler : GraphicsResource
                     uploadColliderShapes[index].ColliderIndex = (uint)i;
                     if (colliderShape is CircleCollider circleColliderShape)
                     {
-                        uploadColliderShapes[index].Type = 0;
+                        uploadColliderShapes[index].Type = 1;
                         uploadColliderShapes[index].Center = circleColliderShape.Center;
                         uploadColliderShapes[index].Fields = new Vector3(circleColliderShape.Radius, 0, 0);
                     }
                     else if (colliderShape is RectangleCollider rectangleCollider)
                     {
-                        uploadColliderShapes[index].Type = 1;
+                        uploadColliderShapes[index].Type = 2;
                         uploadColliderShapes[index].Center = rectangleCollider.Center;
                         uploadColliderShapes[index].Fields = new Vector3(rectangleCollider.Angle, rectangleCollider.SideHalfLength, rectangleCollider.SideHalfWidth);
                     }
@@ -142,24 +142,24 @@ public sealed class CollisionHandler : GraphicsResource
         }
 
         var collisionResultCopyPass = commandBuffer.BeginCopyPass();
-        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBuffer, true);
+        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBuffer, false);
         commandBuffer.EndCopyPass(collisionResultCopyPass);
 
         _collisionComputeUniforms.ColliderShapeBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne);
 
         var bufferOneCopyPass = commandBuffer.BeginCopyPass();
-        bufferOneCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferOne, true);
+        bufferOneCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferOne, false);
         commandBuffer.EndCopyPass(bufferOneCopyPass);
 
         _collisionComputeUniforms.ColliderShapeBufferTwoLength = MapGroupToBuffer(colliderShapesGroupTwo);
 
         var bufferTwoCopyPass = commandBuffer.BeginCopyPass();
-        bufferTwoCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferTwo, true);
+        bufferTwoCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferTwo, false);
         commandBuffer.EndCopyPass(bufferTwoCopyPass);
 
         var computePass = commandBuffer.BeginComputePass
         (
-            new StorageBufferReadWriteBinding(_collisionResultsBuffer, false)
+            new StorageBufferReadWriteBinding(_collisionResultsBuffer)
         );
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_colliderShapesBufferOne, _colliderShapesBufferTwo);
@@ -175,7 +175,7 @@ public sealed class CollisionHandler : GraphicsResource
         Device.WaitForFence(fence);
         Device.ReleaseFence(fence);
 
-        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(true);
+        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(false);
 
         List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
         List<(int, int)> resultIndexList = [];
