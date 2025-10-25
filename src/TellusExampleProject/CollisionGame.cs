@@ -63,7 +63,7 @@ internal class CollisionGame : Game
         };
         _colliderTest2 = new ColliderTestCircle()
         {
-            Center = new Vector2(30, 0),
+            Center = new Vector2(15, 0),
             Radius = 5
         };
 

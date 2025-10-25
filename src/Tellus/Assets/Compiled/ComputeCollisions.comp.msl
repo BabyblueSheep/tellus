@@ -1,14 +1,11 @@
-#pragma clang diagnostic ignored "-Wunused-variable"
-
 #include <metal_stdlib>
 #include <simd/simd.h>
-#include <metal_atomic>
 
 using namespace metal;
 
 struct ColliderShapeData
 {
-    int ColliderIndex;
+    uint ColliderIndex;
     uint Type;
     float2 Center;
     float3 Fields;
@@ -26,128 +23,214 @@ struct type_RWByteAddressBuffer
 
 struct type_UniformBlock
 {
-    int ColliderShapeBufferOneLength;
-    char _m1_pad[12];
-    int ColliderShapeBufferTwoLength;
+    uint ColliderShapeBufferOneLength;
+    uint ColliderShapeBufferTwoLength;
 };
 
-kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultOneBuffer [[buffer(3)]], device type_RWByteAddressBuffer& CollisionResultTwoBuffer [[buffer(4)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ColliderShapeBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(3)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
-    threadgroup uint collisionResultBufferIndex;
     do
     {
-        bool _56;
-        if (gl_GlobalInvocationID.x == 0u)
+        bool _61;
+        if (!(gl_GlobalInvocationID.x >= UniformBlock.ColliderShapeBufferOneLength))
         {
-            _56 = gl_GlobalInvocationID.y == 0u;
+            _61 = gl_GlobalInvocationID.y >= UniformBlock.ColliderShapeBufferTwoLength;
         }
         else
         {
-            _56 = false;
+            _61 = true;
         }
-        if (_56)
-        {
-            collisionResultBufferIndex = 0u;
-        }
-        bool _70;
-        if (!(gl_GlobalInvocationID.x >= uint(UniformBlock.ColliderShapeBufferOneLength)))
-        {
-            _70 = gl_GlobalInvocationID.y >= uint(UniformBlock.ColliderShapeBufferTwoLength);
-        }
-        else
-        {
-            _70 = true;
-        }
-        if (_70)
+        if (_61)
         {
             break;
         }
-        ColliderShapeData _74 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
-        ColliderShapeData _80 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
-        float2 _86 = fast::normalize(_74.Center - _80.Center);
-        float2 _88;
-        _88 = _74.Center;
-        float2 _89;
-        bool _206;
+        ColliderShapeData _65 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
+        ColliderShapeData _71 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
+        float2 _77 = fast::normalize(_71.Center - _65.Center);
+        float2 _79;
+        _79 = _65.Center;
+        float2 _80;
+        int _83;
+        bool _195;
+        int _82 = 0;
         for (;;)
         {
-            float _140;
-            do
+            if (_82 < 32)
             {
-                float2 _95 = _74.Center - _88;
-                if (_74.Type == 0u)
-                {
-                    _140 = length(_95) - _74.Fields.x;
-                    break;
-                }
-                else
-                {
-                    if (_74.Type == 1u)
-                    {
-                        float2 _111 = float2(cos(_74.Fields.x), sin(_74.Fields.x));
-                        float2 _112 = _111 * _74.Fields.y;
-                        float2 _114 = (-_111) * _74.Fields.y;
-                        float2 _115 = _114 - _112;
-                        float _116 = length(_115);
-                        float2 _118 = _115 / float2(_116);
-                        float _123 = _118.y;
-                        float2 _132 = abs((_95 - ((_112 + _114) * 0.5)) * float2x2(float2(_118.x, -_123), float2(_123, _118.x))) - (float2(_116, _74.Fields.z) * 0.5);
-                        _140 = length(precise::max(_132, float2(0.0))) + precise::min(precise::max(_132.x, _132.y), 0.0);
-                        break;
-                    }
-                }
-                _140 = 0.0;
-                break;
-            } while(false);
-            if (_140 < 0.0)
-            {
-                float _190;
+                float _134;
                 do
                 {
-                    float2 _145 = _80.Center - _88;
-                    if (_80.Type == 0u)
+                    float2 _89 = _79 - _65.Center;
+                    if (_65.Type == 0u)
                     {
-                        _190 = length(_145) - _80.Fields.x;
+                        _134 = length(_89) - _65.Fields.x;
                         break;
                     }
                     else
                     {
-                        if (_80.Type == 1u)
+                        if (_65.Type == 1u)
                         {
-                            float2 _161 = float2(cos(_80.Fields.x), sin(_80.Fields.x));
-                            float2 _162 = _161 * _80.Fields.y;
-                            float2 _164 = (-_161) * _80.Fields.y;
-                            float2 _165 = _164 - _162;
-                            float _166 = length(_165);
-                            float2 _168 = _165 / float2(_166);
-                            float _173 = _168.y;
-                            float2 _182 = abs((_145 - ((_162 + _164) * 0.5)) * float2x2(float2(_168.x, -_173), float2(_173, _168.x))) - (float2(_166, _80.Fields.z) * 0.5);
-                            _190 = length(precise::max(_182, float2(0.0))) + precise::min(precise::max(_182.x, _182.y), 0.0);
+                            float2 _105 = float2(cos(_65.Fields.x), sin(_65.Fields.x));
+                            float2 _106 = _105 * _65.Fields.y;
+                            float2 _108 = (-_105) * _65.Fields.y;
+                            float2 _109 = _108 - _106;
+                            float _110 = length(_109);
+                            float2 _112 = _109 / float2(_110);
+                            float _117 = _112.y;
+                            float2 _126 = abs((_89 - ((_106 + _108) * 0.5)) * float2x2(float2(_112.x, -_117), float2(_117, _112.x))) - (float2(_110, _65.Fields.z) * 0.5);
+                            _134 = length(precise::max(_126, float2(0.0))) + precise::min(precise::max(_126.x, _126.y), 0.0);
                             break;
                         }
                     }
-                    _190 = 0.0;
+                    _134 = 0.0;
                     break;
                 } while(false);
-                if (_190 < 0.0)
+                float _182;
+                do
                 {
-                    uint _198 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultOneBuffer._m0[collisionResultBufferIndex >> 2u], uint(_74.ColliderIndex), memory_order_relaxed);
-                    uint _203 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultTwoBuffer._m0[collisionResultBufferIndex >> 2u], uint(_80.ColliderIndex), memory_order_relaxed);
-                    uint _204 = atomic_fetch_add_explicit((threadgroup atomic_uint*)&collisionResultBufferIndex, 1u, memory_order_relaxed);
-                    _206 = true;
+                    float2 _137 = _79 - _71.Center;
+                    if (_71.Type == 0u)
+                    {
+                        _182 = length(_137) - _71.Fields.x;
+                        break;
+                    }
+                    else
+                    {
+                        if (_71.Type == 1u)
+                        {
+                            float2 _153 = float2(cos(_71.Fields.x), sin(_71.Fields.x));
+                            float2 _154 = _153 * _71.Fields.y;
+                            float2 _156 = (-_153) * _71.Fields.y;
+                            float2 _157 = _156 - _154;
+                            float _158 = length(_157);
+                            float2 _160 = _157 / float2(_158);
+                            float _165 = _160.y;
+                            float2 _174 = abs((_137 - ((_154 + _156) * 0.5)) * float2x2(float2(_160.x, -_165), float2(_165, _160.x))) - (float2(_158, _71.Fields.z) * 0.5);
+                            _182 = length(precise::max(_174, float2(0.0))) + precise::min(precise::max(_174.x, _174.y), 0.0);
+                            break;
+                        }
+                    }
+                    _182 = 0.0;
+                    break;
+                } while(false);
+                if (_134 >= 0.001000000047497451305389404296875)
+                {
+                    _195 = false;
                     break;
                 }
-                _89 = _88 + (_86 * _190);
-                _88 = _89;
+                if (_182 <= 0.001000000047497451305389404296875)
+                {
+                    CollisionResultBuffer._m0[(((_71.ColliderIndex * 100u) + _65.ColliderIndex) * 4u) >> 2u] = 1u;
+                    _195 = true;
+                    break;
+                }
+                _80 = _79 + (_77 * _182);
+                _83 = _82 + 1;
+                _79 = _80;
+                _82 = _83;
                 continue;
             }
             else
             {
-                _206 = false;
+                _195 = false;
                 break;
             }
         }
-        if (_206)
+        if (_195)
+        {
+            break;
+        }
+        float2 _198 = fast::normalize(_65.Center - _71.Center);
+        float2 _200;
+        _200 = _71.Center;
+        float2 _201;
+        int _204;
+        bool _316;
+        int _203 = 0;
+        for (;;)
+        {
+            if (_203 < 32)
+            {
+                float _255;
+                do
+                {
+                    float2 _210 = _200 - _65.Center;
+                    if (_65.Type == 0u)
+                    {
+                        _255 = length(_210) - _65.Fields.x;
+                        break;
+                    }
+                    else
+                    {
+                        if (_65.Type == 1u)
+                        {
+                            float2 _226 = float2(cos(_65.Fields.x), sin(_65.Fields.x));
+                            float2 _227 = _226 * _65.Fields.y;
+                            float2 _229 = (-_226) * _65.Fields.y;
+                            float2 _230 = _229 - _227;
+                            float _231 = length(_230);
+                            float2 _233 = _230 / float2(_231);
+                            float _238 = _233.y;
+                            float2 _247 = abs((_210 - ((_227 + _229) * 0.5)) * float2x2(float2(_233.x, -_238), float2(_238, _233.x))) - (float2(_231, _65.Fields.z) * 0.5);
+                            _255 = length(precise::max(_247, float2(0.0))) + precise::min(precise::max(_247.x, _247.y), 0.0);
+                            break;
+                        }
+                    }
+                    _255 = 0.0;
+                    break;
+                } while(false);
+                float _303;
+                do
+                {
+                    float2 _258 = _200 - _71.Center;
+                    if (_71.Type == 0u)
+                    {
+                        _303 = length(_258) - _71.Fields.x;
+                        break;
+                    }
+                    else
+                    {
+                        if (_71.Type == 1u)
+                        {
+                            float2 _274 = float2(cos(_71.Fields.x), sin(_71.Fields.x));
+                            float2 _275 = _274 * _71.Fields.y;
+                            float2 _277 = (-_274) * _71.Fields.y;
+                            float2 _278 = _277 - _275;
+                            float _279 = length(_278);
+                            float2 _281 = _278 / float2(_279);
+                            float _286 = _281.y;
+                            float2 _295 = abs((_258 - ((_275 + _277) * 0.5)) * float2x2(float2(_281.x, -_286), float2(_286, _281.x))) - (float2(_279, _71.Fields.z) * 0.5);
+                            _303 = length(precise::max(_295, float2(0.0))) + precise::min(precise::max(_295.x, _295.y), 0.0);
+                            break;
+                        }
+                    }
+                    _303 = 0.0;
+                    break;
+                } while(false);
+                if (_303 >= 0.001000000047497451305389404296875)
+                {
+                    _316 = _195;
+                    break;
+                }
+                if (_255 <= 0.001000000047497451305389404296875)
+                {
+                    CollisionResultBuffer._m0[(((_71.ColliderIndex * 100u) + _65.ColliderIndex) * 4u) >> 2u] = 1u;
+                    _316 = true;
+                    break;
+                }
+                _201 = _200 + (_198 * _255);
+                _204 = _203 + 1;
+                _200 = _201;
+                _203 = _204;
+                continue;
+            }
+            else
+            {
+                _316 = _195;
+                break;
+            }
+        }
+        if (_316)
         {
             break;
         }

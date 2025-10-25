@@ -18,7 +18,7 @@ public sealed class CollisionHandler : GraphicsResource
     private struct ColliderShapeData
     {
         [FieldOffset(0)]
-        public int ColliderIndex;
+        public uint ColliderIndex;
 
         [FieldOffset(4)]
         public uint Type;
@@ -38,12 +38,9 @@ public sealed class CollisionHandler : GraphicsResource
 
     private readonly TransferBuffer _collisionResultsTransferUploadBuffer;
     private readonly TransferBuffer _collisionResultsTransferDownloadBuffer;
-    private readonly Buffer _collisionResultsBufferOne;
-    private readonly Buffer _collisionResultsBufferTwo;
-    private readonly int[] _defaultCollisionResults;
-    private readonly int[] _collisionResultTransition;
+    private readonly Buffer _collisionResultsBuffer;
 
-    record struct CollisionComputeUniforms(int ColliderShapeBufferOneLength, int ColliderShapeBufferTwoLength);
+    record struct CollisionComputeUniforms(uint ColliderShapeBufferOneLength, uint ColliderShapeBufferTwoLength);
     private CollisionComputeUniforms _collisionComputeUniforms;
 
     private const int COLLIDER_SHAPE_AMOUNT = 1024;
@@ -55,7 +52,7 @@ public sealed class CollisionHandler : GraphicsResource
         Utils.LoadShaderFromManifest(Device, "Assets.ComputeCollisions.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 2,
-            NumReadWriteStorageBuffers = 2,
+            NumReadWriteStorageBuffers = 1,
             NumUniformBuffers = 1,
             ThreadCountX = 16,
             ThreadCountY = 16,
@@ -82,14 +79,7 @@ public sealed class CollisionHandler : GraphicsResource
             COLLIDER_SHAPE_AMOUNT
         );
 
-        _collisionResultsBufferOne = Buffer.Create<int>
-        (
-            Device,
-            BufferUsageFlags.ComputeStorageWrite,
-            COLLISION_RESULT_AMOUNT
-        );
-
-        _collisionResultsBufferTwo = Buffer.Create<int>
+        _collisionResultsBuffer = Buffer.Create<int>
         (
             Device,
             BufferUsageFlags.ComputeStorageWrite,
@@ -108,8 +98,12 @@ public sealed class CollisionHandler : GraphicsResource
             COLLISION_RESULT_AMOUNT
         );
 
-        _defaultCollisionResults = Enumerable.Repeat(-1, COLLISION_RESULT_AMOUNT).ToArray();
-        _collisionResultTransition = new int[COLLISION_RESULT_AMOUNT];
+        var transferUploadSpan = _collisionResultsTransferUploadBuffer.Map<int>(false);
+        for (int i = 0; i < COLLISION_RESULT_AMOUNT; i += 1)
+        {
+            transferUploadSpan[i] = -1;
+        }
+        _collisionResultsTransferUploadBuffer.Unmap();
     }
 
     
@@ -117,15 +111,15 @@ public sealed class CollisionHandler : GraphicsResource
     {
         CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
 
-        int MapGroupToBuffer(List<IHasColliderShapes> group)
+        uint MapGroupToBuffer(List<IHasColliderShapes> group)
         {
-            var uploadColliderShapes = _colliderShapesTransferBuffer.Map<ColliderShapeData>(false);
+            var uploadColliderShapes = _colliderShapesTransferBuffer.Map<ColliderShapeData>(true);
             int index = 0;
             for (int i = 0; i < group.Count; i++)
             {
                 foreach (var colliderShape in group[i].GetColliderShapes())
                 {
-                    uploadColliderShapes[index].ColliderIndex = i;
+                    uploadColliderShapes[index].ColliderIndex = (uint)i;
                     if (colliderShape is CircleCollider circleColliderShape)
                     {
                         uploadColliderShapes[index].Type = 0;
@@ -144,17 +138,11 @@ public sealed class CollisionHandler : GraphicsResource
             }
             _colliderShapesTransferBuffer.Unmap();
 
-            return index;
+            return (uint)index;
         }
 
-        
-        var transferUploadSpan = _collisionResultsTransferUploadBuffer.Map<int>(false);
-        _defaultCollisionResults.CopyTo(transferUploadSpan);
-        _collisionResultsTransferUploadBuffer.Unmap();
-
         var collisionResultCopyPass = commandBuffer.BeginCopyPass();
-        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBufferOne, true);
-        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBufferTwo, true);
+        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBuffer, true);
         commandBuffer.EndCopyPass(collisionResultCopyPass);
 
         _collisionComputeUniforms.ColliderShapeBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne);
@@ -171,51 +159,36 @@ public sealed class CollisionHandler : GraphicsResource
 
         var computePass = commandBuffer.BeginComputePass
         (
-            [], 
-            [
-                new StorageBufferReadWriteBinding(_collisionResultsBufferOne, true),
-                new StorageBufferReadWriteBinding(_collisionResultsBufferTwo, true)
-            ]
+            new StorageBufferReadWriteBinding(_collisionResultsBuffer, false)
         );
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_colliderShapesBufferOne, _colliderShapesBufferTwo);
         commandBuffer.PushComputeUniformData(_collisionComputeUniforms);
-        computePass.Dispatch(((uint)colliderShapesGroupOne.Count + 15) / 16, ((uint)colliderShapesGroupTwo.Count + 15) / 16, 1);
+        computePass.Dispatch(((uint)_collisionComputeUniforms.ColliderShapeBufferOneLength + 15) / 16, ((uint)_collisionComputeUniforms.ColliderShapeBufferTwoLength + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
 
-        int[] CopyBufferToArray(Buffer buffer)
-        {
-            CommandBuffer copyCommandBuffer = Device.AcquireCommandBuffer();
+        var copyPass = commandBuffer.BeginCopyPass();
+        copyPass.DownloadFromBuffer(_collisionResultsBuffer, _collisionResultsTransferDownloadBuffer);
+        commandBuffer.EndCopyPass(copyPass);
 
-            var copyPass = copyCommandBuffer.BeginCopyPass();
-            copyPass.DownloadFromBuffer(buffer, _collisionResultsTransferDownloadBuffer);
-            copyCommandBuffer.EndCopyPass(copyPass);
+        var fence = Device.SubmitAndAcquireFence(commandBuffer);
+        Device.WaitForFence(fence);
+        Device.ReleaseFence(fence);
 
-            var fence = Device.SubmitAndAcquireFence(copyCommandBuffer);
-            Device.WaitForFence(fence);
-            Device.ReleaseFence(fence);
+        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(true);
 
-            var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(false);
-            transferDownloadSpan.CopyTo(_collisionResultTransition);
-            _collisionResultsTransferDownloadBuffer.Unmap();
-
-            return _collisionResultTransition;
-        }
-
-        int[] collisionResultsOne = CopyBufferToArray(_collisionResultsBufferOne);
-        int[] collisionResultsTwo = CopyBufferToArray(_collisionResultsBufferTwo);
-        
         List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
         List<(int, int)> resultIndexList = [];
-        for (int i = 0; i < collisionResultsOne.Length; i++)
+        for (int i = 0; i < transferDownloadSpan.Length; i++)
         {
-            int indexOne = collisionResultsOne[i];
-            int indexTwo = collisionResultsTwo[i];
+            int collisionAmount = transferDownloadSpan[i];
+            int indexOne = i % 100;
+            int indexTwo = (int)(i / 100.0);
 
             bool resultIsUnique = !resultIndexList.Contains((indexOne, indexTwo));
-            bool resultIsValid = indexOne != -1 && indexTwo != -1;
+            bool collidersHaveCollided = collisionAmount != -1;
 
-            if (resultIsUnique && resultIsValid)
+            if (resultIsUnique && collidersHaveCollided)
             {
                 resultList.Add((colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]));
                 resultIndexList.Add((indexOne, indexTwo));
