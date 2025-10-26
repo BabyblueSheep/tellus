@@ -44,7 +44,7 @@ public sealed class CollisionHandler : GraphicsResource
     private readonly TransferBuffer _collisionResultsTransferDownloadBuffer;
     private readonly Buffer _collisionResultsBuffer;
 
-    record struct CollisionComputeUniforms(int ShapeIndexRangeBufferOneLength, int ShapeIndexRangeBufferTwoLength);
+    record struct CollisionComputeUniforms(int ShapeIndexRangeBufferOneLength, int ShapeIndexRangeBufferTwoLength, int ColliderShapeResultBufferLength);
     private CollisionComputeUniforms _collisionComputeUniforms;
 
     private const int SHAPE_VERTEX_AMOUNT = 2048;
@@ -56,7 +56,7 @@ public sealed class CollisionHandler : GraphicsResource
     {
         Utils.LoadShaderFromManifest(Device, "Assets.ComputeCollisions.comp", new ComputePipelineCreateInfo()
         {
-            NumReadonlyStorageBuffers = 2,
+            NumReadonlyStorageBuffers = 4,
             NumReadWriteStorageBuffers = 1,
             NumUniformBuffers = 1,
             ThreadCountX = 16,
@@ -106,14 +106,14 @@ public sealed class CollisionHandler : GraphicsResource
         (
             Device,
             BufferUsageFlags.ComputeStorageRead,
-            SHAPE_VERTEX_AMOUNT
+            SHAPE_INDEX_RANGE_AMOUNT
         );
 
         _shapeIndexRangeBufferTwo = Buffer.Create<ColliderShapeData>
         (
             Device,
             BufferUsageFlags.ComputeStorageRead,
-            SHAPE_VERTEX_AMOUNT
+            SHAPE_INDEX_RANGE_AMOUNT
         );
 
         _collisionResultsTransferUploadBuffer = TransferBuffer.Create<int>(
@@ -124,7 +124,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         _collisionResultsTransferDownloadBuffer = TransferBuffer.Create<int>(
             Device,
-            TransferBufferUsage.Upload,
+            TransferBufferUsage.Download,
             COLLISION_RESULT_AMOUNT
         );
 
@@ -138,9 +138,11 @@ public sealed class CollisionHandler : GraphicsResource
         var transferUploadSpan = _collisionResultsTransferUploadBuffer.Map<int>(false);
         for (int i = 0; i < COLLISION_RESULT_AMOUNT; i += 1)
         {
-            transferUploadSpan[i] = -1;
+            transferUploadSpan[i] = 0;
         }
         _collisionResultsTransferUploadBuffer.Unmap();
+
+        _collisionComputeUniforms.ColliderShapeResultBufferLength = COLLISION_RESULT_AMOUNT;
     }
 
     public IEnumerable<(IHasColliderShapes, IHasColliderShapes)> HandleCollisions(IList<IHasColliderShapes> colliderShapesGroupOne, IList<IHasColliderShapes> colliderShapesGroupTwo)
@@ -197,7 +199,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         var computePass = commandBuffer.BeginComputePass
         (
-            new StorageBufferReadWriteBinding(_collisionResultsBuffer)
+            new StorageBufferReadWriteBinding(_collisionResultsBuffer, true)
         );
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_shapeVertexBufferOne, _shapeVertexBufferTwo, _shapeIndexRangeBufferOne, _shapeIndexRangeBufferTwo);
@@ -216,6 +218,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(true);
 
+        List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
         List<(int, int)> resultIndexList = [];
         for (int i = 0; i < transferDownloadSpan.Length; i++)
         {
@@ -224,16 +227,21 @@ public sealed class CollisionHandler : GraphicsResource
             int indexTwo = (int)((float)i / COLLIDER_SHAPE_CONTAINER_AMOUNT);
 
             bool resultIsUnique = !resultIndexList.Contains((indexOne, indexTwo));
-            bool collidersHaveCollided = collisionAmount != -1;
+            bool collidersHaveCollided = collisionAmount != 0;
 
             if (resultIsUnique && collidersHaveCollided)
             {
-                yield return (colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]);
+                resultList.Add((colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]));
                 resultIndexList.Add((indexOne, indexTwo));
             }
         }
 
         _collisionResultsTransferDownloadBuffer.Unmap();
+
+        foreach (var result in resultList)
+        {
+            yield return result;
+        }
     }
 
     protected override void Dispose(bool disposing)

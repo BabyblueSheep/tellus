@@ -20,16 +20,9 @@ internal class ColliderTestCircle : IHasColliderShapes
     public Vector2 Center;
     public float Radius;
 
-    public IColliderShape[] GetColliderShapes()
-    {
-        var test1 = new CircleCollider()
-        {
-            Center = Center,
-            Radius = Radius
-        };
-
-        return [test1];
-    }
+    public Vector2 ShapeOffset => Center;
+    public IEnumerable<Vector2> ShapeVertices => ColliderShapeProvider.GetCircleVertices(Vector2.Zero, Radius, 12);
+    public IEnumerable<(int, int)> ShapeIndexRanges => ColliderShapeProvider.GetConnectedShapeIndices(0, 12);
 }
 
 internal class CollisionGame : Game
@@ -72,7 +65,7 @@ internal class CollisionGame : Game
                 Center = new Vector2(120, 50),
                 Radius = 128
             },
-            new ColliderTestCircle()
+            /*new ColliderTestCircle()
             {
                 Center = new Vector2(280, 180),
                 Radius = 87
@@ -86,7 +79,7 @@ internal class CollisionGame : Game
             {
                 Center = new Vector2(250, 0),
                 Radius = 30
-            },
+            },*/
         ];
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
@@ -112,7 +105,7 @@ internal class CollisionGame : Game
 
         _colliderTest1.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var collisionResults = _collisionHandler.HandleCircleCircleCollision([_colliderTest1], _colliderTest2.Select(collider => (IHasColliderShapes)collider).ToList());
+        var collisionResults = _collisionHandler.HandleCollisions([_colliderTest1], [_colliderTest2[0]]);
         foreach (var collisionResult in collisionResults)
         {
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;

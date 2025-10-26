@@ -1,3 +1,6 @@
+// https://github.com/MoonsideGames/MoonWorksGraphicsTests/blob/main/Common/Content/Shaders/HLSL/SpriteBatch.comp.hlsl
+// https://github.com/thatcosmonaut/GGJ2024/blob/main/ContentBuilder/ContentSource/Shaders/SpriteBatch.comp.hlsl
+
 struct SpriteInstanceData
 {
     float3 Position;
