@@ -63,12 +63,12 @@ internal class CollisionGame : Game
         _colliderTest1 = new ColliderTestCircle()
         {
             Center = new Vector2(0, 0),
-            Radius = 128
+            Radius = 64
         };
         _colliderTest2 = new ColliderTestCircle()
         {
             Center = new Vector2(120, 50),
-            Radius = 256
+            Radius = 32
         };
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
@@ -101,8 +101,6 @@ internal class CollisionGame : Game
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
             ColliderTestCircle item2 = (ColliderTestCircle)collisionResult.Item2;
 
-            Logger.LogInfo($"{item1.Radius}");
-
             item1.CollidedThisFrame = true;
             item2.CollidedThisFrame = true;
         }
@@ -126,7 +124,7 @@ internal class CollisionGame : Game
             );
 
             _spriteBatch.Begin(
-                SpriteSortMode.Deferred,
+                SpriteSortMode.FrontToBack,
                 ColorTargetBlendState.PremultipliedAlphaBlend,
                 SamplerCreateInfo.PointWrap,
                 new DepthStencilState()
@@ -159,7 +157,7 @@ internal class CollisionGame : Game
                 0,
                 new Vector2(_colliderTest2.Radius * 2),
                 Color.White,
-                1f
+                0.4f
             );
 
             _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);

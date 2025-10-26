@@ -73,22 +73,25 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
     ColliderShapeData colliderShapeDataOne = ColliderShapeBufferOne[x];
     ColliderShapeData colliderShapeDataTwo = ColliderShapeBufferTwo[y];
-     
-    float2 scanPoint = colliderShapeDataOne.Center;
-    float2 scanDirection = normalize(colliderShapeDataTwo.Center - colliderShapeDataOne.Center);
     
+    float2 normalizedVectorBetweenCenters = normalize(colliderShapeDataTwo.Center - colliderShapeDataOne.Center);
+    
+    float2 scanDirection = normalize(colliderShapeDataTwo.Center - colliderShapeDataOne.Center);
+    float totalDistance = 0;
     int stepAmount = 0;
     
     while (stepAmount < 32)
     {
+        float2 scanPoint = colliderShapeDataOne.Center + scanDirection * totalDistance;
+        
         float distanceToShapeOne = distanceFromShapeData(colliderShapeDataOne, scanPoint);
         float distanceToShapeTwo = distanceFromShapeData(colliderShapeDataTwo, scanPoint);
         
-        if (distanceToShapeOne > 0.001)
+        if (distanceToShapeOne > -0.001)
         {
-            break;
+            stepAmount += 32;
         }
-        if (distanceToShapeTwo < -0.001)
+        if (distanceToShapeTwo < 0.001)
         {
             uint index = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
             uint _ = 0;
@@ -96,24 +99,26 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             return;
         }
     
-        scanPoint += scanDirection * distanceToShapeTwo;
+        totalDistance += distanceToShapeOne;
         stepAmount++;
     }
     
-    scanPoint = colliderShapeDataTwo.Center;
     scanDirection = normalize(colliderShapeDataOne.Center - colliderShapeDataTwo.Center);
+    totalDistance = 0;
     stepAmount = 0;
     
     while (stepAmount < 32)
     {
+        float2 scanPoint = colliderShapeDataTwo.Center + scanDirection * totalDistance;
+        
         float distanceToShapeOne = distanceFromShapeData(colliderShapeDataOne, scanPoint);
         float distanceToShapeTwo = distanceFromShapeData(colliderShapeDataTwo, scanPoint);
         
-        if (distanceToShapeTwo > 0.001)
+        if (distanceToShapeTwo > -0.001)
         {
-            break;
+            stepAmount += 32;
         }
-        if (distanceToShapeOne < -0.001)
+        if (distanceToShapeOne < 0.001)
         {
             uint index = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
             uint _ = 0;
@@ -121,7 +126,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             return;
         }
     
-        scanPoint += scanDirection * distanceToShapeOne;
+        totalDistance += distanceToShapeTwo;
         stepAmount++;
     }
 }

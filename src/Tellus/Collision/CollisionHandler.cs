@@ -113,7 +113,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         uint MapGroupToBuffer(List<IHasColliderShapes> group)
         {
-            var uploadColliderShapes = _colliderShapesTransferBuffer.Map<ColliderShapeData>(false);
+            var uploadColliderShapes = _colliderShapesTransferBuffer.Map<ColliderShapeData>(true);
             int index = 0;
             for (int i = 0; i < group.Count; i++)
             {
@@ -142,19 +142,25 @@ public sealed class CollisionHandler : GraphicsResource
         }
 
         var collisionResultCopyPass = commandBuffer.BeginCopyPass();
-        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBuffer, false);
+        collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBuffer, true);
         commandBuffer.EndCopyPass(collisionResultCopyPass);
 
         _collisionComputeUniforms.ColliderShapeBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne);
 
         var bufferOneCopyPass = commandBuffer.BeginCopyPass();
-        bufferOneCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferOne, false);
+        bufferOneCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferOne, true);
         commandBuffer.EndCopyPass(bufferOneCopyPass);
+
+        var fence = Device.SubmitAndAcquireFence(commandBuffer);
+        Device.WaitForFence(fence);
+        Device.ReleaseFence(fence);
+
+        commandBuffer = Device.AcquireCommandBuffer();
 
         _collisionComputeUniforms.ColliderShapeBufferTwoLength = MapGroupToBuffer(colliderShapesGroupTwo);
 
         var bufferTwoCopyPass = commandBuffer.BeginCopyPass();
-        bufferTwoCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferTwo, false);
+        bufferTwoCopyPass.UploadToBuffer(_colliderShapesTransferBuffer, _colliderShapesBufferTwo, true);
         commandBuffer.EndCopyPass(bufferTwoCopyPass);
 
         var computePass = commandBuffer.BeginComputePass
@@ -171,11 +177,11 @@ public sealed class CollisionHandler : GraphicsResource
         copyPass.DownloadFromBuffer(_collisionResultsBuffer, _collisionResultsTransferDownloadBuffer);
         commandBuffer.EndCopyPass(copyPass);
 
-        var fence = Device.SubmitAndAcquireFence(commandBuffer);
+        fence = Device.SubmitAndAcquireFence(commandBuffer);
         Device.WaitForFence(fence);
         Device.ReleaseFence(fence);
 
-        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(false);
+        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(true);
 
         List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
         List<(int, int)> resultIndexList = [];
