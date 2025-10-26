@@ -38,7 +38,7 @@ internal class CollisionGame : Game
     private readonly SpriteBatch _spriteBatch;
 
     private ColliderTestCircle _colliderTest1;
-    private ColliderTestCircle _colliderTest2;
+    private List<ColliderTestCircle> _colliderTest2;
 
     private readonly Texture _circleSprite;
     private Texture _depthTexture;
@@ -65,11 +65,29 @@ internal class CollisionGame : Game
             Center = new Vector2(0, 0),
             Radius = 64
         };
-        _colliderTest2 = new ColliderTestCircle()
-        {
-            Center = new Vector2(120, 50),
-            Radius = 32
-        };
+        _colliderTest2 = 
+        [
+            new ColliderTestCircle()
+            {
+                Center = new Vector2(120, 50),
+                Radius = 128
+            },
+            new ColliderTestCircle()
+            {
+                Center = new Vector2(280, 180),
+                Radius = 87
+            },
+            new ColliderTestCircle()
+            {
+                Center = new Vector2(51, 6),
+                Radius = 14
+            },
+            new ColliderTestCircle()
+            {
+                Center = new Vector2(250, 0),
+                Radius = 30
+            },
+        ];
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
 
@@ -91,11 +109,10 @@ internal class CollisionGame : Game
     protected override void Update(TimeSpan delta)
     {
         _colliderTest1.CollidedThisFrame = false;
-        _colliderTest2.CollidedThisFrame = false;
 
         _colliderTest1.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var collisionResults = _collisionHandler.HandleCircleCircleCollision([_colliderTest1], [_colliderTest2]);
+        var collisionResults = _collisionHandler.HandleCircleCircleCollision([_colliderTest1], _colliderTest2.Select(collider => (IHasColliderShapes)collider).ToList());
         foreach (var collisionResult in collisionResults)
         {
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
@@ -148,17 +165,20 @@ internal class CollisionGame : Game
                 0.5f
             );
 
-            _spriteBatch.Draw
-            (
-                _circleSprite,
-                new Vector2(_colliderTest2.Radius),
-                new Rectangle(0, 0, 64, 64),
-                _colliderTest2.Center,
-                0,
-                new Vector2(_colliderTest2.Radius * 2),
-                Color.White,
-                0.4f
-            );
+            foreach (var collider in _colliderTest2)
+            {
+                _spriteBatch.Draw
+                (
+                    _circleSprite,
+                    new Vector2(collider.Radius),
+                    new Rectangle(0, 0, 64, 64),
+                    collider.Center,
+                    0,
+                    new Vector2(collider.Radius * 2),
+                    Color.White,
+                    0.4f
+                );
+            }
 
             _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
 

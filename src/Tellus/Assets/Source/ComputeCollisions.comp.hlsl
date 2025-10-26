@@ -95,11 +95,11 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         {
             uint index = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
             uint _ = 0;
-            CollisionResultBuffer.InterlockedAdd(index * 4, 1, _);
+            CollisionResultBuffer.Store(index * 4, 1);
             return;
         }
     
-        totalDistance += distanceToShapeOne;
+        totalDistance += distanceToShapeOne * -1;
         stepAmount++;
     }
     
@@ -122,11 +122,11 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         {
             uint index = colliderShapeDataTwo.ColliderIndex * 100 + colliderShapeDataOne.ColliderIndex;
             uint _ = 0;
-            CollisionResultBuffer.InterlockedAdd(index * 4, 1, _);
+            CollisionResultBuffer.Store(index * 4, 1);
             return;
         }
     
-        totalDistance += distanceToShapeTwo;
+        totalDistance += distanceToShapeTwo * -1;
         stepAmount++;
     }
 }

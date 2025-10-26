@@ -34,214 +34,214 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
 {
     do
     {
-        bool _62;
+        bool _63;
         if (!(gl_GlobalInvocationID.x >= UniformBlock.ColliderShapeBufferOneLength))
         {
-            _62 = gl_GlobalInvocationID.y >= UniformBlock.ColliderShapeBufferTwoLength;
+            _63 = gl_GlobalInvocationID.y >= UniformBlock.ColliderShapeBufferTwoLength;
         }
         else
         {
-            _62 = true;
+            _63 = true;
         }
-        if (_62)
+        if (_63)
         {
             break;
         }
-        ColliderShapeData _66 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
-        ColliderShapeData _72 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
-        float2 _78 = fast::normalize(_72.Center - _66.Center);
-        float _81;
-        int _84;
-        bool _200;
-        float _80 = 0.0;
-        int _83 = 0;
+        ColliderShapeData _67 = ColliderShapeBufferOne._m0[gl_GlobalInvocationID.x];
+        ColliderShapeData _73 = ColliderShapeBufferTwo._m0[gl_GlobalInvocationID.y];
+        float2 _79 = fast::normalize(_73.Center - _67.Center);
+        float _82;
+        int _85;
+        bool _202;
+        float _81 = 0.0;
+        int _84 = 0;
         for (;;)
         {
-            if (_83 < 32)
+            if (_84 < 32)
             {
-                float2 _89 = _66.Center + (_78 * _80);
-                float _137;
+                float2 _90 = _67.Center + (_79 * _81);
+                float _138;
                 do
                 {
-                    float2 _92 = _89 - _66.Center;
-                    if (_66.Type == 1u)
+                    float2 _93 = _90 - _67.Center;
+                    if (_67.Type == 1u)
                     {
-                        _137 = length(_92) - _66.Fields.x;
+                        _138 = length(_93) - _67.Fields.x;
                         break;
                     }
                     else
                     {
-                        if (_66.Type == 2u)
+                        if (_67.Type == 2u)
                         {
-                            float2 _108 = float2(cos(_66.Fields.x), sin(_66.Fields.x));
-                            float2 _109 = _108 * _66.Fields.y;
-                            float2 _111 = (-_108) * _66.Fields.y;
-                            float2 _112 = _111 - _109;
-                            float _113 = length(_112);
-                            float2 _115 = _112 / float2(_113);
-                            float _120 = _115.y;
-                            float2 _129 = abs((_92 - ((_109 + _111) * 0.5)) * float2x2(float2(_115.x, -_120), float2(_120, _115.x))) - (float2(_113, _66.Fields.z) * 0.5);
-                            _137 = length(precise::max(_129, float2(0.0))) + precise::min(precise::max(_129.x, _129.y), 0.0);
+                            float2 _109 = float2(cos(_67.Fields.x), sin(_67.Fields.x));
+                            float2 _110 = _109 * _67.Fields.y;
+                            float2 _112 = (-_109) * _67.Fields.y;
+                            float2 _113 = _112 - _110;
+                            float _114 = length(_113);
+                            float2 _116 = _113 / float2(_114);
+                            float _121 = _116.y;
+                            float2 _130 = abs((_93 - ((_110 + _112) * 0.5)) * float2x2(float2(_116.x, -_121), float2(_121, _116.x))) - (float2(_114, _67.Fields.z) * 0.5);
+                            _138 = length(precise::max(_130, float2(0.0))) + precise::min(precise::max(_130.x, _130.y), 0.0);
                             break;
                         }
                     }
-                    _137 = 0.0;
+                    _138 = 0.0;
                     break;
                 } while(false);
-                float _185;
+                float _186;
                 do
                 {
-                    float2 _140 = _89 - _72.Center;
-                    if (_72.Type == 1u)
+                    float2 _141 = _90 - _73.Center;
+                    if (_73.Type == 1u)
                     {
-                        _185 = length(_140) - _72.Fields.x;
+                        _186 = length(_141) - _73.Fields.x;
                         break;
                     }
                     else
                     {
-                        if (_72.Type == 2u)
+                        if (_73.Type == 2u)
                         {
-                            float2 _156 = float2(cos(_72.Fields.x), sin(_72.Fields.x));
-                            float2 _157 = _156 * _72.Fields.y;
-                            float2 _159 = (-_156) * _72.Fields.y;
-                            float2 _160 = _159 - _157;
-                            float _161 = length(_160);
-                            float2 _163 = _160 / float2(_161);
-                            float _168 = _163.y;
-                            float2 _177 = abs((_140 - ((_157 + _159) * 0.5)) * float2x2(float2(_163.x, -_168), float2(_168, _163.x))) - (float2(_161, _72.Fields.z) * 0.5);
-                            _185 = length(precise::max(_177, float2(0.0))) + precise::min(precise::max(_177.x, _177.y), 0.0);
+                            float2 _157 = float2(cos(_73.Fields.x), sin(_73.Fields.x));
+                            float2 _158 = _157 * _73.Fields.y;
+                            float2 _160 = (-_157) * _73.Fields.y;
+                            float2 _161 = _160 - _158;
+                            float _162 = length(_161);
+                            float2 _164 = _161 / float2(_162);
+                            float _169 = _164.y;
+                            float2 _178 = abs((_141 - ((_158 + _160) * 0.5)) * float2x2(float2(_164.x, -_169), float2(_169, _164.x))) - (float2(_162, _73.Fields.z) * 0.5);
+                            _186 = length(precise::max(_178, float2(0.0))) + precise::min(precise::max(_178.x, _178.y), 0.0);
                             break;
                         }
                     }
-                    _185 = 0.0;
+                    _186 = 0.0;
                     break;
                 } while(false);
-                int _190;
-                if (_137 > (-0.001000000047497451305389404296875))
+                int _191;
+                if (_138 > (-0.001000000047497451305389404296875))
                 {
-                    _190 = _83 + 32;
+                    _191 = _84 + 32;
                 }
                 else
                 {
-                    _190 = _83;
+                    _191 = _84;
                 }
-                if (_185 < 0.001000000047497451305389404296875)
+                if (_186 < 0.001000000047497451305389404296875)
                 {
-                    uint _199 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(((_72.ColliderIndex * 100u) + _66.ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
-                    _200 = true;
+                    uint _200 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(((_73.ColliderIndex * 100u) + _67.ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
+                    _202 = true;
                     break;
                 }
-                _81 = _80 + _137;
-                _84 = _190 + 1;
-                _80 = _81;
-                _83 = _84;
+                _82 = _81 + (_138 * (-1.0));
+                _85 = _191 + 1;
+                _81 = _82;
+                _84 = _85;
                 continue;
             }
             else
             {
-                _200 = false;
+                _202 = false;
                 break;
             }
         }
-        if (_200)
+        if (_202)
         {
             break;
         }
-        float2 _203 = fast::normalize(_66.Center - _72.Center);
-        float _206;
-        int _209;
-        bool _325;
-        float _205 = 0.0;
-        int _208 = 0;
+        float2 _205 = fast::normalize(_67.Center - _73.Center);
+        float _208;
+        int _211;
+        bool _328;
+        float _207 = 0.0;
+        int _210 = 0;
         for (;;)
         {
-            if (_208 < 32)
+            if (_210 < 32)
             {
-                float2 _214 = _72.Center + (_203 * _205);
-                float _262;
+                float2 _216 = _73.Center + (_205 * _207);
+                float _264;
                 do
                 {
-                    float2 _217 = _214 - _66.Center;
-                    if (_66.Type == 1u)
+                    float2 _219 = _216 - _67.Center;
+                    if (_67.Type == 1u)
                     {
-                        _262 = length(_217) - _66.Fields.x;
+                        _264 = length(_219) - _67.Fields.x;
                         break;
                     }
                     else
                     {
-                        if (_66.Type == 2u)
+                        if (_67.Type == 2u)
                         {
-                            float2 _233 = float2(cos(_66.Fields.x), sin(_66.Fields.x));
-                            float2 _234 = _233 * _66.Fields.y;
-                            float2 _236 = (-_233) * _66.Fields.y;
-                            float2 _237 = _236 - _234;
-                            float _238 = length(_237);
-                            float2 _240 = _237 / float2(_238);
-                            float _245 = _240.y;
-                            float2 _254 = abs((_217 - ((_234 + _236) * 0.5)) * float2x2(float2(_240.x, -_245), float2(_245, _240.x))) - (float2(_238, _66.Fields.z) * 0.5);
-                            _262 = length(precise::max(_254, float2(0.0))) + precise::min(precise::max(_254.x, _254.y), 0.0);
+                            float2 _235 = float2(cos(_67.Fields.x), sin(_67.Fields.x));
+                            float2 _236 = _235 * _67.Fields.y;
+                            float2 _238 = (-_235) * _67.Fields.y;
+                            float2 _239 = _238 - _236;
+                            float _240 = length(_239);
+                            float2 _242 = _239 / float2(_240);
+                            float _247 = _242.y;
+                            float2 _256 = abs((_219 - ((_236 + _238) * 0.5)) * float2x2(float2(_242.x, -_247), float2(_247, _242.x))) - (float2(_240, _67.Fields.z) * 0.5);
+                            _264 = length(precise::max(_256, float2(0.0))) + precise::min(precise::max(_256.x, _256.y), 0.0);
                             break;
                         }
                     }
-                    _262 = 0.0;
+                    _264 = 0.0;
                     break;
                 } while(false);
-                float _310;
+                float _312;
                 do
                 {
-                    float2 _265 = _214 - _72.Center;
-                    if (_72.Type == 1u)
+                    float2 _267 = _216 - _73.Center;
+                    if (_73.Type == 1u)
                     {
-                        _310 = length(_265) - _72.Fields.x;
+                        _312 = length(_267) - _73.Fields.x;
                         break;
                     }
                     else
                     {
-                        if (_72.Type == 2u)
+                        if (_73.Type == 2u)
                         {
-                            float2 _281 = float2(cos(_72.Fields.x), sin(_72.Fields.x));
-                            float2 _282 = _281 * _72.Fields.y;
-                            float2 _284 = (-_281) * _72.Fields.y;
-                            float2 _285 = _284 - _282;
-                            float _286 = length(_285);
-                            float2 _288 = _285 / float2(_286);
-                            float _293 = _288.y;
-                            float2 _302 = abs((_265 - ((_282 + _284) * 0.5)) * float2x2(float2(_288.x, -_293), float2(_293, _288.x))) - (float2(_286, _72.Fields.z) * 0.5);
-                            _310 = length(precise::max(_302, float2(0.0))) + precise::min(precise::max(_302.x, _302.y), 0.0);
+                            float2 _283 = float2(cos(_73.Fields.x), sin(_73.Fields.x));
+                            float2 _284 = _283 * _73.Fields.y;
+                            float2 _286 = (-_283) * _73.Fields.y;
+                            float2 _287 = _286 - _284;
+                            float _288 = length(_287);
+                            float2 _290 = _287 / float2(_288);
+                            float _295 = _290.y;
+                            float2 _304 = abs((_267 - ((_284 + _286) * 0.5)) * float2x2(float2(_290.x, -_295), float2(_295, _290.x))) - (float2(_288, _73.Fields.z) * 0.5);
+                            _312 = length(precise::max(_304, float2(0.0))) + precise::min(precise::max(_304.x, _304.y), 0.0);
                             break;
                         }
                     }
-                    _310 = 0.0;
+                    _312 = 0.0;
                     break;
                 } while(false);
-                int _315;
-                if (_310 > (-0.001000000047497451305389404296875))
+                int _317;
+                if (_312 > (-0.001000000047497451305389404296875))
                 {
-                    _315 = _208 + 32;
+                    _317 = _210 + 32;
                 }
                 else
                 {
-                    _315 = _208;
+                    _317 = _210;
                 }
-                if (_262 < 0.001000000047497451305389404296875)
+                if (_264 < 0.001000000047497451305389404296875)
                 {
-                    uint _324 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(((_72.ColliderIndex * 100u) + _66.ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
-                    _325 = true;
+                    uint _326 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(((_73.ColliderIndex * 100u) + _67.ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
+                    _328 = true;
                     break;
                 }
-                _206 = _205 + _310;
-                _209 = _315 + 1;
-                _205 = _206;
-                _208 = _209;
+                _208 = _207 + (_312 * (-1.0));
+                _211 = _317 + 1;
+                _207 = _208;
+                _210 = _211;
                 continue;
             }
             else
             {
-                _325 = _200;
+                _328 = _202;
                 break;
             }
         }
-        if (_325)
+        if (_328)
         {
             break;
         }
