@@ -10,35 +10,38 @@ namespace Tellus.Collision;
 
 public interface IHasColliderShapes
 {
-    public IColliderShape[] GetColliderShapes();
+    public Vector2 ShapeOffset { get; }
+    public IEnumerable<Vector2> ShapeVertices { get; }
+    public IEnumerable<(int, int)> ShapeIndexRanges { get; }
 }
 
-public interface IColliderShape { }
-
-public struct CircleCollider : IColliderShape
+public static class ColliderShapeProvider
 {
-    public Vector2 Center;
-    public float Radius;
-
-    public CircleCollider(Vector2 center, float radius)
+    public static IEnumerable<Vector2> GetCircleVertices(Vector2 offset, float radius, int pointAmount)
     {
-        Center = center;
-        Radius = radius;
+        for (int i = 0; i < pointAmount; i++)
+        {
+            float angle = (i / (float)pointAmount) * MathF.Tau;
+            yield return offset + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
+        }
     }
-}
 
-public struct RectangleCollider : IColliderShape
-{
-    public Vector2 Center;
-    public float Angle;
-    public float SideHalfLength;
-    public float SideHalfWidth;
-
-    public RectangleCollider(Vector2 center, float angle, float halfLength, float halfWidth)
+    public static IEnumerable<Vector2> GetRectangleVertices(Vector2 offset, float sideA, float sideB)
     {
-        Center = center;
-        Angle = angle;
-        SideHalfLength = halfLength;
-        SideHalfWidth = halfWidth;
+        yield return offset;
+        yield return offset + new Vector2(sideA, 0);
+        yield return offset + new Vector2(0, sideB);
+        yield return offset + new Vector2(sideA, sideB);
+    }
+
+    public static IEnumerable<Vector2> GetLineVertices(Vector2 offset, Vector2 start, Vector2 end)
+    {
+        yield return offset + start;
+        yield return offset + end;
+    }
+
+    public static IEnumerable<(int, int)> GetConnectedShapeIndices(int offset, int pointAmount)
+    {
+        yield return (offset, pointAmount - 1);
     }
 }
