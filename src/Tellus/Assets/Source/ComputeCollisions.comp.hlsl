@@ -6,6 +6,7 @@ struct ColliderShapeData
 	int ColliderIndex;
     int ShapeIndexRangeStart;
     int ShapeIndexRangeRangeLength;
+    int Padding;
 };
 
 Buffer<float2> ShapeVertexBufferOne : register(t0, space0);
@@ -61,6 +62,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     int indexRangeTwoStart = colliderShapeDataTwo.ShapeIndexRangeStart;
     int indexRangeTwoEnd = indexRangeTwoStart + colliderShapeDataTwo.ShapeIndexRangeRangeLength - 1;
     
+    uint resultIndex = colliderShapeDataTwo.ColliderIndex * ColliderShapeResultBufferLength + colliderShapeDataOne.ColliderIndex;
+    
     for (int i = indexRangeOneStart; i <= indexRangeOneEnd; i++)
     {
         int j = i == indexRangeOneEnd ? indexRangeOneStart : (i + 1);
@@ -76,6 +79,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         
         if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
         {
+            CollisionResultBuffer.Store(resultIndex * 4, 2);
             return;
         }
     }
@@ -95,10 +99,10 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         
         if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
         {
+            CollisionResultBuffer.Store(resultIndex * 4, 3);
             return;
         }
     }
     
-    uint index = colliderShapeDataTwo.ColliderIndex * ColliderShapeResultBufferLength + colliderShapeDataOne.ColliderIndex;
-    CollisionResultBuffer.Store(index * 4, 5);
+    CollisionResultBuffer.Store(resultIndex * 4, 5);
 }

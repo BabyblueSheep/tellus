@@ -2,6 +2,7 @@
 using MoonWorks.Graphics;
 using MoonWorks.Input;
 using MoonWorks.Storage;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Net.Http.Headers;
 using System.Numerics;
@@ -19,10 +20,11 @@ internal class ColliderTestCircle : IHasColliderShapes
 
     public Vector2 Center;
     public float Radius;
+    public int VertexCount;
 
     public Vector2 ShapeOffset => Center;
-    public IEnumerable<Vector2> ShapeVertices => ColliderShapeProvider.GetCircleVertices(Vector2.Zero, Radius, 12);
-    public IEnumerable<(int, int)> ShapeIndexRanges => ColliderShapeProvider.GetConnectedShapeIndices(0, 12);
+    public IEnumerable<Vector2> ShapeVertices => ColliderShapeProvider.GetCircleVertices(Vector2.Zero, Radius, VertexCount);
+    public IEnumerable<(int, int)> ShapeIndexRanges => ColliderShapeProvider.GetConnectedShapeIndices(0, VertexCount);
 }
 
 internal class CollisionGame : Game
@@ -56,14 +58,16 @@ internal class CollisionGame : Game
         _colliderTest1 = new ColliderTestCircle()
         {
             Center = new Vector2(0, 0),
-            Radius = 64
+            Radius = 64,
+            VertexCount = 12,
         };
         _colliderTest2 = 
         [
             new ColliderTestCircle()
             {
                 Center = new Vector2(120, 50),
-                Radius = 128
+                Radius = 128,
+                VertexCount = 6,
             },
             /*new ColliderTestCircle()
             {
@@ -97,6 +101,10 @@ internal class CollisionGame : Game
         resourceUploader.Dispose();
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
+
+        Logger.LogInfo($"{_colliderTest1.Center}");
+        Logger.LogInfo($"{string.Join(",\n", _colliderTest1.ShapeVertices)}");
+        Logger.LogInfo($"{string.Join(",", _colliderTest1.ShapeIndexRanges)}");
     }
 
     protected override void Update(TimeSpan delta)

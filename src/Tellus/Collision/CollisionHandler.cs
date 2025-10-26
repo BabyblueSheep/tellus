@@ -15,7 +15,7 @@ namespace Tellus.Collision;
 
 public sealed class CollisionHandler : GraphicsResource
 {
-    [StructLayout(LayoutKind.Explicit, Size = 12)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     private struct ColliderShapeData
     {
         [FieldOffset(0)]
@@ -26,6 +26,9 @@ public sealed class CollisionHandler : GraphicsResource
 
         [FieldOffset(8)]
         public int ShapeIndexRangeRangeLength;
+
+        [FieldOffset(12)]
+        public int Padding;
     }
 
     private readonly ComputePipeline _computePipeline;
@@ -142,7 +145,7 @@ public sealed class CollisionHandler : GraphicsResource
         }
         _collisionResultsTransferUploadBuffer.Unmap();
 
-        _collisionComputeUniforms.ColliderShapeResultBufferLength = COLLISION_RESULT_AMOUNT;
+        _collisionComputeUniforms.ColliderShapeResultBufferLength = COLLIDER_SHAPE_CONTAINER_AMOUNT;
     }
 
     public IEnumerable<(IHasColliderShapes, IHasColliderShapes)> HandleCollisions(IList<IHasColliderShapes> colliderShapesGroupOne, IList<IHasColliderShapes> colliderShapesGroupTwo)
@@ -161,17 +164,17 @@ public sealed class CollisionHandler : GraphicsResource
 
             foreach (var collider in colliderGroup)
             {
-                foreach (var vertex in collider.ShapeVertices)
-                {
-                    vertexUploadSpan[vertexIndex] = vertex + collider.ShapeOffset;
-                    vertexIndex++;
-                }
                 foreach (var indexPair in collider.ShapeIndexRanges)
                 {
                     indexRangeUploadSpan[indexRangeIndex].ColliderIndex = colliderIndex;
                     indexRangeUploadSpan[indexRangeIndex].ShapeIndexRangeStart = indexPair.Item1 + vertexIndex;
                     indexRangeUploadSpan[indexRangeIndex].ShapeIndexRangeRangeLength = indexPair.Item2;
                     indexRangeIndex++;
+                }
+                foreach (var vertex in collider.ShapeVertices)
+                {
+                    vertexUploadSpan[vertexIndex] = vertex + collider.ShapeOffset;
+                    vertexIndex++;
                 }
                 colliderIndex++;
             }
@@ -222,9 +225,9 @@ public sealed class CollisionHandler : GraphicsResource
         List<(int, int)> resultIndexList = [];
         for (int i = 0; i < transferDownloadSpan.Length; i++)
         {
-            int collisionAmount = transferDownloadSpan[i];
+            /*int collisionAmount = transferDownloadSpan[i];
             int indexOne = i % COLLIDER_SHAPE_CONTAINER_AMOUNT;
-            int indexTwo = (int)((float)i / COLLIDER_SHAPE_CONTAINER_AMOUNT);
+            int indexTwo = i / COLLIDER_SHAPE_CONTAINER_AMOUNT;
 
             bool resultIsUnique = !resultIndexList.Contains((indexOne, indexTwo));
             bool collidersHaveCollided = collisionAmount != 0;
@@ -233,7 +236,7 @@ public sealed class CollisionHandler : GraphicsResource
             {
                 resultList.Add((colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]));
                 resultIndexList.Add((indexOne, indexTwo));
-            }
+            }*/
         }
 
         _collisionResultsTransferDownloadBuffer.Unmap();

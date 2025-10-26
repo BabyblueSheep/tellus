@@ -42,6 +42,6 @@ public static class ColliderShapeProvider
 
     public static IEnumerable<(int, int)> GetConnectedShapeIndices(int offset, int pointAmount)
     {
-        yield return (offset, pointAmount - 1);
+        yield return (offset, pointAmount);
     }
 }
