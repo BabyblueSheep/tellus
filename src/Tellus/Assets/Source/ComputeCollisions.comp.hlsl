@@ -9,8 +9,13 @@ struct ColliderShapeData
     int Padding;
 };
 
-Buffer<float2> ShapeVertexBufferOne : register(t0, space0);
-Buffer<float2> ShapeVertexBufferTwo : register(t1, space0);
+struct VertexData
+{
+    float2 Position;
+};
+
+StructuredBuffer<VertexData> ShapeVertexBufferOne : register(t0, space0);
+StructuredBuffer<VertexData> ShapeVertexBufferTwo : register(t1, space0);
 StructuredBuffer<ColliderShapeData> ShapeIndexRangeBufferOne : register(t2, space0);
 StructuredBuffer<ColliderShapeData> ShapeIndexRangeBufferTwo : register(t3, space0);
 
@@ -23,14 +28,14 @@ cbuffer UniformBlock : register(b0, space2)
     int ColliderShapeResultBufferLength;
 };
 
-float2 projectVerticesOnAxis(Buffer<float2> vertexBuffer, int indexStart, int indexEnd, float2 axis)
+float2 projectVerticesOnAxis(StructuredBuffer<VertexData> vertexBuffer, int indexStart, int indexEnd, float2 axis)
 {
-    float minProjectionPosition = dot(vertexBuffer[indexStart], axis);
+    float minProjectionPosition = dot(vertexBuffer[indexStart].Position, axis);
     float maxProjectionPosition = minProjectionPosition;
     
     for (int i = indexStart + 1; i <= indexEnd; i++)
     {
-        float currentProjectionPosition = dot(vertexBuffer[i], axis);
+        float currentProjectionPosition = dot(vertexBuffer[i].Position, axis);
         minProjectionPosition = min(minProjectionPosition, currentProjectionPosition);
         maxProjectionPosition = max(maxProjectionPosition, currentProjectionPosition);
     }
@@ -67,8 +72,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     for (int i = indexRangeOneStart; i <= indexRangeOneEnd; i++)
     {
         int j = i == indexRangeOneEnd ? indexRangeOneStart : (i + 1);
-        float2 vertexOne = ShapeVertexBufferOne[i];
-        float2 vertexTwo = ShapeVertexBufferOne[j];
+        float2 vertexOne = ShapeVertexBufferOne[i].Position;
+        float2 vertexTwo = ShapeVertexBufferOne[j].Position;
         
         float2 edge = vertexTwo - vertexOne;
         float2 normal = float2(-edge.y, edge.x);
@@ -79,7 +84,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         
         if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
         {
-            CollisionResultBuffer.Store(resultIndex * 4, 2);
             return;
         }
     }
@@ -87,8 +91,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     for (int i = indexRangeTwoStart; i <= indexRangeTwoEnd; i++)
     {
         int j = i == indexRangeTwoEnd ? indexRangeTwoStart : (i + 1);
-        float2 vertexOne = ShapeVertexBufferTwo[i];
-        float2 vertexTwo = ShapeVertexBufferTwo[j];
+        float2 vertexOne = ShapeVertexBufferTwo[i].Position;
+        float2 vertexTwo = ShapeVertexBufferTwo[j].Position;
         
         float2 edge = vertexTwo - vertexOne;
         float2 normal = float2(-edge.y, edge.x);
@@ -99,10 +103,10 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         
         if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
         {
-            CollisionResultBuffer.Store(resultIndex * 4, 3);
             return;
         }
     }
     
-    CollisionResultBuffer.Store(resultIndex * 4, 5);
+    int _ = 0;
+    CollisionResultBuffer.InterlockedAdd(resultIndex * 4, 1, _);
 }

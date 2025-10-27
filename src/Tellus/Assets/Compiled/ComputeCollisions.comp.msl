@@ -1,16 +1,20 @@
-#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wunused-variable"
 
 #include <metal_stdlib>
 #include <simd/simd.h>
+#include <metal_atomic>
 
 using namespace metal;
 
-// Returns 2D texture coords corresponding to 1D texel buffer coords
-static inline __attribute__((always_inline))
-uint2 spvTexelBufferCoord(uint tc)
+struct VertexData
 {
-    return uint2(tc % 4096, tc / 4096);
-}
+    float2 Position;
+};
+
+struct type_StructuredBuffer_VertexData
+{
+    VertexData _m0[1];
+};
 
 struct ColliderShapeData
 {
@@ -37,7 +41,7 @@ struct type_UniformBlock
     int ColliderShapeResultBufferLength;
 };
 
-kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ShapeIndexRangeBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ShapeIndexRangeBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(3)]], texture2d<float> ShapeVertexBufferOne [[texture(0)]], texture2d<float> ShapeVertexBufferTwo [[texture(1)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_VertexData& ShapeVertexBufferOne [[buffer(1)]], const device type_StructuredBuffer_VertexData& ShapeVertexBufferTwo [[buffer(2)]], const device type_StructuredBuffer_ColliderShapeData& ShapeIndexRangeBufferOne [[buffer(3)]], const device type_StructuredBuffer_ColliderShapeData& ShapeIndexRangeBufferTwo [[buffer(4)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(5)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     do
     {
@@ -54,17 +58,10 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
         {
             break;
         }
-        int _67 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ColliderIndex;
-        int _69 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart;
-        int _71 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeRangeLength;
-        int _73 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ColliderIndex;
-        int _75 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart;
-        int _77 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeRangeLength;
-        int _79 = (_69 + _71) - 1;
-        int _81 = (_75 + _77) - 1;
-        uint _86 = uint((_73 * UniformBlock.ColliderShapeResultBufferLength) + _67);
-        bool _165;
-        int _88 = _69;
+        int _79 = (ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart + ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeRangeLength) - 1;
+        int _81 = (ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart + ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeRangeLength) - 1;
+        bool _158;
+        int _88 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart;
         for (;;)
         {
             if (_88 <= _79)
@@ -72,56 +69,54 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                 int _99;
                 if (_88 == _79)
                 {
-                    _99 = _69;
+                    _99 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart;
                 }
                 else
                 {
                     _99 = _88 + 1;
                 }
-                uint _100 = uint(_88);
-                float2 _108 = ShapeVertexBufferOne.read(spvTexelBufferCoord(uint(_99))).xy - ShapeVertexBufferOne.read(spvTexelBufferCoord(_100)).xy;
-                float2 _113 = fast::normalize(float2(-_108.y, _108.x));
-                float _118 = dot(ShapeVertexBufferOne.read(spvTexelBufferCoord(uint(_69))).xy, _113);
-                int _119 = _69 + 1;
+                float2 _106 = ShapeVertexBufferOne._m0[uint(_99)].Position - ShapeVertexBufferOne._m0[uint(_88)].Position;
+                float2 _111 = fast::normalize(float2(-_106.y, _106.x));
+                float _115 = dot(ShapeVertexBufferOne._m0[uint(ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart)].Position, _111);
+                int _116 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart + 1;
+                float _118;
                 float _121;
-                float _124;
-                _121 = _118;
-                _124 = _118;
-                for (int _126 = _119; _126 <= _79; )
+                _118 = _115;
+                _121 = _115;
+                for (int _123 = _116; _123 <= _79; )
                 {
-                    float _133 = dot(ShapeVertexBufferOne.read(spvTexelBufferCoord(uint(_126))).xy, _113);
-                    _121 = precise::max(_121, _133);
-                    _124 = precise::min(_124, _133);
-                    _126++;
+                    float _130 = dot(ShapeVertexBufferOne._m0[uint(_123)].Position, _111);
+                    _118 = precise::max(_118, _130);
+                    _121 = precise::min(_121, _130);
+                    _123++;
                     continue;
                 }
-                float _138 = dot(ShapeVertexBufferTwo.read(spvTexelBufferCoord(uint(_75))).xy, _113);
-                int _139 = _75 + 1;
-                float _141;
-                float _144;
-                _141 = _138;
-                _144 = _138;
-                for (int _146 = _139; _146 <= _81; )
+                float _134 = dot(ShapeVertexBufferTwo._m0[uint(ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart)].Position, _111);
+                int _135 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart + 1;
+                float _137;
+                float _140;
+                _137 = _134;
+                _140 = _134;
+                for (int _142 = _135; _142 <= _81; )
                 {
-                    float _153 = dot(ShapeVertexBufferTwo.read(spvTexelBufferCoord(uint(_146))).xy, _113);
-                    _141 = precise::max(_141, _153);
-                    _144 = precise::min(_144, _153);
-                    _146++;
+                    float _149 = dot(ShapeVertexBufferTwo._m0[uint(_142)].Position, _111);
+                    _137 = precise::max(_137, _149);
+                    _140 = precise::min(_140, _149);
+                    _142++;
                     continue;
                 }
-                bool _158;
-                if (_124 <= _141)
+                bool _154;
+                if (_121 <= _137)
                 {
-                    _158 = _121 >= _144;
+                    _154 = _118 >= _140;
                 }
                 else
                 {
-                    _158 = false;
+                    _154 = false;
                 }
-                if (!_158)
+                if (!_154)
                 {
-                    CollisionResultBuffer._m0[(_86 * 4u) >> 2u] = _100;
-                    _165 = true;
+                    _158 = true;
                     break;
                 }
                 _88++;
@@ -129,88 +124,87 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             }
             else
             {
-                _165 = false;
+                _158 = false;
                 break;
             }
         }
-        if (_165)
+        if (_158)
         {
             break;
         }
-        bool _245;
-        int _168 = _75;
+        bool _231;
+        int _161 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart;
         for (;;)
         {
-            if (_168 <= _81)
+            if (_161 <= _81)
             {
-                int _179;
-                if (_168 == _81)
+                int _172;
+                if (_161 == _81)
                 {
-                    _179 = _75;
+                    _172 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart;
                 }
                 else
                 {
-                    _179 = _168 + 1;
+                    _172 = _161 + 1;
                 }
-                float2 _188 = ShapeVertexBufferTwo.read(spvTexelBufferCoord(uint(_179))).xy - ShapeVertexBufferTwo.read(spvTexelBufferCoord(uint(_168))).xy;
-                float2 _193 = fast::normalize(float2(-_188.y, _188.x));
-                float _198 = dot(ShapeVertexBufferOne.read(spvTexelBufferCoord(uint(_69))).xy, _193);
-                int _199 = _69 + 1;
-                float _201;
-                float _204;
-                _201 = _198;
-                _204 = _198;
-                for (int _206 = _199; _206 <= _79; )
+                float2 _179 = ShapeVertexBufferTwo._m0[uint(_172)].Position - ShapeVertexBufferTwo._m0[uint(_161)].Position;
+                float2 _184 = fast::normalize(float2(-_179.y, _179.x));
+                float _188 = dot(ShapeVertexBufferOne._m0[uint(ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart)].Position, _184);
+                int _189 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart + 1;
+                float _191;
+                float _194;
+                _191 = _188;
+                _194 = _188;
+                for (int _196 = _189; _196 <= _79; )
                 {
-                    float _213 = dot(ShapeVertexBufferOne.read(spvTexelBufferCoord(uint(_206))).xy, _193);
-                    _201 = precise::max(_201, _213);
-                    _204 = precise::min(_204, _213);
-                    _206++;
+                    float _203 = dot(ShapeVertexBufferOne._m0[uint(_196)].Position, _184);
+                    _191 = precise::max(_191, _203);
+                    _194 = precise::min(_194, _203);
+                    _196++;
                     continue;
                 }
-                float _218 = dot(ShapeVertexBufferTwo.read(spvTexelBufferCoord(uint(_75))).xy, _193);
-                int _219 = _75 + 1;
-                float _221;
-                float _224;
-                _221 = _218;
-                _224 = _218;
-                for (int _226 = _219; _226 <= _81; )
+                float _207 = dot(ShapeVertexBufferTwo._m0[uint(ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart)].Position, _184);
+                int _208 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart + 1;
+                float _210;
+                float _213;
+                _210 = _207;
+                _213 = _207;
+                for (int _215 = _208; _215 <= _81; )
                 {
-                    float _233 = dot(ShapeVertexBufferTwo.read(spvTexelBufferCoord(uint(_226))).xy, _193);
-                    _221 = precise::max(_221, _233);
-                    _224 = precise::min(_224, _233);
-                    _226++;
+                    float _222 = dot(ShapeVertexBufferTwo._m0[uint(_215)].Position, _184);
+                    _210 = precise::max(_210, _222);
+                    _213 = precise::min(_213, _222);
+                    _215++;
                     continue;
                 }
-                bool _238;
-                if (_204 <= _221)
+                bool _227;
+                if (_194 <= _210)
                 {
-                    _238 = _201 >= _224;
+                    _227 = _191 >= _213;
                 }
                 else
                 {
-                    _238 = false;
+                    _227 = false;
                 }
-                if (!_238)
+                if (!_227)
                 {
-                    CollisionResultBuffer._m0[(_86 * 4u) >> 2u] = 3u;
-                    _245 = true;
+                    _231 = true;
                     break;
                 }
-                _168++;
+                _161++;
                 continue;
             }
             else
             {
-                _245 = _165;
+                _231 = _158;
                 break;
             }
         }
-        if (_245)
+        if (_231)
         {
             break;
         }
-        CollisionResultBuffer._m0[(_86 * 4u) >> 2u] = 5u;
+        uint _236 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(uint((ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ColliderIndex * UniformBlock.ColliderShapeResultBufferLength) + ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
         break;
     } while(false);
 }

@@ -31,6 +31,13 @@ public sealed class CollisionHandler : GraphicsResource
         public int Padding;
     }
 
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    private struct VertexData
+    {
+        [FieldOffset(0)]
+        public Vector2 Position;
+    }
+
     private readonly ComputePipeline _computePipeline;
 
     private readonly TransferBuffer _shapeVertexTransferBufferOne;
@@ -67,26 +74,26 @@ public sealed class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _computePipeline);
 
-        _shapeVertexTransferBufferOne = TransferBuffer.Create<Vector2>(
+        _shapeVertexTransferBufferOne = TransferBuffer.Create<VertexData>(
             Device,
             TransferBufferUsage.Upload,
             SHAPE_VERTEX_AMOUNT
         );
 
-        _shapeVertexTransferBufferTwo = TransferBuffer.Create<Vector2>(
+        _shapeVertexTransferBufferTwo = TransferBuffer.Create<VertexData>(
             Device,
             TransferBufferUsage.Upload,
             SHAPE_VERTEX_AMOUNT
         );
 
-        _shapeVertexBufferOne = Buffer.Create<Vector2>
+        _shapeVertexBufferOne = Buffer.Create<VertexData>
         (
             Device,
             BufferUsageFlags.ComputeStorageRead,
             SHAPE_VERTEX_AMOUNT
         );
 
-        _shapeVertexBufferTwo = Buffer.Create<Vector2>
+        _shapeVertexBufferTwo = Buffer.Create<VertexData>
         (
             Device,
             BufferUsageFlags.ComputeStorageRead,
@@ -141,7 +148,7 @@ public sealed class CollisionHandler : GraphicsResource
         var transferUploadSpan = _collisionResultsTransferUploadBuffer.Map<int>(false);
         for (int i = 0; i < COLLISION_RESULT_AMOUNT; i += 1)
         {
-            transferUploadSpan[i] = 0;
+            transferUploadSpan[i] = -1;
         }
         _collisionResultsTransferUploadBuffer.Unmap();
 
@@ -155,7 +162,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         int MapGroupToBuffer(IEnumerable<IHasColliderShapes> colliderGroup, TransferBuffer vertexTransferBuffer, TransferBuffer indexRangeTransferBuffer)
         {
-            var vertexUploadSpan = vertexTransferBuffer.Map<Vector2>(true);
+            var vertexUploadSpan = vertexTransferBuffer.Map<VertexData>(true);
             var indexRangeUploadSpan = indexRangeTransferBuffer.Map<ColliderShapeData>(true);
 
             var colliderIndex = 0;
@@ -173,7 +180,7 @@ public sealed class CollisionHandler : GraphicsResource
                 }
                 foreach (var vertex in collider.ShapeVertices)
                 {
-                    vertexUploadSpan[vertexIndex] = vertex + collider.ShapeOffset;
+                    vertexUploadSpan[vertexIndex].Position = vertex + collider.ShapeOffset;
                     vertexIndex++;
                 }
                 colliderIndex++;
@@ -202,7 +209,7 @@ public sealed class CollisionHandler : GraphicsResource
 
         var computePass = commandBuffer.BeginComputePass
         (
-            new StorageBufferReadWriteBinding(_collisionResultsBuffer, true)
+            new StorageBufferReadWriteBinding(_collisionResultsBuffer, false)
         );
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_shapeVertexBufferOne, _shapeVertexBufferTwo, _shapeIndexRangeBufferOne, _shapeIndexRangeBufferTwo);
@@ -225,18 +232,18 @@ public sealed class CollisionHandler : GraphicsResource
         List<(int, int)> resultIndexList = [];
         for (int i = 0; i < transferDownloadSpan.Length; i++)
         {
-            /*int collisionAmount = transferDownloadSpan[i];
+            int collisionAmount = transferDownloadSpan[i];
             int indexOne = i % COLLIDER_SHAPE_CONTAINER_AMOUNT;
             int indexTwo = i / COLLIDER_SHAPE_CONTAINER_AMOUNT;
 
             bool resultIsUnique = !resultIndexList.Contains((indexOne, indexTwo));
-            bool collidersHaveCollided = collisionAmount != 0;
+            bool collidersHaveCollided = collisionAmount != -1;
 
             if (resultIsUnique && collidersHaveCollided)
             {
                 resultList.Add((colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]));
                 resultIndexList.Add((indexOne, indexTwo));
-            }*/
+            }
         }
 
         _collisionResultsTransferDownloadBuffer.Unmap();

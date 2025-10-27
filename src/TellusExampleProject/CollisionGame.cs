@@ -69,21 +69,24 @@ internal class CollisionGame : Game
                 Radius = 128,
                 VertexCount = 6,
             },
-            /*new ColliderTestCircle()
+            new ColliderTestCircle()
             {
                 Center = new Vector2(280, 180),
-                Radius = 87
+                Radius = 87,
+                VertexCount = 6,
             },
             new ColliderTestCircle()
             {
-                Center = new Vector2(51, 6),
-                Radius = 14
+                Center = new Vector2(530, 6),
+                Radius = 14,
+                VertexCount = 6,
             },
             new ColliderTestCircle()
             {
-                Center = new Vector2(250, 0),
-                Radius = 30
-            },*/
+                Center = new Vector2(250, 531),
+                Radius = 30,
+                VertexCount = 6,
+            },
         ];
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
@@ -101,19 +104,20 @@ internal class CollisionGame : Game
         resourceUploader.Dispose();
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
-
-        Logger.LogInfo($"{_colliderTest1.Center}");
-        Logger.LogInfo($"{string.Join(",\n", _colliderTest1.ShapeVertices)}");
-        Logger.LogInfo($"{string.Join(",", _colliderTest1.ShapeIndexRanges)}");
     }
 
     protected override void Update(TimeSpan delta)
     {
         _colliderTest1.CollidedThisFrame = false;
+        foreach (var collider in _colliderTest2)
+        {
+            collider.CollidedThisFrame = false;
+        }
 
         _colliderTest1.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var collisionResults = _collisionHandler.HandleCollisions([_colliderTest1], [_colliderTest2[0]]);
+        var colliderList = _colliderTest2.Select(collider => (IHasColliderShapes)collider).ToList();
+        var collisionResults = _collisionHandler.HandleCollisions([_colliderTest1], colliderList);
         foreach (var collisionResult in collisionResults)
         {
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
