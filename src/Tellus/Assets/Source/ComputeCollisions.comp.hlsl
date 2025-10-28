@@ -6,7 +6,11 @@ struct ColliderShapeData
 	int ColliderIndex;
     int ShapeType;
     float2 Center;
-    float4 Fields;
+    float4 DecimalFields;
+    int2 IntegerFields;
+    
+    int Padding1;
+    int Padding2;
 };
 
 StructuredBuffer<ColliderShapeData> ShapeDataBufferOne : register(t0, space0);
@@ -24,6 +28,7 @@ cbuffer UniformBlock : register(b0, space2)
 #define TAU 6.28318530718
 
 #define CIRCLE_TYPE 0
+#define RECTANGLE_TYPE 1
 
 float2 projectVerticesOnAxis(float2 vertexPositions[16], int vertexAmount, float2 axis)
 {
@@ -55,11 +60,36 @@ void constructVertexPositions(ColliderShapeData shapeData, out float2 vertexPosi
     
     if (shapeData.ShapeType == CIRCLE_TYPE)
     {
-        vertexAmount = 12;
-        float radius = shapeData.Fields.x;
+        vertexAmount = shapeData.IntegerFields.x;
+        float radius = shapeData.DecimalFields.x;
         for (int i = 0; i < vertexAmount; i++)
         {
             vertexPositions[i] = shapeData.Center + float2(cos(TAU * i / vertexAmount), sin(TAU * i / vertexAmount)) * radius;
+        }
+    }
+    else if (shapeData.ShapeType == RECTANGLE_TYPE)
+    {
+        vertexAmount = 4;
+        
+        float angle = shapeData.DecimalFields.x;
+        float sine = sin(angle);
+        float cosine = cos(angle);
+        
+        float sideA = shapeData.DecimalFields.y;
+        float sideB = shapeData.DecimalFields.z;
+        
+        vertexPositions[0] = float2(-sideA * 0.5, -sideB * 0.5);
+        vertexPositions[1] = float2(sideA * 0.5, -sideB * 0.5);
+        vertexPositions[2] = float2(sideA * 0.5, sideB * 0.5);
+        vertexPositions[3] = float2(-sideA * 0.5, sideB * 0.5);
+        for (int i = 0; i < 4; i++)
+        {
+            float newX = (vertexPositions[i].x * cosine) + (vertexPositions[i].y * (-sine));
+            float newY = (vertexPositions[i].x * sine) + (vertexPositions[i].y * cosine);
+            vertexPositions[i].x = newX;
+            vertexPositions[i].y = newY;
+            
+            vertexPositions[i] += shapeData.Center;
         }
     }
 }

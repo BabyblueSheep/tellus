@@ -2,6 +2,7 @@
 using MoonWorks.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net.Mail;
 using System.Numerics;
@@ -20,7 +21,7 @@ namespace Tellus.Collision;
 
 public sealed class CollisionHandler : GraphicsResource
 {
-    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    [StructLayout(LayoutKind.Explicit, Size = 48)]
     private struct ColliderShapeData
     {
         [FieldOffset(0)]
@@ -33,7 +34,16 @@ public sealed class CollisionHandler : GraphicsResource
         public Vector2 Center;
 
         [FieldOffset(16)]
-        public Vector4 Fields;
+        public Vector4 DecimalFields;
+
+        [FieldOffset(32)]
+        public Point IntegerFields;
+
+        [FieldOffset(40)]
+        public int Padding1;
+
+        [FieldOffset(44)]
+        public int Padding2;
     }
 
     private readonly ComputePipeline _computePipeline;
@@ -140,7 +150,8 @@ public sealed class CollisionHandler : GraphicsResource
                     dataUploadSpan[shapeDataIndex].ColliderIndex = colliderIndex;
                     dataUploadSpan[shapeDataIndex].ShapeType = shape.ShapeType;
                     dataUploadSpan[shapeDataIndex].Center = shape.ShapeCenter + collider.ShapeOffset;
-                    dataUploadSpan[shapeDataIndex].Fields = shape.ShapeFields;
+                    dataUploadSpan[shapeDataIndex].DecimalFields = shape.ShapeDecimalFields;
+                    dataUploadSpan[shapeDataIndex].IntegerFields = shape.ShapeIntegerFields;
                     shapeDataIndex++;
                 }
 

@@ -33,16 +33,32 @@ internal class ColliderTestCircle : IHasColliderShapes
         ];
 }
 
+internal class ColliderTestRectangle : IHasColliderShapes
+{
+    public bool CollidedThisFrame;
+
+    public Vector2 Center;
+    public float Angle;
+    public Vector2 Lengths;
+
+    public Vector2 ShapeOffset => Center;
+    public IEnumerable<IColliderShape> Shapes =>
+        [
+        new RectangleColliderShape() { Center = Vector2.Zero, Angle = Angle, SideLengths = Lengths }
+        ];
+}
+
 internal class CollisionGame : Game
 {
     private readonly CollisionHandler _collisionHandler;
     private readonly SpriteBatch _spriteBatch;
 
     private ColliderTestCircle _colliderTest1;
-    private List<ColliderTestCircle> _colliderTest2;
-    private List<ColliderTestCircle> _colliderTest3;
+    private List<ColliderTestRectangle> _colliderTest2;
+    private List<ColliderTestRectangle> _colliderTest3;
 
     private readonly Texture _circleSprite;
+    private readonly Texture _squareSprite;
     private Texture _depthTexture;
 
     public CollisionGame
@@ -69,24 +85,32 @@ internal class CollisionGame : Game
             VertexCount = 12,
         };
 
-        _colliderTest2 = new List<ColliderTestCircle>(80);
-        _colliderTest3 = new List<ColliderTestCircle>(80);
+        _colliderTest2 = new List<ColliderTestRectangle>(80);
+        _colliderTest3 = new List<ColliderTestRectangle>(80);
 
         var random = new Random();
         for (int i = 0; i < 80; i++)
         {
-            _colliderTest2.Add( new ColliderTestCircle()
+            /*
+            _colliderTest2.Add(new ColliderTestCircle()
             {
                 Center = new Vector2(random.Next(0, 400), random.Next(0, 400)),
-                Radius = (float)random.NextDouble() * 31 + 1,
+                Radius = random.NextSingle() * 31 + 1,
                 VertexCount = 6,
             });
 
             _colliderTest3.Add(new ColliderTestCircle()
             {
                 Center = new Vector2(random.Next(0, 400), random.Next(0, 400)),
-                Radius = (float)random.NextDouble() * 31 + 1,
+                Radius = random.NextSingle() * 31 + 1,
                 VertexCount = 6,
+            });*/
+
+            _colliderTest2.Add(new ColliderTestRectangle()
+            {
+                Center = new Vector2(random.Next(0, 400), random.Next(0, 400)),
+                Angle = random.NextSingle() * MathF.Tau,
+                Lengths = new Vector2(random.NextSingle() * 15 + 1, random.NextSingle() * 15 + 1)
             });
         }
 
@@ -97,6 +121,13 @@ internal class CollisionGame : Game
         _circleSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
             "Assets/image_circle.png",
+            TextureFormat.R8G8B8A8Unorm,
+            TextureUsageFlags.Sampler
+        );
+
+        _squareSprite = resourceUploader.CreateTexture2DFromCompressed(
+            RootTitleStorage,
+            "Assets/image2.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -124,7 +155,7 @@ internal class CollisionGame : Game
         foreach (var collisionResult in collisionResults)
         {
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
-            ColliderTestCircle item2 = (ColliderTestCircle)collisionResult.Item2;
+            ColliderTestRectangle item2 = (ColliderTestRectangle)collisionResult.Item2;
 
             item1.CollidedThisFrame = true;
             item2.CollidedThisFrame = true;
@@ -177,12 +208,12 @@ internal class CollisionGame : Game
             {
                 _spriteBatch.Draw
                 (
-                    _circleSprite,
-                    new Vector2(collider.Radius),
+                    _squareSprite,
+                    collider.Lengths * 0.5f,
                     new Rectangle(0, 0, 64, 64),
                     collider.Center,
-                    0,
-                    new Vector2(collider.Radius * 2),
+                    collider.Angle,
+                    collider.Lengths,
                     Color.White,
                     0.4f
                 );
