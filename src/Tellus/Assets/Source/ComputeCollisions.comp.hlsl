@@ -4,20 +4,13 @@
 struct ColliderShapeData
 {
 	int ColliderIndex;
-    int ShapeIndexRangeStart;
-    int ShapeIndexRangeRangeLength;
-    int Padding;
+    int ShapeType;
+    float2 Center;
+    float4 Fields;
 };
 
-struct VertexData
-{
-    float2 Position;
-};
-
-StructuredBuffer<VertexData> ShapeVertexBufferOne : register(t0, space0);
-StructuredBuffer<VertexData> ShapeVertexBufferTwo : register(t1, space0);
-StructuredBuffer<ColliderShapeData> ShapeIndexRangeBufferOne : register(t2, space0);
-StructuredBuffer<ColliderShapeData> ShapeIndexRangeBufferTwo : register(t3, space0);
+StructuredBuffer<ColliderShapeData> ShapeDataBufferOne : register(t0, space0);
+StructuredBuffer<ColliderShapeData> ShapeDataBufferTwo : register(t1, space0);
 
 RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
@@ -28,14 +21,18 @@ cbuffer UniformBlock : register(b0, space2)
     int ColliderShapeResultBufferLength;
 };
 
-float2 projectVerticesOnAxis(StructuredBuffer<VertexData> vertexBuffer, int indexStart, int indexEnd, float2 axis)
+#define TAU 6.28318530718
+
+#define CIRCLE_TYPE 0
+
+float2 projectVerticesOnAxis(float2 vertexPositions[16], int vertexAmount, float2 axis)
 {
-    float minProjectionPosition = dot(vertexBuffer[indexStart].Position, axis);
+    float minProjectionPosition = dot(vertexPositions[0], axis);
     float maxProjectionPosition = minProjectionPosition;
     
-    for (int i = indexStart + 1; i <= indexEnd; i++)
+    for (int i = 1; i < vertexAmount; i++)
     {
-        float currentProjectionPosition = dot(vertexBuffer[i].Position, axis);
+        float currentProjectionPosition = dot(vertexPositions[i], axis);
         minProjectionPosition = min(minProjectionPosition, currentProjectionPosition);
         maxProjectionPosition = max(maxProjectionPosition, currentProjectionPosition);
     }
@@ -46,6 +43,25 @@ float2 projectVerticesOnAxis(StructuredBuffer<VertexData> vertexBuffer, int inde
 bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
 {
     return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
+}
+
+void constructVertexPositions(ColliderShapeData shapeData, out float2 vertexPositions[16], out int vertexAmount)
+{
+    vertexAmount = 1;
+    for (int j = 0; j < 16; j++)
+    {
+        vertexPositions[j] = float2(0, 0);
+    }
+    
+    if (shapeData.ShapeType == CIRCLE_TYPE)
+    {
+        vertexAmount = 12;
+        float radius = shapeData.Fields.x;
+        for (int i = 0; i < vertexAmount; i++)
+        {
+            vertexPositions[i] = shapeData.Center + float2(cos(TAU * i / vertexAmount), sin(TAU * i / vertexAmount)) * radius;
+        }
+    }
 }
 
 [numthreads(16, 16, 1)]
@@ -59,54 +75,54 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         return;
     }
     
-    ColliderShapeData colliderShapeDataOne = ShapeIndexRangeBufferOne[x];
-    ColliderShapeData colliderShapeDataTwo = ShapeIndexRangeBufferTwo[y];
+    ColliderShapeData colliderShapeDataOne = ShapeDataBufferOne[x];
+    ColliderShapeData colliderShapeDataTwo = ShapeDataBufferTwo[y];
     
-    int indexRangeOneStart = colliderShapeDataOne.ShapeIndexRangeStart;
-    int indexRangeOneEnd = indexRangeOneStart + colliderShapeDataOne.ShapeIndexRangeRangeLength - 1;
-    int indexRangeTwoStart = colliderShapeDataTwo.ShapeIndexRangeStart;
-    int indexRangeTwoEnd = indexRangeTwoStart + colliderShapeDataTwo.ShapeIndexRangeRangeLength - 1;
+    float2 shapeVerticesOne[16], shapeVerticesTwo[16];
+    int shapeVertexAmountOne, shapeVertexAmountTwo;
+    constructVertexPositions(colliderShapeDataOne, shapeVerticesOne, shapeVertexAmountOne);
+    constructVertexPositions(colliderShapeDataTwo, shapeVerticesTwo, shapeVertexAmountTwo);
+    
+    for (int i = 0; i < shapeVertexAmountOne; i++)
+    {
+        int j = (i == (shapeVertexAmountOne - 1)) ? 0 : (i + 1);
+        float2 vertexOne = shapeVerticesOne[i];
+        float2 vertexTwo = shapeVerticesOne[j];
+        
+        float2 edge = vertexTwo - vertexOne;
+        float2 normal = float2(-edge.y, edge.x);
+        float2 axis = normalize(normal);
+        
+        float2 shapeOneProjection = projectVerticesOnAxis(shapeVerticesOne, shapeVertexAmountOne, axis);
+        float2 shapeTwoProjection = projectVerticesOnAxis(shapeVerticesTwo, shapeVertexAmountTwo, axis);
+        
+        if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
+        {
+            return;
+        }
+    }
+    
+    for (int m = 0; m < shapeVertexAmountTwo; m++)
+    {
+        int n = (m == (shapeVertexAmountTwo - 1)) ? 0 : (m + 1);
+        float2 vertexOne = shapeVerticesTwo[m];
+        float2 vertexTwo = shapeVerticesTwo[n];
+        
+        float2 edge = vertexTwo - vertexOne;
+        float2 normal = float2(-edge.y, edge.x);
+        float2 axis = normalize(normal);
+        
+        float2 shapeOneProjection = projectVerticesOnAxis(shapeVerticesOne, shapeVertexAmountOne, axis);
+        float2 shapeTwoProjection = projectVerticesOnAxis(shapeVerticesTwo, shapeVertexAmountTwo, axis);
+        
+        if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
+        {
+            return;
+        }
+    }
     
     uint resultIndex = colliderShapeDataTwo.ColliderIndex * ColliderShapeResultBufferLength + colliderShapeDataOne.ColliderIndex;
     
-    for (int i = indexRangeOneStart; i <= indexRangeOneEnd; i++)
-    {
-        int j = i == indexRangeOneEnd ? indexRangeOneStart : (i + 1);
-        float2 vertexOne = ShapeVertexBufferOne[i].Position;
-        float2 vertexTwo = ShapeVertexBufferOne[j].Position;
-        
-        float2 edge = vertexTwo - vertexOne;
-        float2 normal = float2(-edge.y, edge.x);
-        float2 axis = normalize(normal);
-        
-        float2 shapeOneProjection = projectVerticesOnAxis(ShapeVertexBufferOne, indexRangeOneStart, indexRangeOneEnd, axis);
-        float2 shapeTwoProjection = projectVerticesOnAxis(ShapeVertexBufferTwo, indexRangeTwoStart, indexRangeTwoEnd, axis);
-        
-        if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
-        {
-            return;
-        }
-    }
-
-    for (int i = indexRangeTwoStart; i <= indexRangeTwoEnd; i++)
-    {
-        int j = i == indexRangeTwoEnd ? indexRangeTwoStart : (i + 1);
-        float2 vertexOne = ShapeVertexBufferTwo[i].Position;
-        float2 vertexTwo = ShapeVertexBufferTwo[j].Position;
-        
-        float2 edge = vertexTwo - vertexOne;
-        float2 normal = float2(-edge.y, edge.x);
-        float2 axis = normalize(normal);
-        
-        float2 shapeOneProjection = projectVerticesOnAxis(ShapeVertexBufferOne, indexRangeOneStart, indexRangeOneEnd, axis);
-        float2 shapeTwoProjection = projectVerticesOnAxis(ShapeVertexBufferTwo, indexRangeTwoStart, indexRangeTwoEnd, axis);
-        
-        if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
-        {
-            return;
-        }
-    }
-    
-    int _ = 0;
+    int _;
     CollisionResultBuffer.InterlockedAdd(resultIndex * 4, 1, _);
 }

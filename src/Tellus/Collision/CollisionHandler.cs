@@ -13,52 +13,44 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
+// THINGS TO DOCUMENT:
+// max shapes allowed: SHAPE_DATA_AMOUNT (2048) (hard limit but i may expand)
+// max colliders allowed: COLLIDER_SHAPE_CONTAINER_AMOUNT (100) (todo: figure out how to not have maximum collider amount for collision result buffer)
+// max vertices a shape can have: 16 (probably hard limit?)
+
 public sealed class CollisionHandler : GraphicsResource
 {
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     private struct ColliderShapeData
     {
         [FieldOffset(0)]
         public int ColliderIndex;
 
         [FieldOffset(4)]
-        public int ShapeIndexRangeStart;
+        public int ShapeType;
 
         [FieldOffset(8)]
-        public int ShapeIndexRangeRangeLength;
+        public Vector2 Center;
 
-        [FieldOffset(12)]
-        public int Padding;
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 8)]
-    private struct VertexData
-    {
-        [FieldOffset(0)]
-        public Vector2 Position;
+        [FieldOffset(16)]
+        public Vector4 Fields;
     }
 
     private readonly ComputePipeline _computePipeline;
 
-    private readonly TransferBuffer _shapeVertexTransferBufferOne;
-    private readonly TransferBuffer _shapeVertexTransferBufferTwo;
-    private readonly Buffer _shapeVertexBufferOne;
-    private readonly Buffer _shapeVertexBufferTwo;
-
-    private readonly TransferBuffer _shapeIndexRangeTransferBufferOne;
-    private readonly TransferBuffer _shapeIndexRangeTransferBufferTwo;
-    private readonly Buffer _shapeIndexRangeBufferOne;
-    private readonly Buffer _shapeIndexRangeBufferTwo;
+    private readonly TransferBuffer _shapeDataTransferBufferOne;
+    private readonly TransferBuffer _shapeDataTransferBufferTwo;
+    private readonly Buffer _shapeDataBufferOne;
+    private readonly Buffer _shapeDataBufferTwo;
 
     private readonly TransferBuffer _collisionResultsTransferUploadBuffer;
     private readonly TransferBuffer _collisionResultsTransferDownloadBuffer;
     private readonly Buffer _collisionResultsBuffer;
 
-    record struct CollisionComputeUniforms(int ShapeIndexRangeBufferOneLength, int ShapeIndexRangeBufferTwoLength, int ColliderShapeResultBufferLength);
+    record struct CollisionComputeUniforms(int ShapeDataBufferOneLength, int ShapeDataBufferTwoLength, int ColliderShapeResultBufferLength);
     private CollisionComputeUniforms _collisionComputeUniforms;
 
-    private const int SHAPE_VERTEX_AMOUNT = 2048;
-    private const int SHAPE_INDEX_RANGE_AMOUNT = 1024;
+    private const int SHAPE_DATA_AMOUNT = 2048;
     private const int COLLIDER_SHAPE_CONTAINER_AMOUNT = 100;
     private const int COLLISION_RESULT_AMOUNT = COLLIDER_SHAPE_CONTAINER_AMOUNT * COLLIDER_SHAPE_CONTAINER_AMOUNT;
 
@@ -66,7 +58,7 @@ public sealed class CollisionHandler : GraphicsResource
     {
         Utils.LoadShaderFromManifest(Device, "Assets.ComputeCollisions.comp", new ComputePipelineCreateInfo()
         {
-            NumReadonlyStorageBuffers = 4,
+            NumReadonlyStorageBuffers = 2,
             NumReadWriteStorageBuffers = 1,
             NumUniformBuffers = 1,
             ThreadCountX = 16,
@@ -74,56 +66,30 @@ public sealed class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _computePipeline);
 
-        _shapeVertexTransferBufferOne = TransferBuffer.Create<VertexData>(
+        _shapeDataTransferBufferOne = TransferBuffer.Create<ColliderShapeData>(
             Device,
             TransferBufferUsage.Upload,
-            SHAPE_VERTEX_AMOUNT
+            SHAPE_DATA_AMOUNT
         );
 
-        _shapeVertexTransferBufferTwo = TransferBuffer.Create<VertexData>(
+        _shapeDataTransferBufferTwo = TransferBuffer.Create<ColliderShapeData>(
             Device,
             TransferBufferUsage.Upload,
-            SHAPE_VERTEX_AMOUNT
+            SHAPE_DATA_AMOUNT
         );
 
-        _shapeVertexBufferOne = Buffer.Create<VertexData>
+        _shapeDataBufferOne = Buffer.Create<ColliderShapeData>
         (
             Device,
             BufferUsageFlags.ComputeStorageRead,
-            SHAPE_VERTEX_AMOUNT
+            SHAPE_DATA_AMOUNT
         );
 
-        _shapeVertexBufferTwo = Buffer.Create<VertexData>
+        _shapeDataBufferTwo = Buffer.Create<ColliderShapeData>
         (
             Device,
             BufferUsageFlags.ComputeStorageRead,
-            SHAPE_VERTEX_AMOUNT
-        );
-
-        _shapeIndexRangeTransferBufferOne = TransferBuffer.Create<ColliderShapeData>(
-            Device,
-            TransferBufferUsage.Upload,
-            SHAPE_INDEX_RANGE_AMOUNT
-        );
-
-        _shapeIndexRangeTransferBufferTwo = TransferBuffer.Create<ColliderShapeData>(
-            Device,
-            TransferBufferUsage.Upload,
-            SHAPE_INDEX_RANGE_AMOUNT
-        );
-
-        _shapeIndexRangeBufferOne = Buffer.Create<ColliderShapeData>
-        (
-            Device,
-            BufferUsageFlags.ComputeStorageRead,
-            SHAPE_INDEX_RANGE_AMOUNT
-        );
-
-        _shapeIndexRangeBufferTwo = Buffer.Create<ColliderShapeData>
-        (
-            Device,
-            BufferUsageFlags.ComputeStorageRead,
-            SHAPE_INDEX_RANGE_AMOUNT
+            SHAPE_DATA_AMOUNT
         );
 
         _collisionResultsTransferUploadBuffer = TransferBuffer.Create<int>(
@@ -160,50 +126,42 @@ public sealed class CollisionHandler : GraphicsResource
         CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
 
 
-        int MapGroupToBuffer(IEnumerable<IHasColliderShapes> colliderGroup, TransferBuffer vertexTransferBuffer, TransferBuffer indexRangeTransferBuffer)
+        int MapGroupToBuffer(IEnumerable<IHasColliderShapes> colliderGroup, TransferBuffer dataTransferBuffer)
         {
-            var vertexUploadSpan = vertexTransferBuffer.Map<VertexData>(true);
-            var indexRangeUploadSpan = indexRangeTransferBuffer.Map<ColliderShapeData>(true);
+            var dataUploadSpan = dataTransferBuffer.Map<ColliderShapeData>(true);
 
             var colliderIndex = 0;
-            var vertexIndex = 0;
-            var indexRangeIndex = 0;
+            var shapeDataIndex = 0;
 
             foreach (var collider in colliderGroup)
             {
-                foreach (var indexPair in collider.ShapeIndexRanges)
+                foreach (var shape in collider.Shapes)
                 {
-                    indexRangeUploadSpan[indexRangeIndex].ColliderIndex = colliderIndex;
-                    indexRangeUploadSpan[indexRangeIndex].ShapeIndexRangeStart = indexPair.Item1 + vertexIndex;
-                    indexRangeUploadSpan[indexRangeIndex].ShapeIndexRangeRangeLength = indexPair.Item2;
-                    indexRangeIndex++;
+                    dataUploadSpan[shapeDataIndex].ColliderIndex = colliderIndex;
+                    dataUploadSpan[shapeDataIndex].ShapeType = shape.ShapeType;
+                    dataUploadSpan[shapeDataIndex].Center = shape.ShapeCenter + collider.ShapeOffset;
+                    dataUploadSpan[shapeDataIndex].Fields = shape.ShapeFields;
+                    shapeDataIndex++;
                 }
-                foreach (var vertex in collider.ShapeVertices)
-                {
-                    vertexUploadSpan[vertexIndex].Position = vertex + collider.ShapeOffset;
-                    vertexIndex++;
-                }
+
                 colliderIndex++;
             }
 
-            vertexTransferBuffer.Unmap();
-            indexRangeTransferBuffer.Unmap();
+            dataTransferBuffer.Unmap();
 
-            return indexRangeIndex;
+            return shapeDataIndex;
         }
 
         var collisionResultCopyPass = commandBuffer.BeginCopyPass();
         collisionResultCopyPass.UploadToBuffer(_collisionResultsTransferUploadBuffer, _collisionResultsBuffer, true);
         commandBuffer.EndCopyPass(collisionResultCopyPass);
 
-        _collisionComputeUniforms.ShapeIndexRangeBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne, _shapeVertexTransferBufferOne, _shapeIndexRangeTransferBufferOne);
-        _collisionComputeUniforms.ShapeIndexRangeBufferTwoLength = MapGroupToBuffer(colliderShapesGroupTwo, _shapeVertexTransferBufferTwo, _shapeIndexRangeTransferBufferTwo);
+        _collisionComputeUniforms.ShapeDataBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne, _shapeDataTransferBufferOne);
+        _collisionComputeUniforms.ShapeDataBufferTwoLength = MapGroupToBuffer(colliderShapesGroupTwo, _shapeDataTransferBufferTwo);
 
         var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.UploadToBuffer(_shapeVertexTransferBufferOne, _shapeVertexBufferOne, true);
-        copyPass.UploadToBuffer(_shapeIndexRangeTransferBufferOne, _shapeIndexRangeBufferOne, true);
-        copyPass.UploadToBuffer(_shapeVertexTransferBufferTwo, _shapeVertexBufferTwo, true);
-        copyPass.UploadToBuffer(_shapeIndexRangeTransferBufferTwo, _shapeIndexRangeBufferTwo, true);
+        copyPass.UploadToBuffer(_shapeDataTransferBufferOne, _shapeDataBufferOne, true);
+        copyPass.UploadToBuffer(_shapeDataTransferBufferTwo, _shapeDataBufferTwo, true);
         commandBuffer.EndCopyPass(copyPass);
 
 
@@ -212,9 +170,9 @@ public sealed class CollisionHandler : GraphicsResource
             new StorageBufferReadWriteBinding(_collisionResultsBuffer, false)
         );
         computePass.BindComputePipeline(_computePipeline);
-        computePass.BindStorageBuffers(_shapeVertexBufferOne, _shapeVertexBufferTwo, _shapeIndexRangeBufferOne, _shapeIndexRangeBufferTwo);
+        computePass.BindStorageBuffers(_shapeDataBufferOne, _shapeDataBufferTwo);
         commandBuffer.PushComputeUniformData(_collisionComputeUniforms);
-        computePass.Dispatch(((uint)_collisionComputeUniforms.ShapeIndexRangeBufferOneLength + 15) / 16, ((uint)_collisionComputeUniforms.ShapeIndexRangeBufferTwoLength + 15) / 16, 1);
+        computePass.Dispatch(((uint)_collisionComputeUniforms.ShapeDataBufferOneLength + 15) / 16, ((uint)_collisionComputeUniforms.ShapeDataBufferTwoLength + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
 
         copyPass = commandBuffer.BeginCopyPass();
@@ -261,14 +219,10 @@ public sealed class CollisionHandler : GraphicsResource
             if (disposing)
             {
                 _computePipeline.Dispose();
-                _shapeVertexTransferBufferOne.Dispose();
-                _shapeVertexTransferBufferTwo.Dispose();
-                _shapeVertexBufferOne.Dispose();
-                _shapeVertexBufferTwo.Dispose();
-                _shapeIndexRangeTransferBufferOne.Dispose();
-                _shapeIndexRangeTransferBufferTwo.Dispose();
-                _shapeIndexRangeBufferOne.Dispose();
-                _shapeIndexRangeBufferTwo.Dispose();
+                _shapeDataTransferBufferOne.Dispose();
+                _shapeDataTransferBufferOne.Dispose();
+                _shapeDataBufferOne.Dispose();
+                _shapeDataBufferTwo.Dispose();
                 _collisionResultsTransferUploadBuffer.Dispose();
                 _collisionResultsTransferDownloadBuffer.Dispose();
                 _collisionResultsBuffer.Dispose();

@@ -3,6 +3,7 @@ using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
 using MoonWorks.Input;
 using MoonWorks.Storage;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -26,8 +27,10 @@ internal class ColliderTestCircle : IHasColliderShapes
     public int VertexCount;
 
     public Vector2 ShapeOffset => Center;
-    public IEnumerable<Vector2> ShapeVertices => ColliderShapeProvider.GetCircleVertices(Vector2.Zero, Radius, VertexCount);
-    public IEnumerable<(int, int)> ShapeIndexRanges => ColliderShapeProvider.GetConnectedShapeIndices(0, VertexCount);
+    public IEnumerable<IColliderShape> Shapes => 
+        [
+        new CircleColliderShape() { Center = Vector2.Zero, Radius = Radius, VertexCount = VertexCount }
+        ];
 }
 
 internal class CollisionGame : Game
@@ -35,16 +38,9 @@ internal class CollisionGame : Game
     private readonly CollisionHandler _collisionHandler;
     private readonly SpriteBatch _spriteBatch;
 
-    private readonly Font _jetbrainsMono;
-    private readonly TextBatch _textBatch;
-    private GraphicsPipeline _fontPipeline;
-
     private ColliderTestCircle _colliderTest1;
     private List<ColliderTestCircle> _colliderTest2;
     private List<ColliderTestCircle> _colliderTest3;
-
-    private long collideMilliseconds;
-    private long totalMilliseconds;
 
     private readonly Texture _circleSprite;
     private Texture _depthTexture;
@@ -109,32 +105,6 @@ internal class CollisionGame : Game
         resourceUploader.Dispose();
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
-
-        _jetbrainsMono = Font.Load(GraphicsDevice, RootTitleStorage, "Assets/SofiaSans.ttf");
-        _textBatch = new TextBatch(GraphicsDevice);
-
-        var fontPipelineCreateInfo = new GraphicsPipelineCreateInfo
-        {
-            VertexShader = GraphicsDevice.TextVertexShader,
-            FragmentShader = GraphicsDevice.TextFragmentShader,
-            VertexInputState = GraphicsDevice.TextVertexInputState,
-            PrimitiveType = PrimitiveType.TriangleList,
-            RasterizerState = RasterizerState.CCW_CullNone,
-            MultisampleState = MultisampleState.None,
-            DepthStencilState = DepthStencilState.Disable,
-            TargetInfo = new GraphicsPipelineTargetInfo
-            {
-                ColorTargetDescriptions = [
-                    new ColorTargetDescription
-                    {
-                        Format = MainWindow.SwapchainFormat,
-                        BlendState = ColorTargetBlendState.NonPremultipliedAlphaBlend
-                    }
-                ]
-            }
-        };
-
-        _fontPipeline = GraphicsPipeline.Create(GraphicsDevice, fontPipelineCreateInfo);
     }
 
     protected override void Update(TimeSpan delta)
@@ -147,43 +117,22 @@ internal class CollisionGame : Game
 
         _colliderTest1.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var totalStopwatch = Stopwatch.StartNew();
-
         var colliderListOne = _colliderTest2.Select(collider => (IHasColliderShapes)collider).ToList();
         var colliderListTwo = _colliderTest3.Select(collider => (IHasColliderShapes)collider).ToList();
 
-        var collideStopwatch = Stopwatch.StartNew();
-
         var collisionResults = _collisionHandler.HandleCollisions([_colliderTest1], colliderListOne);
-
-        collideMilliseconds = collideStopwatch.ElapsedMilliseconds;
-
         foreach (var collisionResult in collisionResults)
         {
             ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
             ColliderTestCircle item2 = (ColliderTestCircle)collisionResult.Item2;
 
-            //item1.CollidedThisFrame = true;
-            //item2.CollidedThisFrame = true;
+            item1.CollidedThisFrame = true;
+            item2.CollidedThisFrame = true;
         }
-
-        totalMilliseconds = totalStopwatch.ElapsedMilliseconds;
     }
 
     protected override void Draw(double alpha)
     {
-        Matrix4x4 proj = Matrix4x4.CreateOrthographicOffCenter(
-            0,
-            MainWindow.Width,
-            MainWindow.Height,
-            0,
-            0,
-            -1
-        );
-
-        Matrix4x4 collideModel = Matrix4x4.CreateTranslation(10, 10, 0);
-        Matrix4x4 totalModel = Matrix4x4.CreateTranslation(10, 40, 0);
-
         CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
         Texture swapchainTexture = cmdbuf.AcquireSwapchainTexture(MainWindow);
         if (swapchainTexture != null)
@@ -255,32 +204,6 @@ internal class CollisionGame : Game
             }*/
 
             _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
-
-            
-            _textBatch.Start();
-            _textBatch.Add(
-                _jetbrainsMono,
-                $"{collideMilliseconds} ms",
-                16,
-                collideModel,
-                Color.Black,
-                HorizontalAlignment.Left,
-                VerticalAlignment.Middle
-            );
-            _textBatch.Add(
-                _jetbrainsMono,
-                $"{totalMilliseconds} ms",
-                16,
-                totalModel,
-                Color.Black,
-                HorizontalAlignment.Left,
-                VerticalAlignment.Middle
-            );
-            _textBatch.UploadBufferData(cmdbuf);
-
-            renderPass.BindGraphicsPipeline(_fontPipeline);
-            _textBatch.Render(renderPass, proj);
-            
 
             cmdbuf.EndRenderPass(renderPass);
         }

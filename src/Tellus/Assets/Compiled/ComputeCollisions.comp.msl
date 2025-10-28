@@ -1,4 +1,6 @@
 #pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
 
 #include <metal_stdlib>
 #include <simd/simd.h>
@@ -6,22 +8,50 @@
 
 using namespace metal;
 
-struct VertexData
+template<typename T, size_t Num>
+struct spvUnsafeArray
 {
-    float2 Position;
-};
-
-struct type_StructuredBuffer_VertexData
-{
-    VertexData _m0[1];
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
 };
 
 struct ColliderShapeData
 {
     int ColliderIndex;
-    int ShapeIndexRangeStart;
-    int ShapeIndexRangeRangeLength;
-    int Padding;
+    int ShapeType;
+    float2 Center;
+    float4 Fields;
 };
 
 struct type_StructuredBuffer_ColliderShapeData
@@ -41,170 +71,206 @@ struct type_UniformBlock
     int ColliderShapeResultBufferLength;
 };
 
-kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_VertexData& ShapeVertexBufferOne [[buffer(1)]], const device type_StructuredBuffer_VertexData& ShapeVertexBufferTwo [[buffer(2)]], const device type_StructuredBuffer_ColliderShapeData& ShapeIndexRangeBufferOne [[buffer(3)]], const device type_StructuredBuffer_ColliderShapeData& ShapeIndexRangeBufferTwo [[buffer(4)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(5)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ShapeDataBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ShapeDataBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(3)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     do
     {
-        bool _63;
+        bool _73;
         if (!(gl_GlobalInvocationID.x >= uint(UniformBlock.ColliderShapeBufferOneLength)))
         {
-            _63 = gl_GlobalInvocationID.y >= uint(UniformBlock.ColliderShapeBufferTwoLength);
+            _73 = gl_GlobalInvocationID.y >= uint(UniformBlock.ColliderShapeBufferTwoLength);
         }
         else
         {
-            _63 = true;
+            _73 = true;
         }
-        if (_63)
+        if (_73)
         {
             break;
         }
-        int _79 = (ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart + ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeRangeLength) - 1;
-        int _81 = (ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart + ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeRangeLength) - 1;
-        bool _158;
-        int _88 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart;
+        spvUnsafeArray<float2, 16> _50;
+        for (int _89 = 0; _89 < 16; )
+        {
+            _50[_89] = float2(0.0);
+            _89++;
+            continue;
+        }
+        bool _95 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 0;
+        if (_95)
+        {
+            for (int _100 = 0; _100 < 12; )
+            {
+                float _106 = float(_100) * 0.52359879016876220703125;
+                _50[_100] = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center + (float2(cos(_106), sin(_106)) * ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Fields.x);
+                _100++;
+                continue;
+            }
+        }
+        int _113 = _95 ? 12 : 1;
+        spvUnsafeArray<float2, 16> _51;
+        for (int _115 = 0; _115 < 16; )
+        {
+            _51[_115] = float2(0.0);
+            _115++;
+            continue;
+        }
+        bool _121 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 0;
+        if (_121)
+        {
+            for (int _126 = 0; _126 < 12; )
+            {
+                float _132 = float(_126) * 0.52359879016876220703125;
+                _51[_126] = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center + (float2(cos(_132), sin(_132)) * ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Fields.x);
+                _126++;
+                continue;
+            }
+        }
+        int _139 = _121 ? 12 : 1;
+        bool _206;
+        int _141 = 0;
         for (;;)
         {
-            if (_88 <= _79)
+            if (_141 < _113)
             {
-                int _99;
-                if (_88 == _79)
+                int _153;
+                if (_141 == (_113 - 1))
                 {
-                    _99 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart;
+                    _153 = 0;
                 }
                 else
                 {
-                    _99 = _88 + 1;
+                    _153 = _141 + 1;
                 }
-                float2 _106 = ShapeVertexBufferOne._m0[uint(_99)].Position - ShapeVertexBufferOne._m0[uint(_88)].Position;
-                float2 _111 = fast::normalize(float2(-_106.y, _106.x));
-                float _115 = dot(ShapeVertexBufferOne._m0[uint(ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart)].Position, _111);
-                int _116 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart + 1;
-                float _118;
-                float _121;
-                _118 = _115;
-                _121 = _115;
-                for (int _123 = _116; _123 <= _79; )
+                float2 _158 = _50[_153] - _50[_141];
+                float2 _163 = fast::normalize(float2(-_158.y, _158.x));
+                spvUnsafeArray<float2, 16> _52 = _50;
+                float _167 = dot(_52[0], _163);
+                float _169;
+                float _172;
+                _169 = _167;
+                _172 = _167;
+                for (int _174 = 1; _174 < _113; )
                 {
-                    float _130 = dot(ShapeVertexBufferOne._m0[uint(_123)].Position, _111);
-                    _118 = precise::max(_118, _130);
-                    _121 = precise::min(_121, _130);
-                    _123++;
+                    float _180 = dot(_52[_174], _163);
+                    _169 = precise::max(_169, _180);
+                    _172 = precise::min(_172, _180);
+                    _174++;
                     continue;
                 }
-                float _134 = dot(ShapeVertexBufferTwo._m0[uint(ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart)].Position, _111);
-                int _135 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart + 1;
-                float _137;
-                float _140;
-                _137 = _134;
-                _140 = _134;
-                for (int _142 = _135; _142 <= _81; )
+                spvUnsafeArray<float2, 16> _53 = _51;
+                float _184 = dot(_53[0], _163);
+                float _186;
+                float _189;
+                _186 = _184;
+                _189 = _184;
+                for (int _191 = 1; _191 < _139; )
                 {
-                    float _149 = dot(ShapeVertexBufferTwo._m0[uint(_142)].Position, _111);
-                    _137 = precise::max(_137, _149);
-                    _140 = precise::min(_140, _149);
-                    _142++;
+                    float _197 = dot(_53[_191], _163);
+                    _186 = precise::max(_186, _197);
+                    _189 = precise::min(_189, _197);
+                    _191++;
                     continue;
                 }
-                bool _154;
-                if (_121 <= _137)
+                bool _202;
+                if (_172 <= _186)
                 {
-                    _154 = _118 >= _140;
+                    _202 = _169 >= _189;
                 }
                 else
                 {
-                    _154 = false;
+                    _202 = false;
                 }
-                if (!_154)
+                if (!_202)
                 {
-                    _158 = true;
+                    _206 = true;
                     break;
                 }
-                _88++;
+                _141++;
                 continue;
             }
             else
             {
-                _158 = false;
+                _206 = false;
                 break;
             }
         }
-        if (_158)
+        if (_206)
         {
             break;
         }
-        bool _231;
-        int _161 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart;
+        bool _274;
+        int _209 = 0;
         for (;;)
         {
-            if (_161 <= _81)
+            if (_209 < _139)
             {
-                int _172;
-                if (_161 == _81)
+                int _221;
+                if (_209 == (_139 - 1))
                 {
-                    _172 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart;
+                    _221 = 0;
                 }
                 else
                 {
-                    _172 = _161 + 1;
+                    _221 = _209 + 1;
                 }
-                float2 _179 = ShapeVertexBufferTwo._m0[uint(_172)].Position - ShapeVertexBufferTwo._m0[uint(_161)].Position;
-                float2 _184 = fast::normalize(float2(-_179.y, _179.x));
-                float _188 = dot(ShapeVertexBufferOne._m0[uint(ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart)].Position, _184);
-                int _189 = ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ShapeIndexRangeStart + 1;
-                float _191;
-                float _194;
-                _191 = _188;
-                _194 = _188;
-                for (int _196 = _189; _196 <= _79; )
+                float2 _226 = _51[_221] - _51[_209];
+                float2 _231 = fast::normalize(float2(-_226.y, _226.x));
+                spvUnsafeArray<float2, 16> _54 = _50;
+                float _235 = dot(_54[0], _231);
+                float _237;
+                float _240;
+                _237 = _235;
+                _240 = _235;
+                for (int _242 = 1; _242 < _113; )
                 {
-                    float _203 = dot(ShapeVertexBufferOne._m0[uint(_196)].Position, _184);
-                    _191 = precise::max(_191, _203);
-                    _194 = precise::min(_194, _203);
-                    _196++;
+                    float _248 = dot(_54[_242], _231);
+                    _237 = precise::max(_237, _248);
+                    _240 = precise::min(_240, _248);
+                    _242++;
                     continue;
                 }
-                float _207 = dot(ShapeVertexBufferTwo._m0[uint(ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart)].Position, _184);
-                int _208 = ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ShapeIndexRangeStart + 1;
-                float _210;
-                float _213;
-                _210 = _207;
-                _213 = _207;
-                for (int _215 = _208; _215 <= _81; )
+                spvUnsafeArray<float2, 16> _55 = _51;
+                float _252 = dot(_55[0], _231);
+                float _254;
+                float _257;
+                _254 = _252;
+                _257 = _252;
+                for (int _259 = 1; _259 < _139; )
                 {
-                    float _222 = dot(ShapeVertexBufferTwo._m0[uint(_215)].Position, _184);
-                    _210 = precise::max(_210, _222);
-                    _213 = precise::min(_213, _222);
-                    _215++;
+                    float _265 = dot(_55[_259], _231);
+                    _254 = precise::max(_254, _265);
+                    _257 = precise::min(_257, _265);
+                    _259++;
                     continue;
                 }
-                bool _227;
-                if (_194 <= _210)
+                bool _270;
+                if (_240 <= _254)
                 {
-                    _227 = _191 >= _213;
+                    _270 = _237 >= _257;
                 }
                 else
                 {
-                    _227 = false;
+                    _270 = false;
                 }
-                if (!_227)
+                if (!_270)
                 {
-                    _231 = true;
+                    _274 = true;
                     break;
                 }
-                _161++;
+                _209++;
                 continue;
             }
             else
             {
-                _231 = _158;
+                _274 = _206;
                 break;
             }
         }
-        if (_231)
+        if (_274)
         {
             break;
         }
-        uint _236 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(uint((ShapeIndexRangeBufferTwo._m0[gl_GlobalInvocationID.y].ColliderIndex * UniformBlock.ColliderShapeResultBufferLength) + ShapeIndexRangeBufferOne._m0[gl_GlobalInvocationID.x].ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
+        uint _284 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(uint((ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ColliderIndex * UniformBlock.ColliderShapeResultBufferLength) + ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
         break;
     } while(false);
 }
