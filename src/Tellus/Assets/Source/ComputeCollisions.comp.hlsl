@@ -29,6 +29,7 @@ cbuffer UniformBlock : register(b0, space2)
 
 #define CIRCLE_TYPE 0
 #define RECTANGLE_TYPE 1
+#define TRIANGLE_TYPE 2
 
 float2 projectVerticesOnAxis(float2 vertexPositions[16], int vertexAmount, float2 axis)
 {
@@ -91,6 +92,14 @@ void constructVertexPositions(ColliderShapeData shapeData, out float2 vertexPosi
             
             vertexPositions[i] += shapeData.Center;
         }
+    }
+    else if (shapeData.ShapeType == TRIANGLE_TYPE)
+    {
+        vertexAmount = 3;
+        
+        vertexPositions[0] = shapeData.Center;
+        vertexPositions[1] = float2(shapeData.DecimalFields.x, shapeData.DecimalFields.y);
+        vertexPositions[2] = float2(shapeData.DecimalFields.z, shapeData.DecimalFields.w);
     }
 }
 

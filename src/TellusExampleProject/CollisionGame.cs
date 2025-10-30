@@ -10,56 +10,92 @@ using System.Drawing;
 using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Tellus.Collision;
 using Tellus.Graphics;
-
+using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace TellusExampleProject;
 
-internal class ColliderTestCircle : IHasColliderShapes
+internal abstract class CollidingObject
 {
-    public bool CollidedThisFrame;
-
-    public Vector2 Center;
-    public float Radius;
-    public int VertexCount;
-
-    public Vector2 ShapeOffset => Center;
-    public IEnumerable<IColliderShape> Shapes => 
-        [
-        new CircleColliderShape() { Center = Vector2.Zero, Radius = Radius, VertexCount = VertexCount }
-        ];
+    public bool HasCollidedThisFrame;
 }
 
-internal class ColliderTestRectangle : IHasColliderShapes
+internal sealed class CircleCollidingObject : CollidingObject, IHasColliderShapes
 {
-    public bool CollidedThisFrame;
+    public Vector2 Center;
+    public float Radius;
 
+    public Vector2 ShapeOffset => Vector2.Zero;
+    public IEnumerable<IColliderShape> Shapes => [
+        new CircleColliderShape(Center, Radius, 16)
+    ];
+}
+
+internal sealed class RectangleCollidingObject : CollidingObject, IHasColliderShapes
+{
     public Vector2 Center;
     public float Angle;
-    public Vector2 Lengths;
+    public Vector2 SideLengths;
 
-    public Vector2 ShapeOffset => Center;
-    public IEnumerable<IColliderShape> Shapes =>
-        [
-        new RectangleColliderShape() { Center = Vector2.Zero, Angle = Angle, SideLengths = Lengths }
-        ];
+    public Vector2 ShapeOffset => Vector2.Zero;
+    public IEnumerable<IColliderShape> Shapes => [
+        new RectangleColliderShape(Center, Angle, SideLengths)
+    ];
+}
+
+internal sealed class TriangleCollidingObject : CollidingObject, IHasColliderShapes
+{
+    public Vector2 PointOne;
+    public Vector2 PointTwo;
+    public Vector2 PointThree;
+
+    public Vector2 ShapeOffset => Vector2.Zero;
+    public IEnumerable<IColliderShape> Shapes => [
+        new TriangleColliderShape(PointOne, PointTwo, PointThree)
+    ];
+}
+
+[StructLayout(LayoutKind.Explicit, Size = 32)]
+file struct PositionColorVertex : IVertexType
+{
+    [FieldOffset(0)]
+    public Vector4 Position;
+
+    [FieldOffset(16)]
+    public Vector4 Color;
+
+    public static VertexElementFormat[] Formats { get; } =
+    [
+        VertexElementFormat.Float4,
+        VertexElementFormat.Float4,
+    ];
+
+    public static uint[] Offsets { get; } =
+    [
+        0,
+        16
+    ];
 }
 
 internal class CollisionGame : Game
 {
     private readonly CollisionHandler _collisionHandler;
-    private readonly SpriteBatch _spriteBatch;
 
-    private ColliderTestCircle _colliderTest1;
-    private List<ColliderTestRectangle> _colliderTest2;
-    private List<ColliderTestRectangle> _colliderTest3;
+    private readonly CircleCollidingObject _playerObject;
+    private readonly List<CollidingObject> _targetObjects;
 
     private readonly Texture _circleSprite;
     private readonly Texture _squareSprite;
     private Texture _depthTexture;
+    private readonly SpriteBatch _spriteBatch;
+
+    private readonly Buffer _vertexBuffer;
+    private int _triangleCount;
+    private readonly GraphicsPipeline _pipeline;
 
     public CollisionGame
     (
@@ -77,45 +113,9 @@ internal class CollisionGame : Game
     )
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _colliderTest1 = new ColliderTestCircle()
-        {
-            Center = new Vector2(0, 0),
-            Radius = 8,
-            VertexCount = 12,
-        };
-
-        _colliderTest2 = new List<ColliderTestRectangle>(80);
-        _colliderTest3 = new List<ColliderTestRectangle>(80);
-
-        var random = new Random();
-        for (int i = 0; i < 80; i++)
-        {
-            /*
-            _colliderTest2.Add(new ColliderTestCircle()
-            {
-                Center = new Vector2(random.Next(0, 400), random.Next(0, 400)),
-                Radius = random.NextSingle() * 31 + 1,
-                VertexCount = 6,
-            });
-
-            _colliderTest3.Add(new ColliderTestCircle()
-            {
-                Center = new Vector2(random.Next(0, 400), random.Next(0, 400)),
-                Radius = random.NextSingle() * 31 + 1,
-                VertexCount = 6,
-            });*/
-
-            _colliderTest2.Add(new ColliderTestRectangle()
-            {
-                Center = new Vector2(random.Next(0, 400), random.Next(0, 400)),
-                Angle = random.NextSingle() * MathF.Tau,
-                Lengths = new Vector2(random.NextSingle() * 15 + 1, random.NextSingle() * 15 + 1)
-            });
-        }
-
-        _collisionHandler = new CollisionHandler(GraphicsDevice);
-
+        #region Images
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 
         _circleSprite = resourceUploader.CreateTexture2DFromCompressed(
@@ -135,46 +135,182 @@ internal class CollisionGame : Game
         resourceUploader.Upload();
         resourceUploader.Dispose();
 
-        _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
+        #endregion
+
+        #region Colliders
+        _playerObject = new CircleCollidingObject()
+        {
+            Radius = 16
+        };
+
+        _targetObjects = new List<CollidingObject>(80);
+
+        var random = new Random();
+        for (int i = 0; i < 80; i++)
+        {
+            Vector2 center = new Vector2(random.NextSingle() * 900, random.NextSingle() * 900);
+            int shapeType = random.Next(3);
+            switch (shapeType)
+            {
+                case 0:
+                    _targetObjects.Add(new CircleCollidingObject()
+                    {
+                        Radius = random.NextSingle() * 24 + 8,
+                        Center = center,
+                    });
+                    break;
+                case 1:
+                    _targetObjects.Add(new RectangleCollidingObject()
+                    {
+                        Center = center,
+                        Angle = random.NextSingle() * MathF.Tau,
+                        SideLengths = new Vector2(random.NextSingle() * 24 + 8, random.NextSingle() * 24 + 8),
+                    });
+                    break;
+                case 2:
+                    _targetObjects.Add(new TriangleCollidingObject()
+                    {
+                        PointOne = center,
+                        PointTwo = center + new Vector2(random.NextSingle() * 24 + 8, 0),
+                        PointThree = center + new Vector2(random.NextSingle() * 24 + 8, random.NextSingle() * 24 + 8)
+                    });
+                    break;
+            }
+        }
+
+        _collisionHandler = new CollisionHandler(GraphicsDevice);
+
+        #endregion
+
+        #region Triangle rendering stuff
+        _vertexBuffer = Buffer.Create<PositionColorVertex>
+        (
+            GraphicsDevice,
+            BufferUsageFlags.Vertex,
+            80 * 3
+        );
+
+        TransferBuffer vertexBuffer = TransferBuffer.Create<PositionColorVertex>
+        (
+            GraphicsDevice,
+            TransferBufferUsage.Upload,
+            80 * 3
+        );
+
+        var vertexSpan = vertexBuffer.Map<PositionColorVertex>(false);
+        foreach (var colliderObject in _targetObjects)
+        {
+            if (colliderObject is TriangleCollidingObject triangle)
+            {
+                vertexSpan[_triangleCount * 3].Position = new Vector4(triangle.PointOne, 0f, 1f);
+                vertexSpan[_triangleCount * 3 + 1].Position = new Vector4(triangle.PointTwo, 0f, 1f);
+                vertexSpan[_triangleCount * 3 + 2].Position = new Vector4(triangle.PointThree, 0f, 1f);
+
+                vertexSpan[_triangleCount * 3].Color = new Vector4(1f, 1f, 1f, 1f);
+                vertexSpan[_triangleCount * 3 + 1].Color = new Vector4(1f, 1f, 1f, 1f);
+                vertexSpan[_triangleCount * 3 + 2].Color = new Vector4(1f, 1f, 1f, 1f);
+
+                _triangleCount++;
+            }
+        }
+        vertexBuffer.Unmap();
+
+        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        var copyPass = commandBuffer.BeginCopyPass();
+        copyPass.UploadToBuffer(vertexBuffer, _vertexBuffer, false);
+        commandBuffer.EndCopyPass(copyPass);
+        GraphicsDevice.Submit(commandBuffer);
+
+        vertexBuffer.Dispose();
+
+        Shader vertexShader = ShaderCross.Create(
+            GraphicsDevice,
+            RootTitleStorage,
+            "Assets/Position.vert.hlsl",
+            "main",
+            ShaderCross.ShaderFormat.HLSL,
+            ShaderStage.Vertex
+        );
+        Shader fragmentShader = ShaderCross.Create(
+            GraphicsDevice,
+            RootTitleStorage,
+            "Assets/SolidColor.frag.hlsl",
+            "main",
+            ShaderCross.ShaderFormat.HLSL,
+            ShaderStage.Fragment
+        );
+
+        var graphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
+        {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            VertexInputState = VertexInputState.CreateSingleBinding<PositionColorVertex>(),
+            PrimitiveType = PrimitiveType.TriangleList,
+            RasterizerState = RasterizerState.CCW_CullNone,
+            MultisampleState = MultisampleState.None,
+            DepthStencilState = DepthStencilState.Disable,
+            TargetInfo = new GraphicsPipelineTargetInfo()
+            {
+                ColorTargetDescriptions =
+                [
+                    new ColorTargetDescription()
+                    {
+                        Format = MainWindow.SwapchainFormat,
+                        BlendState = ColorTargetBlendState.Opaque,
+                    }
+                ],
+            },
+        };
+        _pipeline = GraphicsPipeline.Create(GraphicsDevice, graphicsPipelineCreateInfo);
+        #endregion
     }
 
     protected override void Update(TimeSpan delta)
     {
-        _colliderTest1.CollidedThisFrame = false;
-        foreach (var collider in _colliderTest2)
+        _playerObject.HasCollidedThisFrame = false;
+        foreach (var collider in _targetObjects)
         {
-            collider.CollidedThisFrame = false;
+            collider.HasCollidedThisFrame = false;
         }
 
-        _colliderTest1.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
+        _playerObject.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var colliderListOne = _colliderTest2.Select(collider => (IHasColliderShapes)collider).ToList();
-        var colliderListTwo = _colliderTest3.Select(collider => (IHasColliderShapes)collider).ToList();
+        var colliderList = _targetObjects.Select(collider => (IHasColliderShapes)collider).ToList();
 
-        var collisionResults = _collisionHandler.HandleCollisions([_colliderTest1], colliderListOne);
+        var collisionResults = _collisionHandler.HandleCollisions([_playerObject], colliderList);
         foreach (var collisionResult in collisionResults)
         {
-            ColliderTestCircle item1 = (ColliderTestCircle)collisionResult.Item1;
-            ColliderTestRectangle item2 = (ColliderTestRectangle)collisionResult.Item2;
+            CollidingObject item1 = (CollidingObject)collisionResult.Item1;
+            CollidingObject item2 = (CollidingObject)collisionResult.Item2;
 
-            item1.CollidedThisFrame = true;
-            item2.CollidedThisFrame = true;
+            item1.HasCollidedThisFrame = true;
+            item2.HasCollidedThisFrame = true;
         }
     }
 
     protected override void Draw(double alpha)
     {
-        CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
-        Texture swapchainTexture = cmdbuf.AcquireSwapchainTexture(MainWindow);
+        CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        Texture swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
         if (swapchainTexture != null)
         {
+            var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
+            (
+                0,
+                swapchainTexture.Width,
+                swapchainTexture.Height,
+                0,
+                0,
+                -1f
+            );
+
             if (_depthTexture.Width != swapchainTexture.Width || _depthTexture.Height != swapchainTexture.Height)
             {
                 _depthTexture.Dispose();
                 _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", swapchainTexture.Width, swapchainTexture.Height, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
             }
 
-            var renderPass = cmdbuf.BeginRenderPass(
+            var renderPass = commandBuffer.BeginRenderPass(
                 new DepthStencilTargetInfo(_depthTexture, 1),
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
@@ -192,53 +328,57 @@ internal class CollisionGame : Game
                 RasterizerState.CCW_CullNone,
                 null, null, null);
 
-            _spriteBatch.Draw
-            (
+            _spriteBatch.Draw(
                 _circleSprite,
-                new Vector2(_colliderTest1.Radius),
-                new Rectangle(0, 0, 64, 64),
-                _colliderTest1.Center,
-                0,
-                new Vector2(_colliderTest1.Radius * 2),
-                _colliderTest1.CollidedThisFrame ? Color.Red : Color.Blue,
+                new Vector2(_playerObject.Radius),
+                new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
+                _playerObject.Center,
+                0f, 
+                new Vector2(_playerObject.Radius * 2f),
+                _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
                 0.5f
             );
 
-            foreach (var collider in _colliderTest2)
+            foreach (var objectCollider in _targetObjects)
             {
-                _spriteBatch.Draw
-                (
-                    _squareSprite,
-                    collider.Lengths * 0.5f,
-                    new Rectangle(0, 0, 64, 64),
-                    collider.Center,
-                    collider.Angle,
-                    collider.Lengths,
-                    Color.White,
-                    0.4f
-                );
+                if (objectCollider is CircleCollidingObject circle)
+                {
+                    _spriteBatch.Draw(
+                        _circleSprite,
+                        new Vector2(circle.Radius),
+                        new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
+                        circle.Center,
+                        0f,
+                        new Vector2(circle.Radius * 2f),
+                        Color.White,
+                        0.6f
+                    );
+                }
+                else if (objectCollider is RectangleCollidingObject rectangle)
+                {
+                    _spriteBatch.Draw(
+                        _squareSprite,
+                        rectangle.SideLengths * 0.5f,
+                        new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
+                        rectangle.Center,
+                        rectangle.Angle,
+                        rectangle.SideLengths,
+                        Color.White,
+                        0.6f
+                    );
+                }
             }
 
-            /*foreach (var collider in _colliderTest3)
-            {
-                _spriteBatch.Draw
-                (
-                    _circleSprite,
-                    new Vector2(collider.Radius),
-                    new Rectangle(0, 0, 64, 64),
-                    collider.Center,
-                    0,
-                    new Vector2(collider.Radius * 2),
-                    Color.Blue,
-                    0.4f
-                );
-            }*/
+            _spriteBatch.End(commandBuffer, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
 
-            _spriteBatch.End(cmdbuf, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
+            commandBuffer.PushVertexUniformData(cameraMatrix);
+            renderPass.BindGraphicsPipeline(_pipeline);
+            renderPass.BindVertexBuffers(_vertexBuffer);
+            renderPass.DrawPrimitives((uint)_triangleCount * 3, 1, 0, 0);
 
-            cmdbuf.EndRenderPass(renderPass);
+            commandBuffer.EndRenderPass(renderPass);
         }
-        GraphicsDevice.Submit(cmdbuf);
+        GraphicsDevice.Submit(commandBuffer);
     }
 
     protected override void Destroy()
