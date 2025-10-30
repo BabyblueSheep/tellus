@@ -92,268 +92,291 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             break;
         }
         spvUnsafeArray<float2, 16> _58;
-        for (int _105 = 0; _105 < 16; )
+        for (int _101 = 0; _101 < 16; )
         {
-            _58[_105] = float2(0.0);
-            _105++;
+            _58[_101] = float2(0.0);
+            _101++;
             continue;
         }
-        int _190;
+        int _196;
         if (ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 0)
         {
-            for (int _118 = 0; _118 < ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x; )
+            for (int _114 = 0; _114 < ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x; )
             {
-                float _126 = (6.283185482025146484375 * float(_118)) / float(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x);
-                _58[_118] = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center + (float2(cos(_126), sin(_126)) * ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
-                _118++;
+                float _122 = (6.283185482025146484375 * float(_114)) / float(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x);
+                _58[_114] = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center + (float2(cos(_122), sin(_122)) * ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
+                _114++;
                 continue;
             }
-            _190 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x;
+            _196 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x;
         }
         else
         {
-            int _189;
+            int _195;
             if (ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 1)
             {
-                float _138 = sin(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
-                float _139 = cos(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
-                float _142 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.y * (-0.5);
-                float _143 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.z * (-0.5);
-                _58[0] = float2(_142, _143);
-                float _146 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.y * 0.5;
-                _58[1] = float2(_146, _143);
-                float _149 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.z * 0.5;
-                _58[2] = float2(_146, _149);
-                _58[3] = float2(_142, _149);
-                for (int _155 = 0; _155 < 4; )
+                float _134 = sin(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
+                float _135 = cos(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
+                float _138 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.y * (-0.5);
+                float _139 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.z * (-0.5);
+                _58[0] = float2(_138, _139);
+                float _142 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.y * 0.5;
+                _58[1] = float2(_142, _139);
+                float _145 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.z * 0.5;
+                _58[2] = float2(_142, _145);
+                _58[3] = float2(_138, _145);
+                for (int _151 = 0; _151 < 4; )
                 {
-                    float _169 = _58[_155].x;
-                    float _171 = _58[_155].y;
-                    _58[_155].x = (_58[_155].x * _139) + (_58[_155].y * (-_138));
-                    _58[_155].y = (_169 * _138) + (_171 * _139);
-                    _58[_155] += ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
-                    _155++;
+                    float _165 = _58[_151].x;
+                    float _167 = _58[_151].y;
+                    _58[_151].x = (_58[_151].x * _135) + (_58[_151].y * (-_134));
+                    _58[_151].y = (_165 * _134) + (_167 * _135);
+                    _58[_151] += ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
+                    _151++;
                     continue;
                 }
-                _189 = 4;
+                _195 = 4;
             }
             else
             {
-                bool _176 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 2;
-                if (_176)
+                int _194;
+                if (ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 2)
                 {
                     _58[0] = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
                     _58[1] = float2(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.xy);
                     _58[2] = float2(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.zw);
+                    _194 = 3;
                 }
-                _189 = _176 ? 3 : 1;
+                else
+                {
+                    bool _185 = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 3;
+                    if (_185)
+                    {
+                        _58[0] = ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
+                        _58[1] = float2(ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.xy);
+                    }
+                    _194 = _185 ? 2 : 1;
+                }
+                _195 = _194;
             }
-            _190 = _189;
+            _196 = _195;
         }
         spvUnsafeArray<float2, 16> _59;
-        for (int _192 = 0; _192 < 16; )
+        for (int _198 = 0; _198 < 16; )
         {
-            _59[_192] = float2(0.0);
-            _192++;
+            _59[_198] = float2(0.0);
+            _198++;
             continue;
         }
-        int _277;
+        int _293;
         if (ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 0)
         {
-            for (int _205 = 0; _205 < ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x; )
+            for (int _211 = 0; _211 < ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x; )
             {
-                float _213 = (6.283185482025146484375 * float(_205)) / float(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x);
-                _59[_205] = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center + (float2(cos(_213), sin(_213)) * ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
-                _205++;
+                float _219 = (6.283185482025146484375 * float(_211)) / float(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x);
+                _59[_211] = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center + (float2(cos(_219), sin(_219)) * ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
+                _211++;
                 continue;
             }
-            _277 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x;
+            _293 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x;
         }
         else
         {
-            int _276;
+            int _292;
             if (ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 1)
             {
-                float _225 = sin(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
-                float _226 = cos(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
-                float _229 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.y * (-0.5);
-                float _230 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.z * (-0.5);
-                _59[0] = float2(_229, _230);
-                float _233 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.y * 0.5;
-                _59[1] = float2(_233, _230);
-                float _236 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.z * 0.5;
-                _59[2] = float2(_233, _236);
-                _59[3] = float2(_229, _236);
-                for (int _242 = 0; _242 < 4; )
+                float _231 = sin(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
+                float _232 = cos(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
+                float _235 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.y * (-0.5);
+                float _236 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.z * (-0.5);
+                _59[0] = float2(_235, _236);
+                float _239 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.y * 0.5;
+                _59[1] = float2(_239, _236);
+                float _242 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.z * 0.5;
+                _59[2] = float2(_239, _242);
+                _59[3] = float2(_235, _242);
+                for (int _248 = 0; _248 < 4; )
                 {
-                    float _256 = _59[_242].x;
-                    float _258 = _59[_242].y;
-                    _59[_242].x = (_59[_242].x * _226) + (_59[_242].y * (-_225));
-                    _59[_242].y = (_256 * _225) + (_258 * _226);
-                    _59[_242] += ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
-                    _242++;
+                    float _262 = _59[_248].x;
+                    float _264 = _59[_248].y;
+                    _59[_248].x = (_59[_248].x * _232) + (_59[_248].y * (-_231));
+                    _59[_248].y = (_262 * _231) + (_264 * _232);
+                    _59[_248] += ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
+                    _248++;
                     continue;
                 }
-                _276 = 4;
+                _292 = 4;
             }
             else
             {
-                bool _263 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 2;
-                if (_263)
+                int _291;
+                if (ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 2)
                 {
                     _59[0] = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
                     _59[1] = float2(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.xy);
                     _59[2] = float2(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.zw);
-                }
-                _276 = _263 ? 3 : 1;
-            }
-            _277 = _276;
-        }
-        bool _344;
-        int _279 = 0;
-        for (;;)
-        {
-            if (_279 < _190)
-            {
-                int _291;
-                if (_279 == (_190 - 1))
-                {
-                    _291 = 0;
+                    _291 = 3;
                 }
                 else
                 {
-                    _291 = _279 + 1;
+                    bool _282 = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 3;
+                    if (_282)
+                    {
+                        _59[0] = ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
+                        _59[1] = float2(ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.xy);
+                    }
+                    _291 = _282 ? 2 : 1;
                 }
-                float2 _296 = _58[_291] - _58[_279];
-                float2 _301 = fast::normalize(float2(-_296.y, _296.x));
-                spvUnsafeArray<float2, 16> _60 = _58;
-                float _305 = dot(_60[0], _301);
-                float _307;
-                float _310;
-                _307 = _305;
-                _310 = _305;
-                for (int _312 = 1; _312 < _190; )
+                _292 = _291;
+            }
+            _293 = _292;
+        }
+        bool _360;
+        int _295 = 0;
+        for (;;)
+        {
+            if (_295 < _196)
+            {
+                int _307;
+                if (_295 == (_196 - 1))
                 {
-                    float _318 = dot(_60[_312], _301);
-                    _307 = precise::max(_307, _318);
-                    _310 = precise::min(_310, _318);
-                    _312++;
+                    _307 = 0;
+                }
+                else
+                {
+                    _307 = _295 + 1;
+                }
+                float2 _312 = _58[_307] - _58[_295];
+                float2 _317 = fast::normalize(float2(-_312.y, _312.x));
+                spvUnsafeArray<float2, 16> _60 = _58;
+                float _321 = dot(_60[0], _317);
+                float _323;
+                float _326;
+                _323 = _321;
+                _326 = _321;
+                for (int _328 = 1; _328 < _196; )
+                {
+                    float _334 = dot(_60[_328], _317);
+                    _323 = precise::max(_323, _334);
+                    _326 = precise::min(_326, _334);
+                    _328++;
                     continue;
                 }
                 spvUnsafeArray<float2, 16> _61 = _59;
-                float _322 = dot(_61[0], _301);
-                float _324;
-                float _327;
-                _324 = _322;
-                _327 = _322;
-                for (int _329 = 1; _329 < _277; )
+                float _338 = dot(_61[0], _317);
+                float _340;
+                float _343;
+                _340 = _338;
+                _343 = _338;
+                for (int _345 = 1; _345 < _293; )
                 {
-                    float _335 = dot(_61[_329], _301);
-                    _324 = precise::max(_324, _335);
-                    _327 = precise::min(_327, _335);
-                    _329++;
+                    float _351 = dot(_61[_345], _317);
+                    _340 = precise::max(_340, _351);
+                    _343 = precise::min(_343, _351);
+                    _345++;
                     continue;
                 }
-                bool _340;
-                if (_310 <= _324)
+                bool _356;
+                if (_326 <= _340)
                 {
-                    _340 = _307 >= _327;
+                    _356 = _323 >= _343;
                 }
                 else
                 {
-                    _340 = false;
+                    _356 = false;
                 }
-                if (!_340)
+                if (!_356)
                 {
-                    _344 = true;
+                    _360 = true;
                     break;
                 }
-                _279++;
+                _295++;
                 continue;
             }
             else
             {
-                _344 = false;
+                _360 = false;
                 break;
             }
         }
-        if (_344)
+        if (_360)
         {
             break;
         }
-        bool _412;
-        int _347 = 0;
+        bool _428;
+        int _363 = 0;
         for (;;)
         {
-            if (_347 < _277)
+            if (_363 < _293)
             {
-                int _359;
-                if (_347 == (_277 - 1))
+                int _375;
+                if (_363 == (_293 - 1))
                 {
-                    _359 = 0;
+                    _375 = 0;
                 }
                 else
                 {
-                    _359 = _347 + 1;
+                    _375 = _363 + 1;
                 }
-                float2 _364 = _59[_359] - _59[_347];
-                float2 _369 = fast::normalize(float2(-_364.y, _364.x));
+                float2 _380 = _59[_375] - _59[_363];
+                float2 _385 = fast::normalize(float2(-_380.y, _380.x));
                 spvUnsafeArray<float2, 16> _62 = _58;
-                float _373 = dot(_62[0], _369);
-                float _375;
-                float _378;
-                _375 = _373;
-                _378 = _373;
-                for (int _380 = 1; _380 < _190; )
+                float _389 = dot(_62[0], _385);
+                float _391;
+                float _394;
+                _391 = _389;
+                _394 = _389;
+                for (int _396 = 1; _396 < _196; )
                 {
-                    float _386 = dot(_62[_380], _369);
-                    _375 = precise::max(_375, _386);
-                    _378 = precise::min(_378, _386);
-                    _380++;
+                    float _402 = dot(_62[_396], _385);
+                    _391 = precise::max(_391, _402);
+                    _394 = precise::min(_394, _402);
+                    _396++;
                     continue;
                 }
                 spvUnsafeArray<float2, 16> _63 = _59;
-                float _390 = dot(_63[0], _369);
-                float _392;
-                float _395;
-                _392 = _390;
-                _395 = _390;
-                for (int _397 = 1; _397 < _277; )
+                float _406 = dot(_63[0], _385);
+                float _408;
+                float _411;
+                _408 = _406;
+                _411 = _406;
+                for (int _413 = 1; _413 < _293; )
                 {
-                    float _403 = dot(_63[_397], _369);
-                    _392 = precise::max(_392, _403);
-                    _395 = precise::min(_395, _403);
-                    _397++;
+                    float _419 = dot(_63[_413], _385);
+                    _408 = precise::max(_408, _419);
+                    _411 = precise::min(_411, _419);
+                    _413++;
                     continue;
                 }
-                bool _408;
-                if (_378 <= _392)
+                bool _424;
+                if (_394 <= _408)
                 {
-                    _408 = _375 >= _395;
+                    _424 = _391 >= _411;
                 }
                 else
                 {
-                    _408 = false;
+                    _424 = false;
                 }
-                if (!_408)
+                if (!_424)
                 {
-                    _412 = true;
+                    _428 = true;
                     break;
                 }
-                _347++;
+                _363++;
                 continue;
             }
             else
             {
-                _412 = _344;
+                _428 = _360;
                 break;
             }
         }
-        if (_412)
+        if (_428)
         {
             break;
         }
-        uint _422 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[(uint((ShapeDataBufferTwo._m0[gl_GlobalInvocationID.y].ColliderIndex * UniformBlock.ColliderShapeResultBufferLength) + ShapeDataBufferOne._m0[gl_GlobalInvocationID.x].ColliderIndex) * 4u) >> 2u], 1u, memory_order_relaxed);
+        uint _431 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[0u], 1u, memory_order_relaxed);
+        uint _438 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[uint(4 + (int(_431) * 4)) >> 2u], 1u, memory_order_relaxed);
         break;
     } while(false);
 }

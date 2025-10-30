@@ -59,6 +59,17 @@ internal sealed class TriangleCollidingObject : CollidingObject, IHasColliderSha
     ];
 }
 
+internal sealed class LineCollidingObject : CollidingObject, IHasColliderShapes
+{
+    public Vector2 PointOne;
+    public Vector2 PointTwo;
+
+    public Vector2 ShapeOffset => Vector2.Zero;
+    public IEnumerable<IColliderShape> Shapes => [
+        new LineColliderShape(PointOne, PointTwo)
+    ];
+}
+
 [StructLayout(LayoutKind.Explicit, Size = 32)]
 file struct PositionColorVertex : IVertexType
 {
@@ -93,9 +104,13 @@ internal class CollisionGame : Game
     private Texture _depthTexture;
     private readonly SpriteBatch _spriteBatch;
 
-    private readonly Buffer _vertexBuffer;
+    private readonly Buffer _triangleVertexBuffer;
     private int _triangleCount;
-    private readonly GraphicsPipeline _pipeline;
+    private readonly GraphicsPipeline _trianglePipeline;
+
+    private readonly Buffer _lineVertexBuffer;
+    private int _lineCount;
+    private readonly GraphicsPipeline _linePipeline;
 
     public CollisionGame
     (
@@ -149,7 +164,7 @@ internal class CollisionGame : Game
         for (int i = 0; i < 80; i++)
         {
             Vector2 center = new Vector2(random.NextSingle() * 900, random.NextSingle() * 900);
-            int shapeType = random.Next(3);
+            int shapeType = random.Next(4);
             switch (shapeType)
             {
                 case 0:
@@ -175,6 +190,13 @@ internal class CollisionGame : Game
                         PointThree = center + new Vector2(random.NextSingle() * 24 + 8, random.NextSingle() * 24 + 8)
                     });
                     break;
+                case 3:
+                    _targetObjects.Add(new LineCollidingObject()
+                    {
+                        PointOne = center,
+                        PointTwo = center + new Vector2((random.NextSingle() * 24 + 8) * (random.Next(1) == 0 ? 1 : -1), (random.NextSingle() * 24 + 8) * (random.Next(1) == 0 ? 1 : -1)),
+                    });
+                    break;
             }
         }
 
@@ -183,18 +205,18 @@ internal class CollisionGame : Game
         #endregion
 
         #region Triangle rendering stuff
-        _vertexBuffer = Buffer.Create<PositionColorVertex>
+        _triangleVertexBuffer = Buffer.Create<PositionColorVertex>
         (
             GraphicsDevice,
             BufferUsageFlags.Vertex,
-            80 * 3
+            80 * 3 * 2
         );
 
         TransferBuffer vertexBuffer = TransferBuffer.Create<PositionColorVertex>
         (
             GraphicsDevice,
             TransferBufferUsage.Upload,
-            80 * 3
+            80 * 3 * 2
         );
 
         var vertexSpan = vertexBuffer.Map<PositionColorVertex>(false);
@@ -214,14 +236,6 @@ internal class CollisionGame : Game
             }
         }
         vertexBuffer.Unmap();
-
-        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
-        var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.UploadToBuffer(vertexBuffer, _vertexBuffer, false);
-        commandBuffer.EndCopyPass(copyPass);
-        GraphicsDevice.Submit(commandBuffer);
-
-        vertexBuffer.Dispose();
 
         Shader vertexShader = ShaderCross.Create(
             GraphicsDevice,
@@ -261,7 +275,72 @@ internal class CollisionGame : Game
                 ],
             },
         };
-        _pipeline = GraphicsPipeline.Create(GraphicsDevice, graphicsPipelineCreateInfo);
+        _trianglePipeline = GraphicsPipeline.Create(GraphicsDevice, graphicsPipelineCreateInfo);
+        #endregion
+
+        #region Line rendering stuff
+        _lineVertexBuffer = Buffer.Create<PositionColorVertex>
+                (
+                    GraphicsDevice,
+                    BufferUsageFlags.Vertex,
+                    80 * 3 * 2
+                );
+
+        TransferBuffer lineVertexBuffer = TransferBuffer.Create<PositionColorVertex>
+        (
+            GraphicsDevice,
+            TransferBufferUsage.Upload,
+            80 * 3 * 2
+        );
+
+        var lineVertexSpan = lineVertexBuffer.Map<PositionColorVertex>(false);
+        foreach (var colliderObject in _targetObjects)
+        {
+            if (colliderObject is LineCollidingObject triangle)
+            {
+                lineVertexSpan[_lineCount * 2].Position = new Vector4(triangle.PointOne, 0f, 1f);
+                lineVertexSpan[_lineCount * 2 + 1].Position = new Vector4(triangle.PointTwo, 0f, 1f);
+
+                lineVertexSpan[_lineCount * 2].Color = new Vector4(1f, 1f, 1f, 1f);
+                lineVertexSpan[_lineCount * 2 + 1].Color = new Vector4(1f, 1f, 1f, 1f);
+
+                _lineCount++;
+            }
+        }
+        lineVertexBuffer.Unmap();
+
+        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        var copyPass = commandBuffer.BeginCopyPass();
+        copyPass.UploadToBuffer(vertexBuffer, _triangleVertexBuffer, false);
+        copyPass.UploadToBuffer(lineVertexBuffer, _lineVertexBuffer, false);
+        commandBuffer.EndCopyPass(copyPass);
+        GraphicsDevice.Submit(commandBuffer);
+
+        vertexBuffer.Dispose();
+        lineVertexBuffer.Dispose();
+
+        var lineGraphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
+        {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            VertexInputState = VertexInputState.CreateSingleBinding<PositionColorVertex>(),
+            PrimitiveType = PrimitiveType.LineList,
+            RasterizerState = RasterizerState.CCW_CullNone,
+            MultisampleState = MultisampleState.None,
+            DepthStencilState = DepthStencilState.Disable,
+            TargetInfo = new GraphicsPipelineTargetInfo()
+            {
+                ColorTargetDescriptions =
+                [
+                    new ColorTargetDescription()
+                    {
+                        Format = MainWindow.SwapchainFormat,
+                        BlendState = ColorTargetBlendState.Opaque,
+                    }
+                ],
+            },
+        };
+        _linePipeline = GraphicsPipeline.Create(GraphicsDevice, lineGraphicsPipelineCreateInfo);
         #endregion
     }
 
@@ -372,9 +451,14 @@ internal class CollisionGame : Game
             _spriteBatch.End(commandBuffer, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
 
             commandBuffer.PushVertexUniformData(cameraMatrix);
-            renderPass.BindGraphicsPipeline(_pipeline);
-            renderPass.BindVertexBuffers(_vertexBuffer);
+
+            renderPass.BindGraphicsPipeline(_trianglePipeline);
+            renderPass.BindVertexBuffers(_triangleVertexBuffer);
             renderPass.DrawPrimitives((uint)_triangleCount * 3, 1, 0, 0);
+
+            renderPass.BindGraphicsPipeline(_linePipeline);
+            renderPass.BindVertexBuffers(_lineVertexBuffer);
+            renderPass.DrawPrimitives((uint)_lineCount * 2, 1, 0, 0);
 
             commandBuffer.EndRenderPass(renderPass);
         }

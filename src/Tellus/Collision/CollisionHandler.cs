@@ -61,8 +61,7 @@ public sealed class CollisionHandler : GraphicsResource
     private CollisionComputeUniforms _collisionComputeUniforms;
 
     private const int SHAPE_DATA_AMOUNT = 2048;
-    private const int COLLIDER_SHAPE_CONTAINER_AMOUNT = 100;
-    private const int COLLISION_RESULT_AMOUNT = COLLIDER_SHAPE_CONTAINER_AMOUNT * COLLIDER_SHAPE_CONTAINER_AMOUNT;
+    private const int COLLISION_RESULT_AMOUNT = 4096;
 
     public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
@@ -105,30 +104,30 @@ public sealed class CollisionHandler : GraphicsResource
         _collisionResultsTransferUploadBuffer = TransferBuffer.Create<int>(
             Device,
             TransferBufferUsage.Upload,
-            COLLISION_RESULT_AMOUNT
+            COLLISION_RESULT_AMOUNT + 1
         );
 
         _collisionResultsTransferDownloadBuffer = TransferBuffer.Create<int>(
             Device,
             TransferBufferUsage.Download,
-            COLLISION_RESULT_AMOUNT
+            COLLISION_RESULT_AMOUNT + 1
         );
 
         _collisionResultsBuffer = Buffer.Create<int>
         (
             Device,
             BufferUsageFlags.ComputeStorageWrite,
-            COLLISION_RESULT_AMOUNT
+            COLLISION_RESULT_AMOUNT + 1
         );
 
         var transferUploadSpan = _collisionResultsTransferUploadBuffer.Map<int>(false);
-        for (int i = 0; i < COLLISION_RESULT_AMOUNT; i += 1)
+        for (int i = 0; i < COLLISION_RESULT_AMOUNT + 1; i += 1)
         {
-            transferUploadSpan[i] = -1;
+            transferUploadSpan[i] = 0;
         }
         _collisionResultsTransferUploadBuffer.Unmap();
 
-        _collisionComputeUniforms.ColliderShapeResultBufferLength = COLLIDER_SHAPE_CONTAINER_AMOUNT;
+        _collisionComputeUniforms.ColliderShapeResultBufferLength = COLLISION_RESULT_AMOUNT;
     }
 
     public IEnumerable<(IHasColliderShapes, IHasColliderShapes)> HandleCollisions(IList<IHasColliderShapes> colliderShapesGroupOne, IList<IHasColliderShapes> colliderShapesGroupTwo)
@@ -195,13 +194,13 @@ public sealed class CollisionHandler : GraphicsResource
         Device.ReleaseFence(fence);
 
 
-        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(true);
+        var transferDownloadSpan = _collisionResultsTransferDownloadBuffer.Map<int>(true, 4);
 
         List<(IHasColliderShapes, IHasColliderShapes)> resultList = [];
         List<(int, int)> resultIndexList = [];
         for (int i = 0; i < transferDownloadSpan.Length; i++)
         {
-            int collisionAmount = transferDownloadSpan[i];
+            /*int collisionAmount = transferDownloadSpan[i];
             int indexOne = i % COLLIDER_SHAPE_CONTAINER_AMOUNT;
             int indexTwo = i / COLLIDER_SHAPE_CONTAINER_AMOUNT;
 
@@ -212,7 +211,7 @@ public sealed class CollisionHandler : GraphicsResource
             {
                 resultList.Add((colliderShapesGroupOne[indexOne], colliderShapesGroupTwo[indexTwo]));
                 resultIndexList.Add((indexOne, indexTwo));
-            }
+            }*/
         }
 
         _collisionResultsTransferDownloadBuffer.Unmap();

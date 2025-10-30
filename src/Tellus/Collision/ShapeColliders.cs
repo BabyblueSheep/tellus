@@ -35,7 +35,7 @@ public struct CircleColliderShape : IColliderShape
         get => _vertexCount;
         set
         {
-            _vertexCount = Math.Clamp(_vertexCount, 3, 16);
+            _vertexCount = Math.Clamp(value, 3, 16);
         } 
     }
 
@@ -77,15 +77,32 @@ public struct TriangleColliderShape : IColliderShape
     public Vector2 PointTwo;
     public Vector2 PointThree;
 
-    public TriangleColliderShape(Vector2 firstPoint, Vector2 secondPoint, Vector2 thirdPoint)
+    public TriangleColliderShape(Vector2 pointOne, Vector2 pointTwo, Vector2 pointThree)
     {
-        PointOne = firstPoint;
-        PointTwo = secondPoint;
-        PointThree = thirdPoint;
+        PointOne = pointOne;
+        PointTwo = pointTwo;
+        PointThree = pointThree;
     }
 
     public readonly int ShapeType => 2;
     public readonly Vector2 ShapeCenter => PointOne;
     public readonly Vector4 ShapeDecimalFields => new Vector4(PointTwo, PointThree.X, PointThree.Y);
+    public readonly Point ShapeIntegerFields => new Point(0, 0);
+}
+
+public struct LineColliderShape : IColliderShape
+{
+    public Vector2 PointOne;
+    public Vector2 PointTwo;
+
+    public LineColliderShape(Vector2 pointOne, Vector2 pointTwo)
+    {
+        PointOne = pointOne;
+        PointTwo = pointTwo;
+    }
+
+    public readonly int ShapeType => 3;
+    public readonly Vector2 ShapeCenter => PointOne;
+    public readonly Vector4 ShapeDecimalFields => new Vector4(PointTwo, 0, 0);
     public readonly Point ShapeIntegerFields => new Point(0, 0);
 }
