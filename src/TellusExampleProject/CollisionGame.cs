@@ -24,49 +24,49 @@ internal abstract class CollidingObject
     public bool HasCollidedThisFrame;
 }
 
-internal sealed class CircleCollidingObject : CollidingObject, IHasColliderShapes
+internal sealed class CircleCollidingObject : CollidingObject, ICollisionBody
 {
     public Vector2 Center;
     public float Radius;
 
-    public Vector2 ShapeOffset => Vector2.Zero;
-    public IEnumerable<IColliderShape> Shapes => [
-        new CircleColliderShape(Center, Radius, 16)
+    public Vector2 BodyOffset => Vector2.Zero;
+    public IEnumerable<IColliderBodyPart> BodyParts => [
+        new CircleColliderBodyPart(Center, Radius, 16)
     ];
 }
 
-internal sealed class RectangleCollidingObject : CollidingObject, IHasColliderShapes
+internal sealed class RectangleCollidingObject : CollidingObject, ICollisionBody
 {
     public Vector2 Center;
     public float Angle;
     public Vector2 SideLengths;
 
-    public Vector2 ShapeOffset => Vector2.Zero;
-    public IEnumerable<IColliderShape> Shapes => [
-        new RectangleColliderShape(Center, Angle, SideLengths)
+    public Vector2 BodyOffset => Vector2.Zero;
+    public IEnumerable<IColliderBodyPart> BodyParts => [
+        new RectangleColliderBodyPart(Center, Angle, SideLengths)
     ];
 }
 
-internal sealed class TriangleCollidingObject : CollidingObject, IHasColliderShapes
+internal sealed class TriangleCollidingObject : CollidingObject, ICollisionBody
 {
     public Vector2 PointOne;
     public Vector2 PointTwo;
     public Vector2 PointThree;
 
-    public Vector2 ShapeOffset => Vector2.Zero;
-    public IEnumerable<IColliderShape> Shapes => [
-        new TriangleColliderShape(PointOne, PointTwo, PointThree)
+    public Vector2 BodyOffset => Vector2.Zero;
+    public IEnumerable<IColliderBodyPart> BodyParts => [
+        new TriangleColliderBodyPart(PointOne, PointTwo, PointThree)
     ];
 }
 
-internal sealed class LineCollidingObject : CollidingObject, IHasColliderShapes
+internal sealed class LineCollidingObject : CollidingObject, ICollisionBody
 {
     public Vector2 PointOne;
     public Vector2 PointTwo;
 
-    public Vector2 ShapeOffset => Vector2.Zero;
-    public IEnumerable<IColliderShape> Shapes => [
-        new LineColliderShape(PointOne, PointTwo)
+    public Vector2 BodyOffset => Vector2.Zero;
+    public IEnumerable<IColliderBodyPart> BodyParts => [
+        new LineColliderBodyPart(PointOne, PointTwo)
     ];
 }
 
@@ -354,7 +354,7 @@ internal class CollisionGame : Game
 
         _playerObject.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var colliderList = _targetObjects.Select(collider => (IHasColliderShapes)collider).ToList();
+        var colliderList = _targetObjects.Select(collider => (ICollisionBody)collider).ToList();
 
         var collisionResults = _collisionHandler.HandleCollisions([_playerObject], colliderList);
         foreach (var collisionResult in collisionResults)

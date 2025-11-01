@@ -46,7 +46,7 @@ struct spvUnsafeArray
     }
 };
 
-struct ColliderShapeData
+struct CollisionBodyPartData
 {
     int ColliderIndex;
     int ShapeType;
@@ -57,9 +57,9 @@ struct ColliderShapeData
     int Padding2;
 };
 
-struct type_StructuredBuffer_ColliderShapeData
+struct type_StructuredBuffer_CollisionBodyPartData
 {
-    ColliderShapeData _m0[1];
+    CollisionBodyPartData _m0[1];
 };
 
 struct type_RWByteAddressBuffer
@@ -74,7 +74,7 @@ struct type_UniformBlock
     int ColliderShapeResultBufferLength;
 };
 
-kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_ColliderShapeData& ShapeDataBufferOne [[buffer(1)]], const device type_StructuredBuffer_ColliderShapeData& ShapeDataBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(3)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_CollisionBodyPartData& ShapeDataBufferOne [[buffer(1)]], const device type_StructuredBuffer_CollisionBodyPartData& ShapeDataBufferTwo [[buffer(2)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(3)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     do
     {
@@ -376,7 +376,11 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             break;
         }
         uint _431 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[0u], 1u, memory_order_relaxed);
-        uint _438 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[uint(4 + (int(_431) * 4)) >> 2u], 1u, memory_order_relaxed);
+        int _432 = int(_431);
+        if (_432 < UniformBlock.ColliderShapeResultBufferLength)
+        {
+            uint _443 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[uint(4 + (_432 * 4)) >> 2u], 1u, memory_order_relaxed);
+        }
         break;
     } while(false);
 }

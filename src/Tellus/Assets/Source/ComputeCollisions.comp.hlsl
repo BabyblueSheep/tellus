@@ -1,7 +1,7 @@
 // https://dyn4j.org/2010/01/sat/
 // https://www.metanetsoftware.com/technique/tutorialA.html
 
-struct ColliderShapeData
+struct CollisionBodyPartData
 {
 	int ColliderIndex;
     int ShapeType;
@@ -13,8 +13,8 @@ struct ColliderShapeData
     int Padding2;
 };
 
-StructuredBuffer<ColliderShapeData> ShapeDataBufferOne : register(t0, space0);
-StructuredBuffer<ColliderShapeData> ShapeDataBufferTwo : register(t1, space0);
+StructuredBuffer<CollisionBodyPartData> ShapeDataBufferOne : register(t0, space0);
+StructuredBuffer<CollisionBodyPartData> ShapeDataBufferTwo : register(t1, space0);
 
 RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
@@ -52,7 +52,7 @@ bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
     return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
 }
 
-void constructVertexPositions(ColliderShapeData shapeData, out float2 vertexPositions[16], out int vertexAmount)
+void constructVertexPositions(CollisionBodyPartData bodyPartData, out float2 vertexPositions[16], out int vertexAmount)
 {
     vertexAmount = 1;
     for (int j = 0; j < 16; j++)
@@ -60,25 +60,25 @@ void constructVertexPositions(ColliderShapeData shapeData, out float2 vertexPosi
         vertexPositions[j] = float2(0, 0);
     }
     
-    if (shapeData.ShapeType == CIRCLE_TYPE)
+    if (bodyPartData.ShapeType == CIRCLE_TYPE)
     {
-        vertexAmount = shapeData.IntegerFields.x;
-        float radius = shapeData.DecimalFields.x;
+        vertexAmount = bodyPartData.IntegerFields.x;
+        float radius = bodyPartData.DecimalFields.x;
         for (int i = 0; i < vertexAmount; i++)
         {
-            vertexPositions[i] = shapeData.Center + float2(cos(TAU * i / vertexAmount), sin(TAU * i / vertexAmount)) * radius;
+            vertexPositions[i] = bodyPartData.Center + float2(cos(TAU * i / vertexAmount), sin(TAU * i / vertexAmount)) * radius;
         }
     }
-    else if (shapeData.ShapeType == RECTANGLE_TYPE)
+    else if (bodyPartData.ShapeType == RECTANGLE_TYPE)
     {
         vertexAmount = 4;
         
-        float angle = shapeData.DecimalFields.x;
+        float angle = bodyPartData.DecimalFields.x;
         float sine = sin(angle);
         float cosine = cos(angle);
         
-        float sideA = shapeData.DecimalFields.y;
-        float sideB = shapeData.DecimalFields.z;
+        float sideA = bodyPartData.DecimalFields.y;
+        float sideB = bodyPartData.DecimalFields.z;
         
         vertexPositions[0] = float2(-sideA * 0.5, -sideB * 0.5);
         vertexPositions[1] = float2(sideA * 0.5, -sideB * 0.5);
@@ -91,22 +91,22 @@ void constructVertexPositions(ColliderShapeData shapeData, out float2 vertexPosi
             vertexPositions[i].x = newX;
             vertexPositions[i].y = newY;
             
-            vertexPositions[i] += shapeData.Center;
+            vertexPositions[i] += bodyPartData.Center;
         }
     }
-    else if (shapeData.ShapeType == TRIANGLE_TYPE)
+    else if (bodyPartData.ShapeType == TRIANGLE_TYPE)
     {
         vertexAmount = 3;
         
-        vertexPositions[0] = shapeData.Center;
-        vertexPositions[1] = float2(shapeData.DecimalFields.x, shapeData.DecimalFields.y);
-        vertexPositions[2] = float2(shapeData.DecimalFields.z, shapeData.DecimalFields.w);
+        vertexPositions[0] = bodyPartData.Center;
+        vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
+        vertexPositions[2] = float2(bodyPartData.DecimalFields.z, bodyPartData.DecimalFields.w);
     }
-    else if (shapeData.ShapeType == LINE_TYPE)
+    else if (bodyPartData.ShapeType == LINE_TYPE)
     {
         vertexAmount = 2;
-        vertexPositions[0] = shapeData.Center;
-        vertexPositions[1] = float2(shapeData.DecimalFields.x, shapeData.DecimalFields.y);
+        vertexPositions[0] = bodyPartData.Center;
+        vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
     }
 }
 
@@ -121,13 +121,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         return;
     }
     
-    ColliderShapeData colliderShapeDataOne = ShapeDataBufferOne[x];
-    ColliderShapeData colliderShapeDataTwo = ShapeDataBufferTwo[y];
+    CollisionBodyPartData collisionBodyPartDataOne = ShapeDataBufferOne[x];
+    CollisionBodyPartData collisionBodyPartDataTwo = ShapeDataBufferTwo[y];
     
     float2 shapeVerticesOne[16], shapeVerticesTwo[16];
     int shapeVertexAmountOne, shapeVertexAmountTwo;
-    constructVertexPositions(colliderShapeDataOne, shapeVerticesOne, shapeVertexAmountOne);
-    constructVertexPositions(colliderShapeDataTwo, shapeVerticesTwo, shapeVertexAmountTwo);
+    constructVertexPositions(collisionBodyPartDataOne, shapeVerticesOne, shapeVertexAmountOne);
+    constructVertexPositions(collisionBodyPartDataTwo, shapeVerticesTwo, shapeVertexAmountTwo);
     
     for (int i = 0; i < shapeVertexAmountOne; i++)
     {
@@ -166,10 +166,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             return;
         }
     }
-    
-    /*
-    uint resultIndex = colliderShapeDataTwo.ColliderIndex * ColliderShapeResultBufferLength + colliderShapeDataOne.ColliderIndex;
-    */
     
     int collisionAmount;
     int _;
