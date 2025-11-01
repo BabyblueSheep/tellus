@@ -1,30 +1,12 @@
-﻿using MoonWorks;
-using MoonWorks.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Net.Mail;
-using System.Numerics;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using Buffer = MoonWorks.Graphics.Buffer;
+﻿using MoonWorks.Graphics;
 
 namespace Tellus.Collision;
-
-// THINGS TO DOCUMENT:
-// max shapes allowed: SHAPE_DATA_AMOUNT (2048) (hard limit but i may expand)
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
     private readonly ComputePipeline _computePipeline;
     private StorageBuffer? _storageBuffer;
     private CollisionComputeUniforms _collisionComputeUniforms;
-
-    private const int SHAPE_DATA_AMOUNT = 2048;
-    private const int COLLISION_RESULT_AMOUNT = 2048;
 
     public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
@@ -48,7 +30,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         _collisionComputeUniforms.ColliderShapeResultBufferLength = _storageBuffer.CollisionResultAmount;
     }
 
-    public IEnumerable<(ICollisionBody, ICollisionBody)> HandleCollisions(IList<ICollisionBody> colliderShapesGroupOne, IList<ICollisionBody> colliderShapesGroupTwo)
+    public IEnumerable<(ICollisionBody, ICollisionBody)> ComputeCollisionResults(IList<ICollisionBody> bodyGroupOne, IList<ICollisionBody> bodyGroupTwo)
     {
         if (_storageBuffer == null)
         {
@@ -58,22 +40,26 @@ public sealed partial class CollisionHandler : GraphicsResource
         CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
 
 
-        uint MapGroupToBuffer(IEnumerable<ICollisionBody> colliderGroup, TransferBuffer dataTransferBuffer)
+        uint MapGroupToBuffer(IEnumerable<ICollisionBody> bodyGroup, TransferBuffer dataTransferBuffer)
         {
             var dataUploadSpan = dataTransferBuffer.Map<CollisionBodyPartData>(true);
 
             int colliderIndex = 0;
             int shapeDataIndex = 0;
 
-            foreach (var collider in colliderGroup)
+            foreach (var body in bodyGroup)
             {
-                foreach (var shape in collider.BodyParts)
+                foreach (var bodyPart in body.BodyParts)
                 {
                     dataUploadSpan[shapeDataIndex].CollisionBodyIndex = colliderIndex;
-                    dataUploadSpan[shapeDataIndex].ShapeType = shape.ShapeType;
-                    dataUploadSpan[shapeDataIndex].Center = shape.BodyPartCenter + collider.BodyOffset;
-                    dataUploadSpan[shapeDataIndex].DecimalFields = shape.DecimalFields;
-                    dataUploadSpan[shapeDataIndex].IntegerFields = shape.IntegerFields;
+                    dataUploadSpan[shapeDataIndex].ShapeType = bodyPart.ShapeType;
+                    dataUploadSpan[shapeDataIndex].Center = bodyPart.BodyPartCenter + body.BodyOffset;
+                    dataUploadSpan[shapeDataIndex].DecimalFields = bodyPart.DecimalFields;
+                    dataUploadSpan[shapeDataIndex].IntegerFields = bodyPart.IntegerFields;
+
+                    dataUploadSpan[shapeDataIndex].Flags = 0;
+                    dataUploadSpan[shapeDataIndex].Flags |= body.IsStatic ? 1 : 0;
+
                     shapeDataIndex++;
                 }
 
@@ -89,8 +75,8 @@ public sealed partial class CollisionHandler : GraphicsResource
         collisionResultCopyPass.UploadToBuffer(_storageBuffer.CollisionResultsTransferUploadBuffer, _storageBuffer.CollisionResultsBuffer, true);
         commandBuffer.EndCopyPass(collisionResultCopyPass);
 
-        _collisionComputeUniforms.ShapeDataBufferOneLength = MapGroupToBuffer(colliderShapesGroupOne, _storageBuffer.BodyPartDataTransferBufferOne);
-        _collisionComputeUniforms.ShapeDataBufferTwoLength = MapGroupToBuffer(colliderShapesGroupTwo, _storageBuffer.BodyPartDataTransferBufferTwo);
+        _collisionComputeUniforms.ShapeDataBufferOneLength = MapGroupToBuffer(bodyGroupOne, _storageBuffer.BodyPartDataTransferBufferOne);
+        _collisionComputeUniforms.ShapeDataBufferTwoLength = MapGroupToBuffer(bodyGroupTwo, _storageBuffer.BodyPartDataTransferBufferTwo);
 
         var copyPass = commandBuffer.BeginCopyPass();
         copyPass.UploadToBuffer(_storageBuffer.BodyPartDataTransferBufferOne, _storageBuffer.BodyPartDataBufferOne, true);
@@ -117,12 +103,17 @@ public sealed partial class CollisionHandler : GraphicsResource
         Device.ReleaseFence(fence);
 
 
-        var transferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<int>(true, 8);
+        var transferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<CollisionResultData>(true, 8);
 
         List<(ICollisionBody, ICollisionBody)> resultList = [];
         List<(int, int)> resultIndexList = [];
         for (int i = 0; i < transferDownloadSpan.Length; i++)
         {
+            CollisionResultData resultData = transferDownloadSpan[i];
+            int indexOne = resultData.CollisionBodyIndexOne;
+            int indexTwo = resultData.CollisionBodyIndexTwo;
+
+
             /*int collisionAmount = transferDownloadSpan[i];
             int indexOne = i % COLLIDER_SHAPE_CONTAINER_AMOUNT;
             int indexTwo = i / COLLIDER_SHAPE_CONTAINER_AMOUNT;
@@ -138,6 +129,16 @@ public sealed partial class CollisionHandler : GraphicsResource
         }
 
         _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
+
+        foreach (var result in resultList)
+        {
+            yield return result;
+        }
+    }
+
+    public IEnumerable<(ICollisionBody, ICollisionBody)> ComputeCollisionResolutions(IList<ICollisionBody> bodyGroupOne, IList<ICollisionBody> bodyGroupTwo)
+    {
+        List<(ICollisionBody, ICollisionBody)> resultList = [];
 
         foreach (var result in resultList)
         {
