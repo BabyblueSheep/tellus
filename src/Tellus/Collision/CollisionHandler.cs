@@ -12,6 +12,9 @@ public sealed partial class CollisionHandler : GraphicsResource
     private IList<ICollisionBody>? _storedBodyGroupTwo;
     private CollisionComputeUniforms _collisionComputeUniforms;
 
+    private uint _storedBodyCountOne;
+    private uint _storedBodyCountTwo;
+
     public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
         Utils.LoadShaderFromManifest(Device, "Assets.ComputeCollisionHits.comp", new ComputePipelineCreateInfo()
@@ -31,7 +34,6 @@ public sealed partial class CollisionHandler : GraphicsResource
     public void BindStorageBuffer(StorageBuffer buffer)
     {
         _storageBuffer = buffer;
-        _collisionComputeUniforms.ColliderShapeResultBufferLength = _storageBuffer.CollisionResultAmount;
     }
 
     private uint TransferDataToBuffer(IList<ICollisionBody> bodyGroup, Buffer bodyDataBuffer, Buffer bodyPartDataBuffer, TransferBuffer bodyDataTransferBuffer, TransferBuffer bodyPartDataTransferBuffer)
@@ -82,7 +84,7 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         Device.Submit(commandBuffer);
 
-        return (uint)bodyPartDataIndex;
+        return (uint)bodyDataIndex;
     }
 
     public void TransferDataToBuffersOne(IList<ICollisionBody> bodyGroup)
@@ -92,7 +94,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
         }
 
-        _collisionComputeUniforms.ShapeDataBufferOneLength = TransferDataToBuffer
+        _storedBodyCountOne = TransferDataToBuffer
         (
             bodyGroup, 
             _storageBuffer.BodyDataBufferOne, 
@@ -110,7 +112,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
         }
 
-        _collisionComputeUniforms.ShapeDataBufferTwoLength = TransferDataToBuffer
+        _storedBodyCountTwo = TransferDataToBuffer
         (
             bodyGroup,
             _storageBuffer.BodyDataBufferTwo,
@@ -130,14 +132,16 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         if (_storedBodyGroupOne == null)
         {
-            throw new NullReferenceException($"{nameof(_storedBodyGroupOne)} isn't set, so buffers don't have data!");
+            throw new NullReferenceException($"{nameof(_storedBodyGroupOne)} isn't set, meaning buffers don't have data!");
         }
         if (_storedBodyGroupTwo == null)
         {
-            throw new NullReferenceException($"{nameof(_storedBodyGroupTwo)} isn't set, so buffers don't have data!");
+            throw new NullReferenceException($"{nameof(_storedBodyGroupTwo)} isn't set, meaning buffers don't have data!");
         }
 
         _collisionComputeUniforms.ColliderShapeResultBufferLength = _storageBuffer.CollisionResultAmount;
+        _collisionComputeUniforms.StoredBodyCountOne = _storedBodyCountOne;
+        _collisionComputeUniforms.StoredBodyCountTwo = _storedBodyCountTwo;
 
         CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
 
@@ -152,7 +156,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         computePass.BindComputePipeline(_computePipeline);
         computePass.BindStorageBuffers(_storageBuffer.BodyPartDataBufferOne, _storageBuffer.BodyPartDataBufferTwo, _storageBuffer.BodyDataBufferOne, _storageBuffer.BodyDataBufferTwo);
         commandBuffer.PushComputeUniformData(_collisionComputeUniforms);
-        computePass.Dispatch((_collisionComputeUniforms.ShapeDataBufferOneLength + 15) / 16, (_collisionComputeUniforms.ShapeDataBufferTwoLength + 15) / 16, 1);
+        computePass.Dispatch((_storedBodyCountOne + 15) / 16, (_storedBodyCountTwo + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
 
         var copyPass = commandBuffer.BeginCopyPass();
@@ -196,6 +200,22 @@ public sealed partial class CollisionHandler : GraphicsResource
 
     public IEnumerable<(ICollisionBody, Vector2)> ComputeCollisionResolutions(IList<ICollisionBody> bodyGroupOne, IList<ICollisionBody> bodyGroupTwo)
     {
+        if (_storageBuffer == null)
+        {
+            throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
+        }
+
+        if (_storedBodyGroupOne == null)
+        {
+            throw new NullReferenceException($"{nameof(_storedBodyGroupOne)} isn't set, so buffers don't have data!");
+        }
+        if (_storedBodyGroupTwo == null)
+        {
+            throw new NullReferenceException($"{nameof(_storedBodyGroupTwo)} isn't set, so buffers don't have data!");
+        }
+
+
+
         List<(ICollisionBody, Vector2)> resultList = [];
 
         foreach (var result in resultList)

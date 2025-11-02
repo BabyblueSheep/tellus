@@ -83,335 +83,469 @@ struct type_RWByteAddressBuffer
 
 struct type_UniformBlock
 {
-    int ColliderShapeBufferOneLength;
-    int ColliderShapeBufferTwoLength;
-    int ColliderShapeResultBufferLength;
+    uint StoredBodyCountOne;
+    uint StoredBodyCountTwo;
+    uint ColliderShapeResultBufferLength;
 };
+
+constant bool _60 = {};
 
 kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_CollisionBodyPartData& BodyPartDataBufferOne [[buffer(1)]], const device type_StructuredBuffer_CollisionBodyPartData& BodyPartDataBufferTwo [[buffer(2)]], const device type_StructuredBuffer_CollisionBodyData& BodyDataBufferOne [[buffer(3)]], const device type_StructuredBuffer_CollisionBodyData& BodyDataBufferTwo [[buffer(4)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(5)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     do
     {
-        bool _89;
-        if (!(gl_GlobalInvocationID.x >= uint(UniformBlock.ColliderShapeBufferOneLength)))
+        bool _96;
+        if (!(gl_GlobalInvocationID.x >= UniformBlock.StoredBodyCountOne))
         {
-            _89 = gl_GlobalInvocationID.y >= uint(UniformBlock.ColliderShapeBufferTwoLength);
+            _96 = gl_GlobalInvocationID.y >= UniformBlock.StoredBodyCountTwo;
         }
         else
         {
-            _89 = true;
+            _96 = true;
         }
-        if (_89)
+        if (_96)
         {
             break;
         }
-        int _93 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].CollisionBodyIndex;
-        int _103 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].CollisionBodyIndex;
-        uint _112 = uint(_93);
-        spvUnsafeArray<float2, 16> _66;
-        for (int _116 = 0; _116 < 16; )
-        {
-            _66[_116] = float2(0.0);
-            _116++;
-            continue;
-        }
-        int _211;
-        if (BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 0)
-        {
-            for (int _129 = 0; _129 < BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x; )
-            {
-                float _137 = (6.283185482025146484375 * float(_129)) / float(BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x);
-                _66[_129] = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].Center + (float2(cos(_137), sin(_137)) * BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
-                _129++;
-                continue;
-            }
-            _211 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].IntegerFields.x;
-        }
-        else
-        {
-            int _210;
-            if (BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 1)
-            {
-                float _149 = sin(BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
-                float _150 = cos(BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.x);
-                float _153 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.y * (-0.5);
-                float _154 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.z * (-0.5);
-                _66[0] = float2(_153, _154);
-                float _157 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.y * 0.5;
-                _66[1] = float2(_157, _154);
-                float _160 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.z * 0.5;
-                _66[2] = float2(_157, _160);
-                _66[3] = float2(_153, _160);
-                for (int _166 = 0; _166 < 4; )
-                {
-                    float _180 = _66[_166].x;
-                    float _182 = _66[_166].y;
-                    _66[_166].x = (_66[_166].x * _150) + (_66[_166].y * (-_149));
-                    _66[_166].y = (_180 * _149) + (_182 * _150);
-                    _66[_166] += BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
-                    _166++;
-                    continue;
-                }
-                _210 = 4;
-            }
-            else
-            {
-                int _209;
-                if (BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 2)
-                {
-                    _66[0] = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
-                    _66[1] = float2(BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.xy);
-                    _66[2] = float2(BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.zw);
-                    _209 = 3;
-                }
-                else
-                {
-                    bool _200 = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].ShapeType == 3;
-                    if (_200)
-                    {
-                        _66[0] = BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].Center;
-                        _66[1] = float2(BodyPartDataBufferOne._m0[gl_GlobalInvocationID.x].DecimalFields.xy);
-                    }
-                    _209 = _200 ? 2 : 1;
-                }
-                _210 = _209;
-            }
-            _211 = _210;
-        }
-        for (int _213 = 0; _213 < 16; )
-        {
-            _66[_213] += BodyDataBufferOne._m0[_112].Offset;
-            _213++;
-            continue;
-        }
-        uint _221 = uint(_103);
-        spvUnsafeArray<float2, 16> _67;
-        for (int _225 = 0; _225 < 16; )
-        {
-            _67[_225] = float2(0.0);
-            _225++;
-            continue;
-        }
-        int _320;
-        if (BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 0)
-        {
-            for (int _238 = 0; _238 < BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x; )
-            {
-                float _246 = (6.283185482025146484375 * float(_238)) / float(BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x);
-                _67[_238] = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].Center + (float2(cos(_246), sin(_246)) * BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
-                _238++;
-                continue;
-            }
-            _320 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].IntegerFields.x;
-        }
-        else
-        {
-            int _319;
-            if (BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 1)
-            {
-                float _258 = sin(BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
-                float _259 = cos(BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.x);
-                float _262 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.y * (-0.5);
-                float _263 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.z * (-0.5);
-                _67[0] = float2(_262, _263);
-                float _266 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.y * 0.5;
-                _67[1] = float2(_266, _263);
-                float _269 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.z * 0.5;
-                _67[2] = float2(_266, _269);
-                _67[3] = float2(_262, _269);
-                for (int _275 = 0; _275 < 4; )
-                {
-                    float _289 = _67[_275].x;
-                    float _291 = _67[_275].y;
-                    _67[_275].x = (_67[_275].x * _259) + (_67[_275].y * (-_258));
-                    _67[_275].y = (_289 * _258) + (_291 * _259);
-                    _67[_275] += BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
-                    _275++;
-                    continue;
-                }
-                _319 = 4;
-            }
-            else
-            {
-                int _318;
-                if (BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 2)
-                {
-                    _67[0] = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
-                    _67[1] = float2(BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.xy);
-                    _67[2] = float2(BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.zw);
-                    _318 = 3;
-                }
-                else
-                {
-                    bool _309 = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].ShapeType == 3;
-                    if (_309)
-                    {
-                        _67[0] = BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].Center;
-                        _67[1] = float2(BodyPartDataBufferTwo._m0[gl_GlobalInvocationID.y].DecimalFields.xy);
-                    }
-                    _318 = _309 ? 2 : 1;
-                }
-                _319 = _318;
-            }
-            _320 = _319;
-        }
-        for (int _322 = 0; _322 < 16; )
-        {
-            _67[_322] += BodyDataBufferTwo._m0[_221].Offset;
-            _322++;
-            continue;
-        }
-        bool _396;
-        int _331 = 0;
+        int _112;
+        _112 = BodyDataBufferOne._m0[gl_GlobalInvocationID.x].BodyPartIndexStart;
+        spvUnsafeArray<spvUnsafeArray<float2, 16>, 16> _75;
+        spvUnsafeArray<float, 16> _76;
+        int _115;
         for (;;)
         {
-            if (_331 < _211)
+            _115 = BodyDataBufferOne._m0[gl_GlobalInvocationID.x].BodyPartIndexStart + BodyDataBufferOne._m0[gl_GlobalInvocationID.x].BodyPartIndexLength;
+            if (_112 < _115)
             {
-                int _343;
-                if (_331 == (_211 - 1))
+                uint _119 = uint(_112);
+                for (int _130 = 0; _130 < 16; )
                 {
-                    _343 = 0;
+                    _75[_112][_130] = float2(0.0);
+                    _130++;
+                    continue;
+                }
+                int _225;
+                if (BodyPartDataBufferOne._m0[_119].ShapeType == 0)
+                {
+                    for (int _143 = 0; _143 < BodyPartDataBufferOne._m0[_119].IntegerFields.x; )
+                    {
+                        float _151 = (6.283185482025146484375 * float(_143)) / float(BodyPartDataBufferOne._m0[_119].IntegerFields.x);
+                        _75[_112][_143] = BodyPartDataBufferOne._m0[_119].Center + (float2(cos(_151), sin(_151)) * BodyPartDataBufferOne._m0[_119].DecimalFields.x);
+                        _143++;
+                        continue;
+                    }
+                    _225 = BodyPartDataBufferOne._m0[_119].IntegerFields.x;
                 }
                 else
                 {
-                    _343 = _331 + 1;
+                    int _224;
+                    if (BodyPartDataBufferOne._m0[_119].ShapeType == 1)
+                    {
+                        float _163 = sin(BodyPartDataBufferOne._m0[_119].DecimalFields.x);
+                        float _164 = cos(BodyPartDataBufferOne._m0[_119].DecimalFields.x);
+                        float _167 = BodyPartDataBufferOne._m0[_119].DecimalFields.y * (-0.5);
+                        float _168 = BodyPartDataBufferOne._m0[_119].DecimalFields.z * (-0.5);
+                        _75[_112][0] = float2(_167, _168);
+                        float _171 = BodyPartDataBufferOne._m0[_119].DecimalFields.y * 0.5;
+                        _75[_112][1] = float2(_171, _168);
+                        float _174 = BodyPartDataBufferOne._m0[_119].DecimalFields.z * 0.5;
+                        _75[_112][2] = float2(_171, _174);
+                        _75[_112][3] = float2(_167, _174);
+                        for (int _180 = 0; _180 < 4; )
+                        {
+                            float _194 = _75[_112][_180].x;
+                            float _196 = _75[_112][_180].y;
+                            _75[_112][_180].x = (_75[_112][_180].x * _164) + (_75[_112][_180].y * (-_163));
+                            _75[_112][_180].y = (_194 * _163) + (_196 * _164);
+                            _75[_112][_180] += BodyPartDataBufferOne._m0[_119].Center;
+                            _180++;
+                            continue;
+                        }
+                        _224 = 4;
+                    }
+                    else
+                    {
+                        int _223;
+                        if (BodyPartDataBufferOne._m0[_119].ShapeType == 2)
+                        {
+                            _75[_112][0] = BodyPartDataBufferOne._m0[_119].Center;
+                            _75[_112][1] = float2(BodyPartDataBufferOne._m0[_119].DecimalFields.xy);
+                            _75[_112][2] = float2(BodyPartDataBufferOne._m0[_119].DecimalFields.zw);
+                            _223 = 3;
+                        }
+                        else
+                        {
+                            bool _214 = BodyPartDataBufferOne._m0[_119].ShapeType == 3;
+                            if (_214)
+                            {
+                                _75[_112][0] = BodyPartDataBufferOne._m0[_119].Center;
+                                _75[_112][1] = float2(BodyPartDataBufferOne._m0[_119].DecimalFields.xy);
+                            }
+                            _223 = _214 ? 2 : 1;
+                        }
+                        _224 = _223;
+                    }
+                    _225 = _224;
                 }
-                float2 _348 = _66[_343] - _66[_331];
-                float2 _353 = fast::normalize(float2(-_348.y, _348.x));
-                spvUnsafeArray<float2, 16> _68 = _66;
-                float _357 = dot(_68[0], _353);
-                float _359;
-                float _362;
-                _359 = _357;
-                _362 = _357;
-                for (int _364 = 1; _364 < _211; )
+                for (int _227 = 0; _227 < 16; )
                 {
-                    float _370 = dot(_68[_364], _353);
-                    _359 = precise::max(_359, _370);
-                    _362 = precise::min(_362, _370);
-                    _364++;
+                    _75[_112][_227] += BodyDataBufferOne._m0[gl_GlobalInvocationID.x].Offset;
+                    _227++;
                     continue;
                 }
-                spvUnsafeArray<float2, 16> _69 = _67;
-                float _374 = dot(_69[0], _353);
-                float _376;
-                float _379;
-                _376 = _374;
-                _379 = _374;
-                for (int _381 = 1; _381 < _320; )
-                {
-                    float _387 = dot(_69[_381], _353);
-                    _376 = precise::max(_376, _387);
-                    _379 = precise::min(_379, _387);
-                    _381++;
-                    continue;
-                }
-                bool _392;
-                if (_362 <= _376)
-                {
-                    _392 = _359 >= _379;
-                }
-                else
-                {
-                    _392 = false;
-                }
-                if (!_392)
-                {
-                    _396 = true;
-                    break;
-                }
-                _331++;
+                _76[_112] = float(_225);
+                _112++;
                 continue;
             }
             else
             {
-                _396 = false;
                 break;
             }
         }
-        if (_396)
-        {
-            break;
-        }
-        bool _464;
-        int _399 = 0;
+        int _237;
+        _237 = BodyDataBufferTwo._m0[gl_GlobalInvocationID.y].BodyPartIndexStart;
+        spvUnsafeArray<spvUnsafeArray<float2, 16>, 16> _77;
+        spvUnsafeArray<float, 16> _78;
+        int _240;
         for (;;)
         {
-            if (_399 < _320)
+            _240 = BodyDataBufferTwo._m0[gl_GlobalInvocationID.y].BodyPartIndexStart + BodyDataBufferTwo._m0[gl_GlobalInvocationID.y].BodyPartIndexLength;
+            if (_237 < _240)
             {
-                int _411;
-                if (_399 == (_320 - 1))
+                uint _244 = uint(_237);
+                for (int _255 = 0; _255 < 16; )
                 {
-                    _411 = 0;
+                    _77[_237][_255] = float2(0.0);
+                    _255++;
+                    continue;
+                }
+                int _350;
+                if (BodyPartDataBufferTwo._m0[_244].ShapeType == 0)
+                {
+                    for (int _268 = 0; _268 < BodyPartDataBufferTwo._m0[_244].IntegerFields.x; )
+                    {
+                        float _276 = (6.283185482025146484375 * float(_268)) / float(BodyPartDataBufferTwo._m0[_244].IntegerFields.x);
+                        _77[_237][_268] = BodyPartDataBufferTwo._m0[_244].Center + (float2(cos(_276), sin(_276)) * BodyPartDataBufferTwo._m0[_244].DecimalFields.x);
+                        _268++;
+                        continue;
+                    }
+                    _350 = BodyPartDataBufferTwo._m0[_244].IntegerFields.x;
                 }
                 else
                 {
-                    _411 = _399 + 1;
+                    int _349;
+                    if (BodyPartDataBufferTwo._m0[_244].ShapeType == 1)
+                    {
+                        float _288 = sin(BodyPartDataBufferTwo._m0[_244].DecimalFields.x);
+                        float _289 = cos(BodyPartDataBufferTwo._m0[_244].DecimalFields.x);
+                        float _292 = BodyPartDataBufferTwo._m0[_244].DecimalFields.y * (-0.5);
+                        float _293 = BodyPartDataBufferTwo._m0[_244].DecimalFields.z * (-0.5);
+                        _77[_237][0] = float2(_292, _293);
+                        float _296 = BodyPartDataBufferTwo._m0[_244].DecimalFields.y * 0.5;
+                        _77[_237][1] = float2(_296, _293);
+                        float _299 = BodyPartDataBufferTwo._m0[_244].DecimalFields.z * 0.5;
+                        _77[_237][2] = float2(_296, _299);
+                        _77[_237][3] = float2(_292, _299);
+                        for (int _305 = 0; _305 < 4; )
+                        {
+                            float _319 = _77[_237][_305].x;
+                            float _321 = _77[_237][_305].y;
+                            _77[_237][_305].x = (_77[_237][_305].x * _289) + (_77[_237][_305].y * (-_288));
+                            _77[_237][_305].y = (_319 * _288) + (_321 * _289);
+                            _77[_237][_305] += BodyPartDataBufferTwo._m0[_244].Center;
+                            _305++;
+                            continue;
+                        }
+                        _349 = 4;
+                    }
+                    else
+                    {
+                        int _348;
+                        if (BodyPartDataBufferTwo._m0[_244].ShapeType == 2)
+                        {
+                            _77[_237][0] = BodyPartDataBufferTwo._m0[_244].Center;
+                            _77[_237][1] = float2(BodyPartDataBufferTwo._m0[_244].DecimalFields.xy);
+                            _77[_237][2] = float2(BodyPartDataBufferTwo._m0[_244].DecimalFields.zw);
+                            _348 = 3;
+                        }
+                        else
+                        {
+                            bool _339 = BodyPartDataBufferTwo._m0[_244].ShapeType == 3;
+                            if (_339)
+                            {
+                                _77[_237][0] = BodyPartDataBufferTwo._m0[_244].Center;
+                                _77[_237][1] = float2(BodyPartDataBufferTwo._m0[_244].DecimalFields.xy);
+                            }
+                            _348 = _339 ? 2 : 1;
+                        }
+                        _349 = _348;
+                    }
+                    _350 = _349;
                 }
-                float2 _416 = _67[_411] - _67[_399];
-                float2 _421 = fast::normalize(float2(-_416.y, _416.x));
-                spvUnsafeArray<float2, 16> _70 = _66;
-                float _425 = dot(_70[0], _421);
-                float _427;
-                float _430;
-                _427 = _425;
-                _430 = _425;
-                for (int _432 = 1; _432 < _211; )
+                for (int _352 = 0; _352 < 16; )
                 {
-                    float _438 = dot(_70[_432], _421);
-                    _427 = precise::max(_427, _438);
-                    _430 = precise::min(_430, _438);
-                    _432++;
+                    _77[_237][_352] += BodyDataBufferTwo._m0[gl_GlobalInvocationID.y].Offset;
+                    _352++;
                     continue;
                 }
-                spvUnsafeArray<float2, 16> _71 = _67;
-                float _442 = dot(_71[0], _421);
-                float _444;
-                float _447;
-                _444 = _442;
-                _447 = _442;
-                for (int _449 = 1; _449 < _320; )
-                {
-                    float _455 = dot(_71[_449], _421);
-                    _444 = precise::max(_444, _455);
-                    _447 = precise::min(_447, _455);
-                    _449++;
-                    continue;
-                }
-                bool _460;
-                if (_430 <= _444)
-                {
-                    _460 = _427 >= _447;
-                }
-                else
-                {
-                    _460 = false;
-                }
-                if (!_460)
-                {
-                    _464 = true;
-                    break;
-                }
-                _399++;
+                _78[_237] = float(_350);
+                _237++;
                 continue;
             }
             else
             {
-                _464 = _396;
                 break;
             }
         }
-        if (_464)
+        bool _363;
+        bool _366;
+        bool _368;
+        bool _565;
+        bool _362 = false;
+        bool _365;
+        bool _367;
+        int _369 = BodyDataBufferOne._m0[gl_GlobalInvocationID.x].BodyPartIndexStart;
+        for (;;)
+        {
+            if (_369 < _115)
+            {
+                bool _376;
+                bool _379;
+                bool _375 = _365;
+                bool _378 = _367;
+                int _380 = BodyDataBufferTwo._m0[gl_GlobalInvocationID.y].BodyPartIndexStart;
+                for (;;)
+                {
+                    if (_380 < _240)
+                    {
+                        spvUnsafeArray<float2, 16> _79 = _75[_369];
+                        int _389 = int(_76[_369]);
+                        int _394 = int(_78[_380]);
+                        do
+                        {
+                            bool _461;
+                            bool _462;
+                            int _398 = 0;
+                            for (;;)
+                            {
+                                if (_398 < _389)
+                                {
+                                    int _410;
+                                    if (_398 == (_389 - 1))
+                                    {
+                                        _410 = 0;
+                                    }
+                                    else
+                                    {
+                                        _410 = _398 + 1;
+                                    }
+                                    float2 _415 = _79[_410] - _79[_398];
+                                    float2 _420 = fast::normalize(float2(-_415.y, _415.x));
+                                    spvUnsafeArray<float2, 16> _73 = _75[_369];
+                                    float _423 = dot(_73[0], _420);
+                                    float _425;
+                                    float _428;
+                                    _425 = _423;
+                                    _428 = _423;
+                                    for (int _430 = 1; _430 < _389; )
+                                    {
+                                        float _436 = dot(_73[_430], _420);
+                                        _425 = precise::max(_425, _436);
+                                        _428 = precise::min(_428, _436);
+                                        _430++;
+                                        continue;
+                                    }
+                                    spvUnsafeArray<float2, 16> _74 = _77[_380];
+                                    float _439 = dot(_74[0], _420);
+                                    float _441;
+                                    float _444;
+                                    _441 = _439;
+                                    _444 = _439;
+                                    for (int _446 = 1; _446 < _394; )
+                                    {
+                                        float _452 = dot(_74[_446], _420);
+                                        _441 = precise::max(_441, _452);
+                                        _444 = precise::min(_444, _452);
+                                        _446++;
+                                        continue;
+                                    }
+                                    bool _457;
+                                    if (_428 <= _441)
+                                    {
+                                        _457 = _425 >= _444;
+                                    }
+                                    else
+                                    {
+                                        _457 = false;
+                                    }
+                                    if (!_457)
+                                    {
+                                        _461 = false;
+                                        _462 = true;
+                                        break;
+                                    }
+                                    _398++;
+                                    continue;
+                                }
+                                else
+                                {
+                                    _461 = _378;
+                                    _462 = false;
+                                    break;
+                                }
+                            }
+                            if (_462)
+                            {
+                                _379 = _461;
+                                break;
+                            }
+                            _379 = true;
+                            break;
+                        } while(false);
+                        if (!_379)
+                        {
+                            _376 = _375;
+                            int _381 = _380 + 1;
+                            _375 = _376;
+                            _378 = _379;
+                            _380 = _381;
+                            continue;
+                        }
+                        spvUnsafeArray<float2, 16> _80 = _77[_380];
+                        int _469 = int(_78[_380]);
+                        int _472 = int(_76[_369]);
+                        bool _542;
+                        do
+                        {
+                            bool _539;
+                            bool _540;
+                            int _476 = 0;
+                            for (;;)
+                            {
+                                if (_476 < _469)
+                                {
+                                    int _488;
+                                    if (_476 == (_469 - 1))
+                                    {
+                                        _488 = 0;
+                                    }
+                                    else
+                                    {
+                                        _488 = _476 + 1;
+                                    }
+                                    float2 _493 = _80[_488] - _80[_476];
+                                    float2 _498 = fast::normalize(float2(-_493.y, _493.x));
+                                    spvUnsafeArray<float2, 16> _71 = _77[_380];
+                                    float _501 = dot(_71[0], _498);
+                                    float _503;
+                                    float _506;
+                                    _503 = _501;
+                                    _506 = _501;
+                                    for (int _508 = 1; _508 < _469; )
+                                    {
+                                        float _514 = dot(_71[_508], _498);
+                                        _503 = precise::max(_503, _514);
+                                        _506 = precise::min(_506, _514);
+                                        _508++;
+                                        continue;
+                                    }
+                                    spvUnsafeArray<float2, 16> _72 = _75[_369];
+                                    float _517 = dot(_72[0], _498);
+                                    float _519;
+                                    float _522;
+                                    _519 = _517;
+                                    _522 = _517;
+                                    for (int _524 = 1; _524 < _472; )
+                                    {
+                                        float _530 = dot(_72[_524], _498);
+                                        _519 = precise::max(_519, _530);
+                                        _522 = precise::min(_522, _530);
+                                        _524++;
+                                        continue;
+                                    }
+                                    bool _535;
+                                    if (_506 <= _519)
+                                    {
+                                        _535 = _503 >= _522;
+                                    }
+                                    else
+                                    {
+                                        _535 = false;
+                                    }
+                                    if (!_535)
+                                    {
+                                        _539 = false;
+                                        _540 = true;
+                                        break;
+                                    }
+                                    _476++;
+                                    continue;
+                                }
+                                else
+                                {
+                                    _539 = _375;
+                                    _540 = false;
+                                    break;
+                                }
+                            }
+                            if (_540)
+                            {
+                                _542 = _539;
+                                break;
+                            }
+                            _542 = true;
+                            break;
+                        } while(false);
+                        if (!_542)
+                        {
+                            _376 = _542;
+                            int _381 = _380 + 1;
+                            _375 = _376;
+                            _378 = _379;
+                            _380 = _381;
+                            continue;
+                        }
+                        uint _547 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[0u], 1u, memory_order_relaxed);
+                        int _548 = int(_547);
+                        if (uint(_548) < UniformBlock.ColliderShapeResultBufferLength)
+                        {
+                            int _555 = _548 * 8;
+                            CollisionResultBuffer._m0[uint(8 + _555) >> 2u] = gl_GlobalInvocationID.x;
+                            CollisionResultBuffer._m0[uint(_555 + 12) >> 2u] = gl_GlobalInvocationID.y;
+                        }
+                        _366 = _542;
+                        _368 = _379;
+                        _363 = true;
+                        break;
+                    }
+                    else
+                    {
+                        _366 = _375;
+                        _368 = _378;
+                        _363 = _362;
+                        break;
+                    }
+                }
+                if (_363)
+                {
+                    _565 = _363;
+                    break;
+                }
+                _362 = _363;
+                _365 = _366;
+                _367 = _368;
+                _369++;
+                continue;
+            }
+            else
+            {
+                _565 = _362;
+                break;
+            }
+        }
+        if (_565)
         {
             break;
-        }
-        uint _467 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[0u], 1u, memory_order_relaxed);
-        int _468 = int(_467);
-        if (_468 < UniformBlock.ColliderShapeResultBufferLength)
-        {
-            int _474 = _468 * 8;
-            uint _479 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[uint(8 + _474) >> 2u], _112, memory_order_relaxed);
-            uint _484 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[uint(_474 + 12) >> 2u], _221, memory_order_relaxed);
         }
         break;
     } while(false);

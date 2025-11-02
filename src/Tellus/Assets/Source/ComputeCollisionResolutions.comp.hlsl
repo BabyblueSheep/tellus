@@ -22,8 +22,18 @@ bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
     return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
 }
 
-bool doBodyPartsOverlap(float2 shapeVerticesMain[16], int shapeVerticesMainAmount, float2 shapeVerticesSub[16], int shapeVerticesSubAmount)
+float getProjectionOverlap(float2 projectionOne, float2 projectionTwo)
 {
+    float start = projectionOne.x > projectionTwo.x ? projectionOne.x : projectionTwo.x;
+    float end = projectionOne.y < projectionTwo.y ? projectionOne.y : projectionTwo.y;
+    return end - start;
+}
+
+float2 doBodyPartsOverlap(float2 shapeVerticesMain[16], int shapeVerticesMainAmount, float2 shapeVerticesSub[16], int shapeVerticesSubAmount, out float2 minimumTransitionVector)
+{
+    float smallestMtvLength = 999999.9;
+    float2 smallestMtvUnit = float2(0, 0);
+    
     for (int i = 0; i < shapeVerticesMainAmount; i++)
     {
         int j = (i == (shapeVerticesMainAmount - 1)) ? 0 : (i + 1);
@@ -41,8 +51,16 @@ bool doBodyPartsOverlap(float2 shapeVerticesMain[16], int shapeVerticesMainAmoun
         {
             return false;
         }
+        
+        float currentMtvLength = getProjectionOverlap(shapeOneProjection, shapeTwoProjection);
+        if (smallestMtvUnit > currentMtvLength)
+        {
+            smallestMtvLength = currentMtvLength;
+            smallestMtvUnit = axis;
+        }
     }
     
+    minimumTransitionVector = smallestMtvUnit * smallestMtvLength;
     return true;
 }
 
@@ -81,11 +99,19 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     {
         for (int j = collisionBodyDataTwo.BodyPartIndexStart; j < collisionBodyDataTwo.BodyPartIndexStart + collisionBodyDataTwo.BodyPartIndexLength; j++)
         {
-            bool doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesOne[i], bodyPartVerticeLengthsOne[i], bodyPartVerticesTwo[j], bodyPartVerticeLengthsTwo[j]);
+            CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[i];
+            CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[j];
+            
+            float2 shapeVerticesOne[16], shapeVerticesTwo[16];
+            int shapeVertexAmountOne, shapeVertexAmountTwo;
+            constructVertexPositions(collisionBodyPartDataOne, BodyDataBufferOne[collisionBodyPartDataOne.CollisionBodyIndex], shapeVerticesOne, shapeVertexAmountOne);
+            constructVertexPositions(collisionBodyPartDataTwo, BodyDataBufferTwo[collisionBodyPartDataTwo.CollisionBodyIndex], shapeVerticesTwo, shapeVertexAmountTwo);
+            
+            bool doBodyPartsCollide = doBodyPartsOverlap(shapeVerticesOne, shapeVertexAmountOne, shapeVerticesTwo, shapeVertexAmountTwo);
             if (!doBodyPartsCollide)
                 continue;
             
-            doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesTwo[j], bodyPartVerticeLengthsTwo[j], bodyPartVerticesOne[i], bodyPartVerticeLengthsOne[i]);
+            doBodyPartsCollide = doBodyPartsOverlap(shapeVerticesTwo, shapeVertexAmountTwo, shapeVerticesOne, shapeVertexAmountOne);
             if (!doBodyPartsCollide)
                 continue;
             
@@ -95,8 +121,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
             if (collisionAmount < ColliderShapeResultBufferLength)
             {
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x);
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, collisionBodyPartDataOne.CollisionBodyIndex);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, collisionBodyPartDataTwo.CollisionBodyIndex);
             }
             
             return;

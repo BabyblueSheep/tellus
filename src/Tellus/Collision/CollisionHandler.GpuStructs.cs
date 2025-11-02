@@ -70,5 +70,5 @@ public sealed partial class CollisionHandler : GraphicsResource
         public int CollisionBodyIndexTwo;
     }
 
-    record struct CollisionComputeUniforms(uint ShapeDataBufferOneLength, uint ShapeDataBufferTwoLength, uint ColliderShapeResultBufferLength);
+    record struct CollisionComputeUniforms(uint StoredBodyCountOne, uint StoredBodyCountTwo, uint ColliderShapeResultBufferLength);
 }

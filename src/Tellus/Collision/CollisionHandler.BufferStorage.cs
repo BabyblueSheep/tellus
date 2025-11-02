@@ -26,62 +26,64 @@ public sealed partial class CollisionHandler : GraphicsResource
         public TransferBuffer CollisionResultsTransferDownloadBuffer { get; private set; }
         public Buffer CollisionResultsBuffer { get; private set; }
 
-        public uint BodyPartAmount { get; private set; }
-        public uint BodyAmount { get; private set; }
+        public uint BodyPartCountOne { get; private set; }
+        public uint BodyCountOne { get; private set; }
+        public uint BodyPartCountTwo { get; private set; }
+        public uint BodyCountTwo { get; private set; }
         public uint CollisionResultAmount { get; private set; }
 
-        public StorageBuffer(GraphicsDevice device, uint bodyPartAmount = 2048, uint bodyAmount = 256, uint collisionResultAmount = 2048) : base(device)
+        public StorageBuffer(GraphicsDevice device, uint bodyPartCountOne = 2048, uint bodyCountOne = 128, uint bodyPartCountTwo = 2048, uint bodyCountTwo = 128, uint collisionResultAmount = 2048) : base(device)
         {
             BodyPartDataTransferBufferOne = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,
                 TransferBufferUsage.Upload,
-                bodyPartAmount
+                bodyPartCountOne
             );
 
             BodyPartDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,
                 TransferBufferUsage.Upload,
-                bodyPartAmount
+                bodyPartCountTwo
             );
 
             BodyPartDataBufferOne = Buffer.Create<CollisionBodyPartData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                bodyPartAmount
+                bodyPartCountOne
             );
 
             BodyPartDataBufferTwo = Buffer.Create<CollisionBodyPartData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                bodyPartAmount
+                bodyPartCountTwo
             );
 
             BodyDataTransferBufferOne = TransferBuffer.Create<CollisionBodyData>(
                 Device,
                 TransferBufferUsage.Upload,
-                bodyAmount
+                bodyCountOne
             );
 
             BodyDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyData>(
                 Device,
                 TransferBufferUsage.Upload,
-                bodyAmount
+                bodyCountTwo
             );
 
             BodyDataBufferOne = Buffer.Create<CollisionBodyData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                bodyAmount
+                bodyCountOne
             );
 
             BodyDataBufferTwo = Buffer.Create<CollisionBodyData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                bodyAmount
+                bodyCountTwo
             );
 
             CollisionResultsTransferUploadBuffer = TransferBuffer.Create<CollisionResultData>(
@@ -110,71 +112,83 @@ public sealed partial class CollisionHandler : GraphicsResource
             }
             CollisionResultsTransferUploadBuffer.Unmap();
 
-            BodyPartAmount = bodyPartAmount;
-            BodyAmount = bodyAmount;
+            BodyPartCountOne = bodyPartCountOne;
+            BodyCountOne = bodyCountOne;
+            BodyPartCountTwo = bodyPartCountTwo;
+            BodyCountTwo = bodyCountTwo;
             CollisionResultAmount = collisionResultAmount;
         }
 
-        public void ResizeBodyPartBuffers(uint newBodyPartAmount)
+        public void ResizeBodyPartBuffersOne(uint newBodyPartCount)
         {
             BodyPartDataTransferBufferOne = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,
                 TransferBufferUsage.Upload,
-                newBodyPartAmount
-            );
-
-            BodyPartDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyPartData>(
-                Device,
-                TransferBufferUsage.Upload,
-                newBodyPartAmount
+                newBodyPartCount
             );
 
             BodyPartDataBufferOne = Buffer.Create<CollisionBodyPartData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                newBodyPartAmount
+                newBodyPartCount
             );
 
-            BodyPartDataBufferTwo = Buffer.Create<CollisionBodyPartData>
-            (
-                Device,
-                BufferUsageFlags.ComputeStorageRead,
-                newBodyPartAmount
-            );
-
-            BodyPartAmount = newBodyPartAmount;
+            BodyPartCountOne = newBodyPartCount;
         }
 
-        public void ResizeBodyBuffers(uint newBodyAmount)
+        public void ResizeBodyBuffersOne(uint newBodyCount)
         {
             BodyDataTransferBufferOne = TransferBuffer.Create<CollisionBodyData>(
                 Device,
                 TransferBufferUsage.Upload,
-                newBodyAmount
-            );
-
-            BodyDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyData>(
-                Device,
-                TransferBufferUsage.Upload,
-                newBodyAmount
+                newBodyCount
             );
 
             BodyDataBufferOne = Buffer.Create<CollisionBodyData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                newBodyAmount
+                newBodyCount
+            );
+
+            BodyCountOne = newBodyCount;
+        }
+
+        public void ResizeBodyPartBuffersTwo(uint newBodyPartCount)
+        {
+            BodyPartDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyPartData>(
+                Device,
+                TransferBufferUsage.Upload,
+                newBodyPartCount
+            );
+
+            BodyPartDataBufferTwo = Buffer.Create<CollisionBodyPartData>
+            (
+                Device,
+                BufferUsageFlags.ComputeStorageRead,
+                newBodyPartCount
+            );
+
+            BodyPartCountTwo = newBodyPartCount;
+        }
+
+        public void ResizeBodyBuffersTwo(uint newBodyCount)
+        {
+            BodyDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyData>(
+                Device,
+                TransferBufferUsage.Upload,
+                newBodyCount
             );
 
             BodyDataBufferTwo = Buffer.Create<CollisionBodyData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
-                newBodyAmount
+                newBodyCount
             );
 
-            BodyAmount = newBodyAmount;
+            BodyCountTwo = newBodyCount;
         }
 
         public void ResizeCollisionResultBuffers(uint newCollisionResultAmount)
