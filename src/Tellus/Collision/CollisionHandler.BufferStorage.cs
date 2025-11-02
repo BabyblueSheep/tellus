@@ -17,14 +17,20 @@ public sealed partial class CollisionHandler : GraphicsResource
         public Buffer BodyPartDataBufferOne { get; private set; }
         public Buffer BodyPartDataBufferTwo { get; private set; }
 
+        public TransferBuffer BodyDataTransferBufferOne { get; private set; }
+        public TransferBuffer BodyDataTransferBufferTwo { get; private set; }
+        public Buffer BodyDataBufferOne { get; private set; }
+        public Buffer BodyDataBufferTwo { get; private set; }
+
         public TransferBuffer CollisionResultsTransferUploadBuffer { get; private set; }
         public TransferBuffer CollisionResultsTransferDownloadBuffer { get; private set; }
         public Buffer CollisionResultsBuffer { get; private set; }
 
         public uint BodyPartAmount { get; private set; }
+        public uint BodyAmount { get; private set; }
         public uint CollisionResultAmount { get; private set; }
 
-        public StorageBuffer(GraphicsDevice device, uint bodyPartAmount = 2048, uint collisionResultAmount = 2048) : base(device)
+        public StorageBuffer(GraphicsDevice device, uint bodyPartAmount = 2048, uint bodyAmount = 256, uint collisionResultAmount = 2048) : base(device)
         {
             BodyPartDataTransferBufferOne = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,
@@ -50,6 +56,32 @@ public sealed partial class CollisionHandler : GraphicsResource
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
                 bodyPartAmount
+            );
+
+            BodyDataTransferBufferOne = TransferBuffer.Create<CollisionBodyData>(
+                Device,
+                TransferBufferUsage.Upload,
+                bodyAmount
+            );
+
+            BodyDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyData>(
+                Device,
+                TransferBufferUsage.Upload,
+                bodyAmount
+            );
+
+            BodyDataBufferOne = Buffer.Create<CollisionBodyData>
+            (
+                Device,
+                BufferUsageFlags.ComputeStorageRead,
+                bodyAmount
+            );
+
+            BodyDataBufferTwo = Buffer.Create<CollisionBodyData>
+            (
+                Device,
+                BufferUsageFlags.ComputeStorageRead,
+                bodyAmount
             );
 
             CollisionResultsTransferUploadBuffer = TransferBuffer.Create<CollisionResultData>(
@@ -79,6 +111,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             CollisionResultsTransferUploadBuffer.Unmap();
 
             BodyPartAmount = bodyPartAmount;
+            BodyAmount = bodyAmount;
             CollisionResultAmount = collisionResultAmount;
         }
 
@@ -111,6 +144,37 @@ public sealed partial class CollisionHandler : GraphicsResource
             );
 
             BodyPartAmount = newBodyPartAmount;
+        }
+
+        public void ResizeBodyBuffers(uint newBodyAmount)
+        {
+            BodyDataTransferBufferOne = TransferBuffer.Create<CollisionBodyData>(
+                Device,
+                TransferBufferUsage.Upload,
+                newBodyAmount
+            );
+
+            BodyDataTransferBufferTwo = TransferBuffer.Create<CollisionBodyData>(
+                Device,
+                TransferBufferUsage.Upload,
+                newBodyAmount
+            );
+
+            BodyDataBufferOne = Buffer.Create<CollisionBodyData>
+            (
+                Device,
+                BufferUsageFlags.ComputeStorageRead,
+                newBodyAmount
+            );
+
+            BodyDataBufferTwo = Buffer.Create<CollisionBodyData>
+            (
+                Device,
+                BufferUsageFlags.ComputeStorageRead,
+                newBodyAmount
+            );
+
+            BodyAmount = newBodyAmount;
         }
 
         public void ResizeCollisionResultBuffers(uint newCollisionResultAmount)
@@ -154,6 +218,10 @@ public sealed partial class CollisionHandler : GraphicsResource
                     BodyPartDataTransferBufferTwo.Dispose();
                     BodyPartDataBufferOne.Dispose();
                     BodyPartDataBufferTwo.Dispose();
+                    BodyDataTransferBufferOne.Dispose();
+                    BodyDataTransferBufferTwo.Dispose();
+                    BodyDataBufferOne.Dispose();
+                    BodyDataBufferTwo.Dispose();
                     CollisionResultsTransferUploadBuffer.Dispose();
                     CollisionResultsTransferDownloadBuffer.Dispose();
                     CollisionResultsBuffer.Dispose();

@@ -38,10 +38,26 @@ public sealed partial class CollisionHandler : GraphicsResource
         public Point IntegerFields;
 
         [FieldOffset(40)]
-        public int Flags;
+        public int Padding1;
 
         [FieldOffset(44)]
         public int Padding2;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 20)]
+    private struct CollisionBodyData
+    {
+        [FieldOffset(0)]
+        public int BodyPartIndexStart;
+
+        [FieldOffset(4)]
+        public int BodyPartIndexLength;
+
+        [FieldOffset(8)]
+        public Vector2 Offset;
+
+        [FieldOffset(16)]
+        public int Flags;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 8)]

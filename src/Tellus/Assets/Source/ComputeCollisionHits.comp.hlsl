@@ -3,7 +3,7 @@
 
 struct CollisionBodyPartData
 {
-	int ColliderIndex;
+    int CollisionBodyIndex;
     int ShapeType;
     float2 Center;
     float4 DecimalFields;
@@ -13,8 +13,18 @@ struct CollisionBodyPartData
     int Padding2;
 };
 
-StructuredBuffer<CollisionBodyPartData> ShapeDataBufferOne : register(t0, space0);
-StructuredBuffer<CollisionBodyPartData> ShapeDataBufferTwo : register(t1, space0);
+struct CollisionBodyData
+{
+    int BodyPartIndexStart;
+    int BodyPartIndexLength;
+    float2 Offset;
+    int Flags;
+};
+
+StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferOne : register(t0, space0);
+StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferTwo : register(t1, space0);
+StructuredBuffer<CollisionBodyData> BodyDataBufferOne : register(t2, space0);
+StructuredBuffer<CollisionBodyData> BodyDataBufferTwo : register(t3, space0);
 
 RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
@@ -52,7 +62,7 @@ bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
     return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
 }
 
-void constructVertexPositions(CollisionBodyPartData bodyPartData, out float2 vertexPositions[16], out int vertexAmount)
+void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyData bodyData, out float2 vertexPositions[16], out int vertexAmount)
 {
     vertexAmount = 1;
     for (int j = 0; j < 16; j++)
@@ -108,6 +118,11 @@ void constructVertexPositions(CollisionBodyPartData bodyPartData, out float2 ver
         vertexPositions[0] = bodyPartData.Center;
         vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
     }
+    
+    for (int k = 0; k < 16; k++)
+    {
+        vertexPositions[k] += bodyData.Offset;
+    }
 }
 
 [numthreads(16, 16, 1)]
@@ -121,13 +136,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         return;
     }
     
-    CollisionBodyPartData collisionBodyPartDataOne = ShapeDataBufferOne[x];
-    CollisionBodyPartData collisionBodyPartDataTwo = ShapeDataBufferTwo[y];
+    CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[x];
+    CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[y];
     
     float2 shapeVerticesOne[16], shapeVerticesTwo[16];
     int shapeVertexAmountOne, shapeVertexAmountTwo;
-    constructVertexPositions(collisionBodyPartDataOne, shapeVerticesOne, shapeVertexAmountOne);
-    constructVertexPositions(collisionBodyPartDataTwo, shapeVerticesTwo, shapeVertexAmountTwo);
+    constructVertexPositions(collisionBodyPartDataOne, BodyDataBufferOne[collisionBodyPartDataOne.CollisionBodyIndex], shapeVerticesOne, shapeVertexAmountOne);
+    constructVertexPositions(collisionBodyPartDataTwo, BodyDataBufferTwo[collisionBodyPartDataTwo.CollisionBodyIndex], shapeVerticesTwo, shapeVertexAmountTwo);
     
     for (int i = 0; i < shapeVertexAmountOne; i++)
     {
@@ -170,8 +185,10 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     int collisionAmount;
     int _;
     CollisionResultBuffer.InterlockedAdd(0, 1, collisionAmount);
+    
     if (collisionAmount < ColliderShapeResultBufferLength)
     {
-        CollisionResultBuffer.InterlockedAdd(4 + collisionAmount * 4, 1, _);
+        CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, collisionBodyPartDataOne.CollisionBodyIndex);
+        CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, collisionBodyPartDataTwo.CollisionBodyIndex);
     }
 }

@@ -30,9 +30,10 @@ internal sealed class CircleCollidingObject : CollidingObject, ICollisionBody
     public float Radius;
 
     public Vector2 BodyOffset => Vector2.Zero;
-    public IEnumerable<IColliderBodyPart> BodyParts => [
-        new CircleColliderBodyPart(Center, Radius, 16)
+    public IEnumerable<ICollisionBodyPart> BodyParts => [
+        new CircleCollisionBodyPart(Center, Radius, 16)
     ];
+    public bool IsStatic => false;
 }
 
 internal sealed class RectangleCollidingObject : CollidingObject, ICollisionBody
@@ -42,9 +43,10 @@ internal sealed class RectangleCollidingObject : CollidingObject, ICollisionBody
     public Vector2 SideLengths;
 
     public Vector2 BodyOffset => Vector2.Zero;
-    public IEnumerable<IColliderBodyPart> BodyParts => [
-        new RectangleColliderBodyPart(Center, Angle, SideLengths)
+    public IEnumerable<ICollisionBodyPart> BodyParts => [
+        new RectangleCollisionBodyPart(Center, Angle, SideLengths)
     ];
+    public bool IsStatic => false;
 }
 
 internal sealed class TriangleCollidingObject : CollidingObject, ICollisionBody
@@ -54,9 +56,10 @@ internal sealed class TriangleCollidingObject : CollidingObject, ICollisionBody
     public Vector2 PointThree;
 
     public Vector2 BodyOffset => Vector2.Zero;
-    public IEnumerable<IColliderBodyPart> BodyParts => [
-        new TriangleColliderBodyPart(PointOne, PointTwo, PointThree)
+    public IEnumerable<ICollisionBodyPart> BodyParts => [
+        new TriangleCollisionBodyPart(PointOne, PointTwo, PointThree)
     ];
+    public bool IsStatic => false;
 }
 
 internal sealed class LineCollidingObject : CollidingObject, ICollisionBody
@@ -65,9 +68,10 @@ internal sealed class LineCollidingObject : CollidingObject, ICollisionBody
     public Vector2 PointTwo;
 
     public Vector2 BodyOffset => Vector2.Zero;
-    public IEnumerable<IColliderBodyPart> BodyParts => [
-        new LineColliderBodyPart(PointOne, PointTwo)
+    public IEnumerable<ICollisionBodyPart> BodyParts => [
+        new LineCollisionBodyPart(PointOne, PointTwo)
     ];
+    public bool IsStatic => false;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
@@ -95,6 +99,7 @@ file struct PositionColorVertex : IVertexType
 internal class CollisionGame : Game
 {
     private readonly CollisionHandler _collisionHandler;
+    private readonly CollisionHandler.StorageBuffer _storageBuffer;
 
     private readonly CircleCollidingObject _playerObject;
     private readonly List<CollidingObject> _targetObjects;
@@ -201,6 +206,9 @@ internal class CollisionGame : Game
         }
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
+        _storageBuffer = new CollisionHandler.StorageBuffer(GraphicsDevice);
+        _collisionHandler.BindStorageBuffer(_storageBuffer);
+        _collisionHandler.TransferDataToBuffersTwo(_targetObjects.Select(collider => (ICollisionBody)collider).ToList());
 
         #endregion
 
@@ -354,9 +362,9 @@ internal class CollisionGame : Game
 
         _playerObject.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        var colliderList = _targetObjects.Select(collider => (ICollisionBody)collider).ToList();
+        _collisionHandler.TransferDataToBuffersOne([_playerObject]);
 
-        var collisionResults = _collisionHandler.HandleCollisions([_playerObject], colliderList);
+        var collisionResults = _collisionHandler.ComputeCollisionHits();
         foreach (var collisionResult in collisionResults)
         {
             CollidingObject item1 = (CollidingObject)collisionResult.Item1;
