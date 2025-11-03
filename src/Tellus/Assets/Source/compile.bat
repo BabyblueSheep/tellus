@@ -22,8 +22,14 @@
 ..\bin\shadercross.exe "..\Compiled\SpriteBatch.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o "..\Compiled\SpriteBatch.comp.msl"
 
 
-..\bin\shadercross.exe ".\ComputeCollisionHits.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.spv" -I ".\Source\ComputeCollisionCommon.comp.hlsl"
+..\bin\shadercross.exe ".\ComputeCollisionHits.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.spv"
 
 ..\bin\shadercross.exe "..\Compiled\ComputeCollisionHits.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.dxbc"
 ..\bin\shadercross.exe "..\Compiled\ComputeCollisionHits.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.dxil"
 ..\bin\shadercross.exe "..\Compiled\ComputeCollisionHits.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.msl"
+
+..\bin\shadercross.exe ".\ComputeCollisionResolutions.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.spv"
+
+..\bin\shadercross.exe "..\Compiled\ComputeCollisionResolutions.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.dxbc"
+..\bin\shadercross.exe "..\Compiled\ComputeCollisionResolutions.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.dxil"
+..\bin\shadercross.exe "..\Compiled\ComputeCollisionResolutions.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.msl"

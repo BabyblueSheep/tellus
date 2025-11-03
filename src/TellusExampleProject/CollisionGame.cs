@@ -4,6 +4,7 @@ using MoonWorks.Graphics.Font;
 using MoonWorks.Input;
 using MoonWorks.Storage;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -33,7 +34,7 @@ internal sealed class CircleCollidingObject : CollidingObject, ICollisionBody
     public IEnumerable<ICollisionBodyPart> BodyParts => [
         new CircleCollisionBodyPart(Center, Radius, 16)
     ];
-    public bool IsStatic => false;
+    public bool IsImmovable => false;
 }
 
 internal sealed class RectangleCollidingObject : CollidingObject, ICollisionBody
@@ -46,7 +47,7 @@ internal sealed class RectangleCollidingObject : CollidingObject, ICollisionBody
     public IEnumerable<ICollisionBodyPart> BodyParts => [
         new RectangleCollisionBodyPart(Center, Angle, SideLengths)
     ];
-    public bool IsStatic => false;
+    public bool IsImmovable => false;
 }
 
 internal sealed class TriangleCollidingObject : CollidingObject, ICollisionBody
@@ -59,7 +60,7 @@ internal sealed class TriangleCollidingObject : CollidingObject, ICollisionBody
     public IEnumerable<ICollisionBodyPart> BodyParts => [
         new TriangleCollisionBodyPart(PointOne, PointTwo, PointThree)
     ];
-    public bool IsStatic => false;
+    public bool IsImmovable => false;
 }
 
 internal sealed class LineCollidingObject : CollidingObject, ICollisionBody
@@ -71,7 +72,7 @@ internal sealed class LineCollidingObject : CollidingObject, ICollisionBody
     public IEnumerable<ICollisionBodyPart> BodyParts => [
         new LineCollisionBodyPart(PointOne, PointTwo)
     ];
-    public bool IsStatic => false;
+    public bool IsImmovable => false;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
@@ -364,14 +365,21 @@ internal class CollisionGame : Game
 
         _collisionHandler.TransferDataToBuffersOne([_playerObject]);
 
-        var collisionResults = _collisionHandler.ComputeCollisionHits();
-        foreach (var collisionResult in collisionResults)
+        var hitResults = _collisionHandler.ComputeCollisionHits();
+        foreach (var collisionResult in hitResults)
         {
             CollidingObject item1 = (CollidingObject)collisionResult.Item1;
             CollidingObject item2 = (CollidingObject)collisionResult.Item2;
 
             item1.HasCollidedThisFrame = true;
             item2.HasCollidedThisFrame = true;
+        }
+
+        var resolutionResults = _collisionHandler.ComputeCollisionResolutions(isGroupTwoImmovable: true);
+        foreach (var collisionResult in resolutionResults)
+        {
+            //CircleCollidingObject item1 = (CircleCollidingObject)collisionResult.Item1;
+            //item1.Center += collisionResult.Item2;
         }
     }
 

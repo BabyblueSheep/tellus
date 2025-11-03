@@ -17,11 +17,6 @@ cbuffer UniformBlock : register(b0, space2)
     uint ColliderShapeResultBufferLength;
 };
 
-bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
-{
-    return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
-}
-
 bool doBodyPartsOverlap(float2 shapeVerticesMain[16], int shapeVerticesMainAmount, float2 shapeVerticesSub[16], int shapeVerticesSubAmount)
 {
     for (int i = 0; i < shapeVerticesMainAmount; i++)
@@ -60,32 +55,28 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     CollisionBodyData collisionBodyDataOne = BodyDataBufferOne[x];
     CollisionBodyData collisionBodyDataTwo = BodyDataBufferTwo[y];
     
-    float2 bodyPartVerticesOne[16][16];
-    float bodyPartVerticeLengthsOne[16];
-    float2 bodyPartVerticesTwo[16][16];
-    float bodyPartVerticeLengthsTwo[16];
+    float2 bodyPartVerticesOne[16];
+    float bodyPartVerticeLengthsOne;
+    float2 bodyPartVerticesTwo[16];
+    float bodyPartVerticeLengthsTwo;
     
-    for (int i = collisionBodyDataOne.BodyPartIndexStart; i < collisionBodyDataOne.BodyPartIndexStart + collisionBodyDataOne.BodyPartIndexLength; i++)
+    for (int i = 0; i < collisionBodyDataOne.BodyPartIndexLength; i++)
     {
-        CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[i];
-        constructVertexPositions(collisionBodyPartDataOne, collisionBodyDataOne, bodyPartVerticesOne[i], bodyPartVerticeLengthsOne[i]);
-    }
-    
-    for (int i = collisionBodyDataTwo.BodyPartIndexStart; i < collisionBodyDataTwo.BodyPartIndexStart + collisionBodyDataTwo.BodyPartIndexLength; i++)
-    {
-        CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[i];
-        constructVertexPositions(collisionBodyPartDataTwo, collisionBodyDataTwo, bodyPartVerticesTwo[i], bodyPartVerticeLengthsTwo[i]);
-    }
-    
-    for (int i = collisionBodyDataOne.BodyPartIndexStart; i < collisionBodyDataOne.BodyPartIndexStart + collisionBodyDataOne.BodyPartIndexLength; i++)
-    {
-        for (int j = collisionBodyDataTwo.BodyPartIndexStart; j < collisionBodyDataTwo.BodyPartIndexStart + collisionBodyDataTwo.BodyPartIndexLength; j++)
+        CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[i + collisionBodyDataOne.BodyPartIndexStart];
+        
+        constructVertexPositions(collisionBodyPartDataOne, collisionBodyDataOne, bodyPartVerticesOne, bodyPartVerticeLengthsOne);
+        
+        for (int j = 0; j < collisionBodyDataTwo.BodyPartIndexLength; j++)
         {
-            bool doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesOne[i], bodyPartVerticeLengthsOne[i], bodyPartVerticesTwo[j], bodyPartVerticeLengthsTwo[j]);
+            CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[j + collisionBodyDataTwo.BodyPartIndexStart];
+            
+            constructVertexPositions(collisionBodyPartDataTwo, collisionBodyDataTwo, bodyPartVerticesTwo, bodyPartVerticeLengthsTwo);
+            
+            bool doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesOne, bodyPartVerticeLengthsOne, bodyPartVerticesTwo, bodyPartVerticeLengthsTwo);
             if (!doBodyPartsCollide)
                 continue;
             
-            doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesTwo[j], bodyPartVerticeLengthsTwo[j], bodyPartVerticesOne[i], bodyPartVerticeLengthsOne[i]);
+            doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesTwo, bodyPartVerticeLengthsTwo, bodyPartVerticesOne, bodyPartVerticeLengthsOne);
             if (!doBodyPartsCollide)
                 continue;
             
@@ -95,8 +86,9 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
             if (collisionAmount < ColliderShapeResultBufferLength)
             {
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x);
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y);
+                CollisionResultBuffer.Store(12 + collisionAmount * 12 + 0, x);
+                CollisionResultBuffer.Store(12 + collisionAmount * 12 + 4, y);
+                CollisionResultBuffer.Store(12 + collisionAmount * 12 + 8, 0);
             }
             
             return;

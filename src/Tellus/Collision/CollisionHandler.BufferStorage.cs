@@ -86,19 +86,19 @@ public sealed partial class CollisionHandler : GraphicsResource
                 bodyCountTwo
             );
 
-            CollisionResultsTransferUploadBuffer = TransferBuffer.Create<CollisionResultData>(
+            CollisionResultsTransferUploadBuffer = TransferBuffer.Create<CollisionResolutionData>(
                 Device,
                 TransferBufferUsage.Upload,
                 collisionResultAmount + 1
             );
 
-            CollisionResultsTransferDownloadBuffer = TransferBuffer.Create<CollisionResultData>(
+            CollisionResultsTransferDownloadBuffer = TransferBuffer.Create<CollisionResolutionData>(
                 Device,
                 TransferBufferUsage.Download,
                 collisionResultAmount + 1
             );
 
-            CollisionResultsBuffer = Buffer.Create<CollisionResultData>
+            CollisionResultsBuffer = Buffer.Create<CollisionResolutionData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageWrite,
@@ -193,19 +193,19 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         public void ResizeCollisionResultBuffers(uint newCollisionResultAmount)
         {
-            CollisionResultsTransferUploadBuffer = TransferBuffer.Create<CollisionResultData>(
+            CollisionResultsTransferUploadBuffer = TransferBuffer.Create<CollisionHitData>(
                 Device,
                 TransferBufferUsage.Upload,
                 newCollisionResultAmount + 1
             );
 
-            CollisionResultsTransferDownloadBuffer = TransferBuffer.Create<CollisionResultData>(
+            CollisionResultsTransferDownloadBuffer = TransferBuffer.Create<CollisionHitData>(
                 Device,
                 TransferBufferUsage.Download,
                 newCollisionResultAmount + 1
             );
 
-            CollisionResultsBuffer = Buffer.Create<CollisionResultData>
+            CollisionResultsBuffer = Buffer.Create<CollisionHitData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageWrite,

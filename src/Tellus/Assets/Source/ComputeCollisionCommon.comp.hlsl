@@ -28,6 +28,11 @@ struct CollisionBodyData
 #define TRIANGLE_TYPE 2
 #define LINE_TYPE 3
 
+bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
+{
+    return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
+}
+
 float2 projectVerticesOnAxis(float2 vertexPositions[16], int vertexAmount, float2 axis)
 {
     float minProjectionPosition = dot(vertexPositions[0], axis);

@@ -3,24 +3,19 @@
 
 #include "./ComputeCollisionCommon.comp.hlsl"
 
-StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferOne : register(t0, space0);
-StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferTwo : register(t1, space0);
-StructuredBuffer<CollisionBodyData> BodyDataBufferOne : register(t2, space0);
-StructuredBuffer<CollisionBodyData> BodyDataBufferTwo : register(t3, space0);
+StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferMovable : register(t0, space0);
+StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferImmovable : register(t1, space0);
+StructuredBuffer<CollisionBodyData> BodyDataBufferMovable : register(t2, space0);
+StructuredBuffer<CollisionBodyData> BodyDataBufferImmovable : register(t3, space0);
 
 RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    uint StoredBodyCountOne;
-    uint StoredBodyCountTwo;
+    uint StoredBodyCountMovable;
+    uint StoredBodyCountImmovable;
     uint ColliderShapeResultBufferLength;
 };
-
-bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
-{
-    return projectionOne.x <= projectionTwo.y && projectionOne.y >= projectionTwo.x;
-}
 
 float getProjectionOverlap(float2 projectionOne, float2 projectionTwo)
 {
@@ -29,103 +24,134 @@ float getProjectionOverlap(float2 projectionOne, float2 projectionTwo)
     return end - start;
 }
 
-float2 doBodyPartsOverlap(float2 shapeVerticesMain[16], int shapeVerticesMainAmount, float2 shapeVerticesSub[16], int shapeVerticesSubAmount, out float2 minimumTransitionVector)
+float4 doBodyPartsOverlap(float2 shapeVerticesOne[16], int shapeVerticesOneAmount, float2 shapeVerticesTwo[16], int shapeVerticesTwoAmount)
 {
-    float smallestMtvLength = 999999.9;
-    float2 smallestMtvUnit = float2(0, 0);
+    float minimumTransitionVectorLength = 999999.9;
+    float2 minimumTransitionVectorDirection = float2(0, 0);
     
-    for (int i = 0; i < shapeVerticesMainAmount; i++)
+    for (int i = 0; i < shapeVerticesOneAmount; i++)
     {
-        int j = (i == (shapeVerticesMainAmount - 1)) ? 0 : (i + 1);
-        float2 vertexOne = shapeVerticesMain[i];
-        float2 vertexTwo = shapeVerticesMain[j];
+        int j = (i == (shapeVerticesOneAmount - 1)) ? 0 : (i + 1);
+        float2 vertexOne = shapeVerticesOne[i];
+        float2 vertexTwo = shapeVerticesOne[j];
         
         float2 edge = vertexTwo - vertexOne;
         float2 normal = float2(-edge.y, edge.x);
         float2 axis = normalize(normal);
         
-        float2 shapeOneProjection = projectVerticesOnAxis(shapeVerticesMain, shapeVerticesMainAmount, axis);
-        float2 shapeTwoProjection = projectVerticesOnAxis(shapeVerticesSub, shapeVerticesSubAmount, axis);
+        float2 shapeOneProjection = projectVerticesOnAxis(shapeVerticesOne, shapeVerticesOneAmount, axis);
+        float2 shapeTwoProjection = projectVerticesOnAxis(shapeVerticesTwo, shapeVerticesTwoAmount, axis);
         
         if (!doProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
         {
-            return false;
+            return float4(0.0, 0.0, 0.0, 0.0);
         }
         
         float currentMtvLength = getProjectionOverlap(shapeOneProjection, shapeTwoProjection);
-        if (smallestMtvUnit > currentMtvLength)
+        if (minimumTransitionVectorLength > currentMtvLength)
         {
-            smallestMtvLength = currentMtvLength;
-            smallestMtvUnit = axis;
+            minimumTransitionVectorLength = currentMtvLength;
+            minimumTransitionVectorDirection = axis;
         }
     }
-    
-    minimumTransitionVector = smallestMtvUnit * smallestMtvLength;
-    return true;
+    return float4(1.0, minimumTransitionVectorLength, minimumTransitionVectorDirection.x, minimumTransitionVectorDirection.y);
 }
 
-[numthreads(16, 16, 1)]
+[numthreads(16, 1, 1)]
 void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
 {
     uint x = GlobalInvocationID.x;
-    uint y = GlobalInvocationID.y;
     
-    if (x >= StoredBodyCountOne || y >= StoredBodyCountTwo)
+    if (x >= StoredBodyCountMovable)
     {
         return;
     }
     
-    CollisionBodyData collisionBodyDataOne = BodyDataBufferOne[x];
-    CollisionBodyData collisionBodyDataTwo = BodyDataBufferTwo[y];
+    CollisionBodyData collisionBodyDataMovable = BodyDataBufferMovable[x];
     
-    float2 bodyPartVerticesOne[16][16];
-    float bodyPartVerticeLengthsOne[16];
-    float2 bodyPartVerticesTwo[16][16];
-    float bodyPartVerticeLengthsTwo[16];
+    float2 bodyPartVerticesMovable[16];
+    int bodyPartVerticeLengthsMovable;
+    float2 bodyPartVerticesImmovable[16];
+    int bodyPartVerticeLengthsImmovable;
     
-    for (int i = collisionBodyDataOne.BodyPartIndexStart; i < collisionBodyDataOne.BodyPartIndexStart + collisionBodyDataOne.BodyPartIndexLength; i++)
+    float2 totalMinimumTransitionVector = float2(0.0, 0.0);
+    
+    while (true)
     {
-        CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[i];
-        constructVertexPositions(collisionBodyPartDataOne, collisionBodyDataOne, bodyPartVerticesOne[i], bodyPartVerticeLengthsOne[i]);
-    }
-    
-    for (int i = collisionBodyDataTwo.BodyPartIndexStart; i < collisionBodyDataTwo.BodyPartIndexStart + collisionBodyDataTwo.BodyPartIndexLength; i++)
-    {
-        CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[i];
-        constructVertexPositions(collisionBodyPartDataTwo, collisionBodyDataTwo, bodyPartVerticesTwo[i], bodyPartVerticeLengthsTwo[i]);
-    }
-    
-    for (int i = collisionBodyDataOne.BodyPartIndexStart; i < collisionBodyDataOne.BodyPartIndexStart + collisionBodyDataOne.BodyPartIndexLength; i++)
-    {
-        for (int j = collisionBodyDataTwo.BodyPartIndexStart; j < collisionBodyDataTwo.BodyPartIndexStart + collisionBodyDataTwo.BodyPartIndexLength; j++)
+        bool shouldBreak = true;
+        
+        for (int i = 0; i < StoredBodyCountImmovable; i++)
         {
-            CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[i];
-            CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[j];
+            if (!shouldBreak)
+                break;
             
-            float2 shapeVerticesOne[16], shapeVerticesTwo[16];
-            int shapeVertexAmountOne, shapeVertexAmountTwo;
-            constructVertexPositions(collisionBodyPartDataOne, BodyDataBufferOne[collisionBodyPartDataOne.CollisionBodyIndex], shapeVerticesOne, shapeVertexAmountOne);
-            constructVertexPositions(collisionBodyPartDataTwo, BodyDataBufferTwo[collisionBodyPartDataTwo.CollisionBodyIndex], shapeVerticesTwo, shapeVertexAmountTwo);
-            
-            bool doBodyPartsCollide = doBodyPartsOverlap(shapeVerticesOne, shapeVertexAmountOne, shapeVerticesTwo, shapeVertexAmountTwo);
-            if (!doBodyPartsCollide)
-                continue;
-            
-            doBodyPartsCollide = doBodyPartsOverlap(shapeVerticesTwo, shapeVertexAmountTwo, shapeVerticesOne, shapeVertexAmountOne);
-            if (!doBodyPartsCollide)
-                continue;
-            
-            int collisionAmount;
-            int _;
-            CollisionResultBuffer.InterlockedAdd(0, 1, collisionAmount);
-    
-            if (collisionAmount < ColliderShapeResultBufferLength)
+            CollisionBodyData collisionBodyDataImmovable = BodyDataBufferImmovable[i];
+        
+            for (int j = 0; j < collisionBodyDataMovable.BodyPartIndexLength; j++)
             {
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, collisionBodyPartDataOne.CollisionBodyIndex);
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, collisionBodyPartDataTwo.CollisionBodyIndex);
-            }
+                if (!shouldBreak)
+                    break;
+                
+                CollisionBodyPartData collisionBodyPartDataMovable = BodyPartDataBufferMovable[j + collisionBodyDataMovable.BodyPartIndexStart];
             
-            return;
+                constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
+            
+                for (int k = 0; k < collisionBodyDataImmovable.BodyPartIndexLength; k++)
+                {
+                    CollisionBodyPartData collisionBodyPartDataImmovable = BodyPartDataBufferImmovable[k + collisionBodyDataImmovable.BodyPartIndexStart];
+            
+                    constructVertexPositions(collisionBodyPartDataImmovable, collisionBodyDataImmovable, bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable);
+                
+                    float4 overlapInfoOne = doBodyPartsOverlap(bodyPartVerticesMovable, bodyPartVerticeLengthsMovable, bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable);
+            
+                    bool doBodyPartsCollideOne = overlapInfoOne.x != 0.0;
+                    float minimumTransitionVectorLengthOne = overlapInfoOne.y;
+                    float2 minimumTransitionVectorDirectionOne = float2(overlapInfoOne.z, overlapInfoOne.w);
+                    
+                    if (!doBodyPartsCollideOne)
+                        continue;
+           
+                    float4 overlapInfoTwo = doBodyPartsOverlap(bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
+            
+                    bool doBodyPartsCollideTwo = overlapInfoTwo.x != 0.0;
+                    float minimumTransitionVectorLengthTwo = overlapInfoTwo.y;
+                    float2 minimumTransitionVectorDirectionTwo = float2(overlapInfoTwo.z, overlapInfoTwo.w);
+            
+                    if (!doBodyPartsCollideTwo)
+                        continue;
+                    
+                    float2 minimumTransitionVector = float2(0.0, 0.0);
+                    if (minimumTransitionVectorLengthOne < minimumTransitionVectorLengthTwo)
+                    {
+                        minimumTransitionVector = minimumTransitionVectorDirectionOne * minimumTransitionVectorLengthOne;
+                    }
+                    else
+                    {
+                        minimumTransitionVector = minimumTransitionVectorDirectionTwo * minimumTransitionVectorLengthTwo;
+                    }
+            
+                    totalMinimumTransitionVector += minimumTransitionVector;
+                    collisionBodyDataMovable.Offset += minimumTransitionVector;
+                    shouldBreak = false;
+                    break;
+                }
+            }
         }
+        
+        if (shouldBreak)
+            break;
+    }
+    
+    int collisionAmount;
+    int _;
+    CollisionResultBuffer.InterlockedAdd(0, 1, collisionAmount);
+    
+    if (collisionAmount < ColliderShapeResultBufferLength)
+    {
+        CollisionResultBuffer.Store(12 + collisionAmount * 12 + 0, x);
+        uint totalMtvX = asuint(totalMinimumTransitionVector.x);
+        CollisionResultBuffer.Store(12 + collisionAmount * 12 + 4, totalMtvX);
+        uint totalMtvY = asuint(totalMinimumTransitionVector.y);
+        CollisionResultBuffer.Store(12 + collisionAmount * 12 + 8, totalMtvY);
     }
 }

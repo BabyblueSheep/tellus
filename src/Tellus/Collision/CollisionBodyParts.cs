@@ -7,8 +7,6 @@ public interface ICollisionBody
 {
     public Vector2 BodyOffset { get; }
     public IEnumerable<ICollisionBodyPart> BodyParts { get; }
-
-    public bool IsStatic { get; }
 }
 
 public interface ICollisionBodyPart
