@@ -97,8 +97,10 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     CollisionBodyData collisionBodyDataMovable = BodyDataBufferMovable[x];
     
     float2 bodyPartVerticesMovable[16];
+    float2 bodyPartCenterVertexMovable;
     int bodyPartVerticeLengthsMovable;
     float2 bodyPartVerticesImmovable[16];
+    float2 bodyPartCenterVertexImmovable;
     int bodyPartVerticeLengthsImmovable;
     
     float2 totalMinimumTransitionVector = float2(0.0, 0.0);
@@ -122,13 +124,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                 
                 CollisionBodyPartData collisionBodyPartDataMovable = BodyPartDataBufferMovable[j + collisionBodyDataMovable.BodyPartIndexStart];
             
-                constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
+                constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartCenterVertexMovable, bodyPartVerticeLengthsMovable);
             
                 for (int k = 0; k < collisionBodyDataImmovable.BodyPartIndexLength; k++)
                 {
                     CollisionBodyPartData collisionBodyPartDataImmovable = BodyPartDataBufferImmovable[k + collisionBodyDataImmovable.BodyPartIndexStart];
             
-                    constructVertexPositions(collisionBodyPartDataImmovable, collisionBodyDataImmovable, bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable);
+                    constructVertexPositions(collisionBodyPartDataImmovable, collisionBodyDataImmovable, bodyPartVerticesImmovable, bodyPartCenterVertexImmovable, bodyPartVerticeLengthsImmovable);
                 
                     float4 overlapInfo = doBodyPartsOverlap(bodyPartVerticesMovable, bodyPartVerticeLengthsMovable, bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable);
             
@@ -140,6 +142,12 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                         continue;
                     
                     float2 minimumTransitionVector = minimumTransitionVectorDirection * minimumTransitionVectorLength;
+                    float2 directionToImmovableBody = bodyPartCenterVertexImmovable - bodyPartCenterVertexMovable;
+                    if (dot(directionToImmovableBody, minimumTransitionVectorDirection) < 0)
+                    {
+                        minimumTransitionVector *= -1;
+
+                    }
             
                     totalMinimumTransitionVector += minimumTransitionVector;
                     collisionBodyDataMovable.Offset += minimumTransitionVector;
