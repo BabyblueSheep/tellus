@@ -378,8 +378,8 @@ internal class CollisionGame : Game
         var resolutionResults = _collisionHandler.ComputeCollisionResolutions(isGroupTwoImmovable: true);
         foreach (var collisionResult in resolutionResults)
         {
-            //CircleCollidingObject item1 = (CircleCollidingObject)collisionResult.Item1;
-            //item1.Center += collisionResult.Item2;
+            CircleCollidingObject item1 = (CircleCollidingObject)collisionResult.Item1;
+            item1.Center += collisionResult.Item2;
         }
     }
 

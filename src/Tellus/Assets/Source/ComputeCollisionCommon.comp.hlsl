@@ -18,7 +18,6 @@ struct CollisionBodyData
     int BodyPartIndexStart;
     int BodyPartIndexLength;
     float2 Offset;
-    int Flags;
 };
 
 #define TAU 6.28318530718

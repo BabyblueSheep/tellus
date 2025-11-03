@@ -56,9 +56,9 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     CollisionBodyData collisionBodyDataTwo = BodyDataBufferTwo[y];
     
     float2 bodyPartVerticesOne[16];
-    float bodyPartVerticeLengthsOne;
+    int bodyPartVerticeLengthsOne;
     float2 bodyPartVerticesTwo[16];
-    float bodyPartVerticeLengthsTwo;
+    int bodyPartVerticeLengthsTwo;
     
     for (int i = 0; i < collisionBodyDataOne.BodyPartIndexLength; i++)
     {
