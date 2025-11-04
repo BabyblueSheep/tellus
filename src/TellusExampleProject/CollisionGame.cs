@@ -170,7 +170,7 @@ internal class CollisionGame : Game
         for (int i = 0; i < 80; i++)
         {
             Vector2 center = new Vector2(random.NextSingle() * 900, random.NextSingle() * 900);
-            int shapeType = random.Next(4);
+            int shapeType = 1;// random.Next(4);
             switch (shapeType)
             {
                 case 0:
@@ -185,7 +185,7 @@ internal class CollisionGame : Game
                     {
                         Center = center,
                         Angle = random.NextSingle() * MathF.Tau,
-                        SideLengths = new Vector2(random.NextSingle() * 24 + 8, random.NextSingle() * 24 + 8),
+                        SideLengths = new Vector2(random.NextSingle() * 56 + 8, random.NextSingle() * 56 + 8),
                     });
                     break;
                 case 2:
@@ -361,7 +361,15 @@ internal class CollisionGame : Game
             collider.HasCollidedThisFrame = false;
         }
 
-        _playerObject.Center = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
+        if (Inputs.Keyboard.IsDown(KeyCode.A))
+            _playerObject.Center.X -= 5;
+        if (Inputs.Keyboard.IsDown(KeyCode.D))
+            _playerObject.Center.X += 5;
+        if (Inputs.Keyboard.IsDown(KeyCode.W))
+            _playerObject.Center.Y -= 5;
+        if (Inputs.Keyboard.IsDown(KeyCode.S))
+            _playerObject.Center.Y += 5;
+
 
         _collisionHandler.TransferDataToBuffersOne([_playerObject]);
 

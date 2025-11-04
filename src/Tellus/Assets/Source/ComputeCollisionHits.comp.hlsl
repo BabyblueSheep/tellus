@@ -56,23 +56,21 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     CollisionBodyData collisionBodyDataTwo = BodyDataBufferTwo[y];
     
     float2 bodyPartVerticesOne[16];
-    float2 bodyPartCenterVertexOne;
     int bodyPartVerticeLengthsOne;
     float2 bodyPartVerticesTwo[16];
-    float2 bodyPartCenterVertexTwo;
     int bodyPartVerticeLengthsTwo;
     
     for (int i = 0; i < collisionBodyDataOne.BodyPartIndexLength; i++)
     {
         CollisionBodyPartData collisionBodyPartDataOne = BodyPartDataBufferOne[i + collisionBodyDataOne.BodyPartIndexStart];
         
-        constructVertexPositions(collisionBodyPartDataOne, collisionBodyDataOne, bodyPartVerticesOne, bodyPartCenterVertexOne, bodyPartVerticeLengthsOne);
+        constructVertexPositions(collisionBodyPartDataOne, collisionBodyDataOne, bodyPartVerticesOne, bodyPartVerticeLengthsOne);
         
         for (int j = 0; j < collisionBodyDataTwo.BodyPartIndexLength; j++)
         {
             CollisionBodyPartData collisionBodyPartDataTwo = BodyPartDataBufferTwo[j + collisionBodyDataTwo.BodyPartIndexStart];
             
-            constructVertexPositions(collisionBodyPartDataTwo, collisionBodyDataTwo, bodyPartVerticesTwo, bodyPartCenterVertexTwo, bodyPartVerticeLengthsTwo);
+            constructVertexPositions(collisionBodyPartDataTwo, collisionBodyDataTwo, bodyPartVerticesTwo, bodyPartVerticeLengthsTwo);
             
             bool doBodyPartsCollide = doBodyPartsOverlap(bodyPartVerticesOne, bodyPartVerticeLengthsOne, bodyPartVerticesTwo, bodyPartVerticeLengthsTwo);
             if (!doBodyPartsCollide)

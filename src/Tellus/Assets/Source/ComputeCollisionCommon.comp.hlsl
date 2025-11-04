@@ -47,14 +47,13 @@ float2 projectVerticesOnAxis(float2 vertexPositions[16], int vertexAmount, float
     return float2(minProjectionPosition, maxProjectionPosition);
 }
 
-void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyData bodyData, out float2 vertexPositions[16], float2 shapeCenterVertex, out int vertexAmount)
+void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyData bodyData, out float2 vertexPositions[16], out int vertexAmount)
 {
     vertexAmount = 1;
     for (int j = 0; j < 16; j++)
     {
         vertexPositions[j] = float2(0, 0);
     }
-    shapeCenterVertex = float2(0, 0);
     
     if (bodyPartData.ShapeType == CIRCLE_TYPE)
     {
@@ -64,7 +63,6 @@ void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyD
         {
             vertexPositions[i] = bodyPartData.Center + float2(cos(TAU * i / vertexAmount), sin(TAU * i / vertexAmount)) * radius;
         }
-        shapeCenterVertex = bodyPartData.Center;
     }
     else if (bodyPartData.ShapeType == RECTANGLE_TYPE)
     {
@@ -90,7 +88,6 @@ void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyD
             
             vertexPositions[i] += bodyPartData.Center;
         }
-        shapeCenterVertex = bodyPartData.Center;
     }
     else if (bodyPartData.ShapeType == TRIANGLE_TYPE)
     {
@@ -99,20 +96,16 @@ void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyD
         vertexPositions[0] = bodyPartData.Center;
         vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
         vertexPositions[2] = float2(bodyPartData.DecimalFields.z, bodyPartData.DecimalFields.w);
-        shapeCenterVertex = (vertexPositions[0] + vertexPositions[1] + vertexPositions[2]) / 3.0;
-
     }
     else if (bodyPartData.ShapeType == LINE_TYPE)
     {
         vertexAmount = 2;
         vertexPositions[0] = bodyPartData.Center;
         vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
-        shapeCenterVertex = (vertexPositions[0] + vertexPositions[1]) / 2.0;
     }
     
     for (int k = 0; k < 16; k++)
     {
         vertexPositions[k] += bodyData.Offset;
     }
-    shapeCenterVertex += bodyData.Offset;
 }
