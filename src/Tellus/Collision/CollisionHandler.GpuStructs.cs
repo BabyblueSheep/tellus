@@ -14,9 +14,6 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
-// THINGS TO DOCUMENT:
-// max shapes allowed: SHAPE_DATA_AMOUNT (2048) (hard limit but i may expand)
-
 public sealed partial class CollisionHandler : GraphicsResource
 {
     [StructLayout(LayoutKind.Explicit, Size = 48)]

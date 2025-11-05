@@ -8,7 +8,6 @@ public sealed partial class CollisionHandler : GraphicsResource
 {
     private readonly ComputePipeline _hitComputePipeline;
     private readonly ComputePipeline _resolutionComputePipeline;
-    private StorageBuffer? _storageBuffer;
     private IList<ICollisionBody>? _storedBodyGroupOne;
     private IList<ICollisionBody>? _storedBodyGroupTwo;
     private CollisionComputeUniforms _collisionComputeUniforms;
@@ -42,7 +41,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         _storageBuffer = null;
     }
 
-    public void BindStorageBuffer(StorageBuffer buffer)
+    public void BindStorageBuffer(BodyStorageBuffer buffer)
     {
         _storageBuffer = buffer;
     }

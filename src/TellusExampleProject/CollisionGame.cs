@@ -100,7 +100,7 @@ file struct PositionColorVertex : IVertexType
 internal class CollisionGame : Game
 {
     private readonly CollisionHandler _collisionHandler;
-    private readonly CollisionHandler.StorageBuffer _storageBuffer;
+    private readonly CollisionHandler.BodyStorageBuffer _storageBuffer;
 
     private readonly CircleCollidingObject _playerObject;
     private readonly List<CollidingObject> _targetObjects;
@@ -207,7 +207,7 @@ internal class CollisionGame : Game
         }
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
-        _storageBuffer = new CollisionHandler.StorageBuffer(GraphicsDevice);
+        _storageBuffer = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
         _collisionHandler.BindStorageBuffer(_storageBuffer);
         _collisionHandler.TransferDataToBuffersTwo(_targetObjects.Select(collider => (ICollisionBody)collider).ToList());
 
