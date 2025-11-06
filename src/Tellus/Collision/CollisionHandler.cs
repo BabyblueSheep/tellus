@@ -8,12 +8,6 @@ public sealed partial class CollisionHandler : GraphicsResource
 {
     private readonly ComputePipeline _hitComputePipeline;
     private readonly ComputePipeline _resolutionComputePipeline;
-    private IList<ICollisionBody>? _storedBodyGroupOne;
-    private IList<ICollisionBody>? _storedBodyGroupTwo;
-    private CollisionComputeUniforms _collisionComputeUniforms;
-
-    private uint _storedBodyCountOne;
-    private uint _storedBodyCountTwo;
 
     public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
@@ -36,247 +30,26 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountY = 1,
             ThreadCountZ = 1
         }, out _resolutionComputePipeline);
-
-        _collisionComputeUniforms = new CollisionComputeUniforms();
-        _storageBuffer = null;
     }
 
-    public void BindStorageBuffer(BodyStorageBuffer buffer)
+    public void ComputeCollisionHits(CommandBuffer commandBuffer, BodyStorageBuffer bodyListOneBuffer, BodyStorageBuffer bodyListTwoBuffer, HitResultStorageBuffer resultBuffer)
     {
-        _storageBuffer = buffer;
-    }
-
-    private uint TransferDataToBuffer(IList<ICollisionBody> bodyGroup, Buffer bodyDataBuffer, Buffer bodyPartDataBuffer, TransferBuffer bodyDataTransferBuffer, TransferBuffer bodyPartDataTransferBuffer)
-    {
-        if (_storageBuffer == null)
+        var uniforms = new CollisionComputeUniforms
         {
-            throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
-        }
-
-        CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
-
-        var bodyDataUploadSpan = bodyDataTransferBuffer.Map<CollisionBodyData>(true);
-        var bodyPartDataUploadSpan = bodyPartDataTransferBuffer.Map<CollisionBodyPartData>(true);
-
-        int bodyDataIndex = 0;
-        int bodyPartDataIndex = 0;
-
-        foreach (var body in bodyGroup)
-        {
-            bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart = bodyPartDataIndex;
-
-            foreach (var bodyPart in body.BodyParts)
-            {
-                bodyPartDataUploadSpan[bodyPartDataIndex].CollisionBodyIndex = bodyDataIndex;
-                bodyPartDataUploadSpan[bodyPartDataIndex].ShapeType = bodyPart.ShapeType;
-                bodyPartDataUploadSpan[bodyPartDataIndex].Center = bodyPart.BodyPartCenter;
-                bodyPartDataUploadSpan[bodyPartDataIndex].DecimalFields = bodyPart.DecimalFields;
-                bodyPartDataUploadSpan[bodyPartDataIndex].IntegerFields = bodyPart.IntegerFields;
-
-                bodyPartDataIndex++;
-            }
-
-            bodyDataUploadSpan[bodyDataIndex].BodyPartIndexLength = bodyPartDataIndex - bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart;
-            bodyDataUploadSpan[bodyDataIndex].Offset = body.BodyOffset;
-
-            bodyDataIndex++;
-        }
-
-        bodyDataTransferBuffer.Unmap();
-        bodyPartDataTransferBuffer.Unmap();
-
-        var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.UploadToBuffer(bodyDataTransferBuffer, bodyDataBuffer, true);
-        copyPass.UploadToBuffer(bodyPartDataTransferBuffer, bodyPartDataBuffer, true);
-        commandBuffer.EndCopyPass(copyPass);
-
-        Device.Submit(commandBuffer);
-
-        return (uint)bodyDataIndex;
-    }
-
-    public void TransferDataToBuffersOne(IList<ICollisionBody> bodyGroup)
-    {
-        if (_storageBuffer == null)
-        {
-            throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
-        }
-
-        _storedBodyCountOne = TransferDataToBuffer
-        (
-            bodyGroup, 
-            _storageBuffer.BodyDataBufferOne, 
-            _storageBuffer.BodyPartDataBufferOne, 
-            _storageBuffer.BodyDataTransferBufferOne, 
-            _storageBuffer.BodyPartDataTransferBufferOne
-        );
-        _storedBodyGroupOne = bodyGroup;
-    }
-
-    public void TransferDataToBuffersTwo(IList<ICollisionBody> bodyGroup)
-    {
-        if (_storageBuffer == null)
-        {
-            throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
-        }
-
-        _storedBodyCountTwo = TransferDataToBuffer
-        (
-            bodyGroup,
-            _storageBuffer.BodyDataBufferTwo,
-            _storageBuffer.BodyPartDataBufferTwo,
-            _storageBuffer.BodyDataTransferBufferTwo,
-            _storageBuffer.BodyPartDataTransferBufferTwo
-        );
-        _storedBodyGroupTwo = bodyGroup;
-    }
-
-    public IEnumerable<(ICollisionBody, ICollisionBody)> ComputeCollisionHits()
-    {
-        if (_storageBuffer == null)
-        {
-            throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
-        }
-
-        if (_storedBodyGroupOne == null)
-        {
-            throw new NullReferenceException($"{nameof(_storedBodyGroupOne)} isn't set, meaning buffers don't have data!");
-        }
-        if (_storedBodyGroupTwo == null)
-        {
-            throw new NullReferenceException($"{nameof(_storedBodyGroupTwo)} isn't set, meaning buffers don't have data!");
-        }
-
-        _collisionComputeUniforms.ColliderShapeResultBufferLength = _storageBuffer.CollisionResultAmount;
-        _collisionComputeUniforms.StoredBodyCountOne = _storedBodyCountOne;
-        _collisionComputeUniforms.StoredBodyCountTwo = _storedBodyCountTwo;
-
-        CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
-
-        var collisionResultCopyPass = commandBuffer.BeginCopyPass();
-        collisionResultCopyPass.UploadToBuffer(_storageBuffer.CollisionResultsTransferUploadBuffer, _storageBuffer.CollisionResultsBuffer, true);
-        commandBuffer.EndCopyPass(collisionResultCopyPass);
+            StoredBodyCountOne = bodyListOneBuffer.ValidBodyCount,
+            StoredBodyCountTwo = bodyListTwoBuffer.ValidBodyCount,
+            ColliderShapeResultBufferLength = resultBuffer.CollisionResultAmount
+        };
 
         var computePass = commandBuffer.BeginComputePass
         (
-            new StorageBufferReadWriteBinding(_storageBuffer.CollisionResultsBuffer, false)
+            new StorageBufferReadWriteBinding(resultBuffer.Buffer, false)
         );
         computePass.BindComputePipeline(_hitComputePipeline);
-        computePass.BindStorageBuffers(_storageBuffer.BodyPartDataBufferOne, _storageBuffer.BodyPartDataBufferTwo, _storageBuffer.BodyDataBufferOne, _storageBuffer.BodyDataBufferTwo);
-        commandBuffer.PushComputeUniformData(_collisionComputeUniforms);
-        computePass.Dispatch((_storedBodyCountOne + 15) / 16, (_storedBodyCountTwo + 15) / 16, 1);
+        computePass.BindStorageBuffers(bodyListOneBuffer.BodyPartDataBuffer, bodyListTwoBuffer.BodyPartDataBuffer, bodyListOneBuffer.BodyDataBuffer, bodyListTwoBuffer.BodyDataBuffer);
+        commandBuffer.PushComputeUniformData(uniforms);
+        computePass.Dispatch((bodyListOneBuffer.ValidBodyCount + 15) / 16, (bodyListTwoBuffer.ValidBodyCount + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
-
-        var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.DownloadFromBuffer(_storageBuffer.CollisionResultsBuffer, _storageBuffer.CollisionResultsTransferDownloadBuffer);
-        commandBuffer.EndCopyPass(copyPass);
-
-        var fence = Device.SubmitAndAcquireFence(commandBuffer);
-        Device.WaitForFence(fence);
-        Device.ReleaseFence(fence);
-
-        var tempTransferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<int>(false, 0);
-        int collisionResultAmount = tempTransferDownloadSpan[0];
-        _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
-
-        var transferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<CollisionHitData>(true, 12);
-
-        List<(ICollisionBody, ICollisionBody)> resultList = [];
-        List<(int, int)> resultIndexList = [];
-        for (int i = 0; i < collisionResultAmount; i++)
-        {
-            CollisionHitData resultData = transferDownloadSpan[i];
-            int indexOne = resultData.CollisionBodyIndexOne;
-            int indexTwo = resultData.CollisionBodyIndexTwo;
-
-            bool resultIsUnique = !resultIndexList.Contains((indexOne, indexTwo));
-
-            if (resultIsUnique)
-            {
-                resultList.Add((_storedBodyGroupOne[indexOne], _storedBodyGroupTwo[indexTwo]));
-                resultIndexList.Add((indexOne, indexTwo));
-            }
-        }
-
-        _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
-
-        foreach (var result in resultList)
-        {
-            yield return result;
-        }
-    }
-
-    public IEnumerable<(ICollisionBody, Vector2)> ComputeCollisionResolutions(bool isGroupTwoImmovable)
-    {
-        if (_storageBuffer == null)
-        {
-            throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
-        }
-
-        if (_storedBodyGroupOne == null)
-        {
-            throw new NullReferenceException($"{nameof(_storedBodyGroupOne)} isn't set, so buffers don't have data!");
-        }
-        if (_storedBodyGroupTwo == null)
-        {
-            throw new NullReferenceException($"{nameof(_storedBodyGroupTwo)} isn't set, so buffers don't have data!");
-        }
-
-        _collisionComputeUniforms.ColliderShapeResultBufferLength = _storageBuffer.CollisionResultAmount;
-        _collisionComputeUniforms.StoredBodyCountOne = _storedBodyCountOne;
-        _collisionComputeUniforms.StoredBodyCountTwo = _storedBodyCountTwo;
-
-        CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
-
-        var collisionResultCopyPass = commandBuffer.BeginCopyPass();
-        collisionResultCopyPass.UploadToBuffer(_storageBuffer.CollisionResultsTransferUploadBuffer, _storageBuffer.CollisionResultsBuffer, true);
-        commandBuffer.EndCopyPass(collisionResultCopyPass);
-
-        var computePass = commandBuffer.BeginComputePass
-        (
-            new StorageBufferReadWriteBinding(_storageBuffer.CollisionResultsBuffer, false)
-        );
-        computePass.BindComputePipeline(_resolutionComputePipeline);
-        if (isGroupTwoImmovable)
-        {
-            computePass.BindStorageBuffers(_storageBuffer.BodyPartDataBufferOne, _storageBuffer.BodyPartDataBufferTwo, _storageBuffer.BodyDataBufferOne, _storageBuffer.BodyDataBufferTwo);
-        }
-        else
-        {
-            computePass.BindStorageBuffers(_storageBuffer.BodyPartDataBufferTwo, _storageBuffer.BodyPartDataBufferOne, _storageBuffer.BodyDataBufferTwo, _storageBuffer.BodyDataBufferOne);
-        }
-        commandBuffer.PushComputeUniformData(_collisionComputeUniforms);
-        computePass.Dispatch((_storedBodyCountOne + 15) / 16, 1, 1);
-        commandBuffer.EndComputePass(computePass);
-
-        var copyPass = commandBuffer.BeginCopyPass();
-        copyPass.DownloadFromBuffer(_storageBuffer.CollisionResultsBuffer, _storageBuffer.CollisionResultsTransferDownloadBuffer);
-        commandBuffer.EndCopyPass(copyPass);
-
-        var fence = Device.SubmitAndAcquireFence(commandBuffer);
-        Device.WaitForFence(fence);
-        Device.ReleaseFence(fence);
-
-        var tempTransferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<int>(false, 0);
-        int collisionResultAmount = tempTransferDownloadSpan[0];
-        _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
-
-        var transferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<CollisionResolutionData>(true, 12);
-
-        List<(ICollisionBody, Vector2)> resultList = [];
-        for (int i = 0; i < collisionResultAmount; i++)
-        {
-            CollisionResolutionData resultData = transferDownloadSpan[i];
-            int index = resultData.CollisionBodyIndex;
-            resultList.Add((isGroupTwoImmovable ? _storedBodyGroupOne[index] : _storedBodyGroupTwo[index], resultData.TotalMinimumTransitionVector));
-        }
-
-        _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
-
-        foreach (var result in resultList)
-        {
-            yield return result;
-        }
     }
 
     protected override void Dispose(bool disposing)
@@ -286,9 +59,101 @@ public sealed partial class CollisionHandler : GraphicsResource
             if (disposing)
             {
                 _hitComputePipeline.Dispose();
-                _storageBuffer?.Dispose();
+                _resolutionComputePipeline.Dispose();
             }
         }
         base.Dispose(disposing);
     }
-}
+
+    public void ComputeCollisionResolutions(CommandBuffer commandBuffer, BodyStorageBuffer bodyListMovableBuffer, BodyStorageBuffer bodyListTwoBuffer, ResolutionResultStorageBuffer resultBuffer)
+    {
+
+    }
+
+        /*
+        public IEnumerable<(ICollisionBody, Vector2)> ComputeCollisionResolutions(bool isGroupTwoImmovable)
+        {
+            if (_storageBuffer == null)
+            {
+                throw new NullReferenceException($"{nameof(_storageBuffer)} is unbound!");
+            }
+
+            if (_storedBodyGroupOne == null)
+            {
+                throw new NullReferenceException($"{nameof(_storedBodyGroupOne)} isn't set, so buffers don't have data!");
+            }
+            if (_storedBodyGroupTwo == null)
+            {
+                throw new NullReferenceException($"{nameof(_storedBodyGroupTwo)} isn't set, so buffers don't have data!");
+            }
+
+            _collisionComputeUniforms.ColliderShapeResultBufferLength = _storageBuffer.CollisionResultAmount;
+            _collisionComputeUniforms.StoredBodyCountOne = _storedBodyCountOne;
+            _collisionComputeUniforms.StoredBodyCountTwo = _storedBodyCountTwo;
+
+            CommandBuffer commandBuffer = Device.AcquireCommandBuffer();
+
+            var collisionResultCopyPass = commandBuffer.BeginCopyPass();
+            collisionResultCopyPass.UploadToBuffer(_storageBuffer.CollisionResultsTransferUploadBuffer, _storageBuffer.CollisionResultsBuffer, true);
+            commandBuffer.EndCopyPass(collisionResultCopyPass);
+
+            var computePass = commandBuffer.BeginComputePass
+            (
+                new StorageBufferReadWriteBinding(_storageBuffer.CollisionResultsBuffer, false)
+            );
+            computePass.BindComputePipeline(_resolutionComputePipeline);
+            if (isGroupTwoImmovable)
+            {
+                computePass.BindStorageBuffers(_storageBuffer.BodyPartDataBufferOne, _storageBuffer.BodyPartDataBufferTwo, _storageBuffer.BodyDataBufferOne, _storageBuffer.BodyDataBufferTwo);
+            }
+            else
+            {
+                computePass.BindStorageBuffers(_storageBuffer.BodyPartDataBufferTwo, _storageBuffer.BodyPartDataBufferOne, _storageBuffer.BodyDataBufferTwo, _storageBuffer.BodyDataBufferOne);
+            }
+            commandBuffer.PushComputeUniformData(_collisionComputeUniforms);
+            computePass.Dispatch((_storedBodyCountOne + 15) / 16, 1, 1);
+            commandBuffer.EndComputePass(computePass);
+
+            var copyPass = commandBuffer.BeginCopyPass();
+            copyPass.DownloadFromBuffer(_storageBuffer.CollisionResultsBuffer, _storageBuffer.CollisionResultsTransferDownloadBuffer);
+            commandBuffer.EndCopyPass(copyPass);
+
+            var fence = Device.SubmitAndAcquireFence(commandBuffer);
+            Device.WaitForFence(fence);
+            Device.ReleaseFence(fence);
+
+            var tempTransferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<int>(false, 0);
+            int collisionResultAmount = tempTransferDownloadSpan[0];
+            _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
+
+            var transferDownloadSpan = _storageBuffer.CollisionResultsTransferDownloadBuffer.Map<CollisionResolutionData>(true, 12);
+
+            List<(ICollisionBody, Vector2)> resultList = [];
+            for (int i = 0; i < collisionResultAmount; i++)
+            {
+                CollisionResolutionData resultData = transferDownloadSpan[i];
+                int index = resultData.CollisionBodyIndex;
+                resultList.Add((isGroupTwoImmovable ? _storedBodyGroupOne[index] : _storedBodyGroupTwo[index], resultData.TotalMinimumTransitionVector));
+            }
+
+            _storageBuffer.CollisionResultsTransferDownloadBuffer.Unmap();
+
+            foreach (var result in resultList)
+            {
+                yield return result;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!IsDisposed)
+            {
+                if (disposing)
+                {
+                    _hitComputePipeline.Dispose();
+                    _storageBuffer?.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }*/
+    }

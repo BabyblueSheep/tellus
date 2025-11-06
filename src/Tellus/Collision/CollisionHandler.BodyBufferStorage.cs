@@ -13,13 +13,14 @@ public sealed partial class CollisionHandler : GraphicsResource
     public sealed class BodyStorageBuffer : GraphicsResource
     {
         private readonly TransferBuffer _bodyPartDataTransferBuffer;
-        private readonly Buffer _bodyPartDataBuffer;
+        public Buffer BodyPartDataBuffer { get; }
 
         private readonly TransferBuffer _bodyDataTransferBuffer;
-        private readonly Buffer _bodyDataBuffer;
+        public Buffer BodyDataBuffer { get; }
 
         public uint BodyPartCount { get; private set; }
         public uint BodyCount { get; private set; }
+        public uint ValidBodyCount { get; private set; }
 
         public BodyStorageBuffer(GraphicsDevice device, uint bodyPartCount = 1024, uint bodyCount = 128) : base(device)
         {
@@ -29,7 +30,7 @@ public sealed partial class CollisionHandler : GraphicsResource
                 bodyPartCount
             );
 
-            _bodyPartDataBuffer = Buffer.Create<CollisionBodyPartData>
+            BodyPartDataBuffer = Buffer.Create<CollisionBodyPartData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
@@ -42,7 +43,7 @@ public sealed partial class CollisionHandler : GraphicsResource
                 bodyCount
             );
 
-            _bodyDataBuffer = Buffer.Create<CollisionBodyData>
+            BodyDataBuffer = Buffer.Create<CollisionBodyData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
@@ -86,9 +87,11 @@ public sealed partial class CollisionHandler : GraphicsResource
             _bodyPartDataTransferBuffer.Unmap();
 
             var copyPass = commandBuffer.BeginCopyPass();
-            copyPass.UploadToBuffer(_bodyDataTransferBuffer, _bodyDataBuffer, true);
-            copyPass.UploadToBuffer(_bodyPartDataTransferBuffer, _bodyPartDataBuffer, true);
+            copyPass.UploadToBuffer(_bodyDataTransferBuffer, BodyDataBuffer, true);
+            copyPass.UploadToBuffer(_bodyPartDataTransferBuffer, BodyPartDataBuffer, true);
             commandBuffer.EndCopyPass(copyPass);
+
+            ValidBodyCount = (uint)bodyDataIndex;
         }
 
         protected override void Dispose(bool disposing)
@@ -98,9 +101,9 @@ public sealed partial class CollisionHandler : GraphicsResource
                 if (disposing)
                 {
                     _bodyPartDataTransferBuffer.Dispose();
-                    _bodyPartDataBuffer.Dispose();
+                    BodyPartDataBuffer.Dispose();
                     _bodyDataTransferBuffer.Dispose();
-                    _bodyDataBuffer.Dispose();
+                    BodyDataBuffer.Dispose();
                 }
             }
             base.Dispose(disposing);

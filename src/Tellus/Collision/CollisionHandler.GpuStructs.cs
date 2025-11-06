@@ -54,7 +54,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         public Vector2 Offset;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 12)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     private struct CollisionHitData
     {
         [FieldOffset(0)]
@@ -62,9 +62,6 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         [FieldOffset(4)]
         public int CollisionBodyIndexTwo;
-
-        [FieldOffset(8)]
-        public int Padding;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 12)]

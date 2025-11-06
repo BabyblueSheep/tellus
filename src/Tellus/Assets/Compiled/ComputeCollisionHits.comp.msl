@@ -467,10 +467,10 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                         int _511 = int(_510);
                         if (uint(_511) < UniformBlock.ColliderShapeResultBufferLength)
                         {
-                            int _518 = _511 * 12;
-                            CollisionResultBuffer._m0[uint(12 + _518) >> 2u] = gl_GlobalInvocationID.x;
-                            CollisionResultBuffer._m0[uint(_518 + 16) >> 2u] = gl_GlobalInvocationID.y;
-                            CollisionResultBuffer._m0[uint(_518 + 20) >> 2u] = 0u;
+                            int _518 = _511 * 8;
+                            CollisionResultBuffer._m0[uint(8 + _518) >> 2u] = gl_GlobalInvocationID.x;
+                            CollisionResultBuffer._m0[uint(_518 + 12) >> 2u] = gl_GlobalInvocationID.y;
+                            CollisionResultBuffer._m0[uint(_518 + 16) >> 2u] = 0u;
                         }
                         _109 = _505;
                         _111 = _238;

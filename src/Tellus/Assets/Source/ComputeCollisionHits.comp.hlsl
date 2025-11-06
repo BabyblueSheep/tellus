@@ -86,9 +86,9 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
             if (collisionAmount < ColliderShapeResultBufferLength)
             {
-                CollisionResultBuffer.Store(12 + collisionAmount * 12 + 0, x);
-                CollisionResultBuffer.Store(12 + collisionAmount * 12 + 4, y);
-                CollisionResultBuffer.Store(12 + collisionAmount * 12 + 8, 0);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 8, 0);
             }
             
             return;
