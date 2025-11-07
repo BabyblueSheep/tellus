@@ -83,6 +83,8 @@ public sealed partial class CollisionHandler : GraphicsResource
                 resultList.Add((bodyListOne[indexOne], bodyListTwo[indexTwo]));
             }
 
+            _downloadBuffer.Unmap();
+
             foreach (var result in resultList)
             {
                 yield return result;

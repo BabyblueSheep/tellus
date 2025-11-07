@@ -1,35 +1,31 @@
 :: https://github.com/libsdl-org/SDL_shadercross/actions
+:: this script and the .csproj msbuild are inspired by https://github.com/FosterFramework/Foster/blob/main/Framework/Content/compile.sh
 
+@echo off
+setlocal enabledelayedexpansion
 
-..\bin\shadercross.exe ".\TexturedQuad.vert.hlsl" -s HLSL -d SPIRV -e "main" -t vertex -o "..\Compiled\TexturedQuad.vert.spv"
+for %%f in (.\*) do (
+	set fullName=%%f
+	set fullNameNoExtesion=!fullName:~0,-5%!
+	set fullExtension=!fullName:~-9%!
+	set hlsl=!fullExtension:~-4%!
+	set type=!fullExtension:~0,4%!
+	
+	if "!hlsl!"=="hlsl" (
+		if "!type!"=="comp" (
+			set shaderType="compute"
+		) else if "!type!"=="vert" (
+			set shaderType="vertex"
+		) else if "!type!"=="frag" (
+			set shaderType="fragment"
+		)
+		
+		echo !fullName!
+		
+		..\bin\shadercross.exe ".\!fullNameNoExtesion!.hlsl" -s HLSL -d SPIRV -e "main" -t !shaderType! -o "..\Compiled\!fullNameNoExtesion!.spv"
 
-..\bin\shadercross.exe "..\Compiled\TexturedQuad.vert.spv" -s SPIRV -d DXBC -e "main" -t vertex -o "..\Compiled\TexturedQuad.vert.dxbc"
-..\bin\shadercross.exe "..\Compiled\TexturedQuad.vert.spv" -s SPIRV -d DXIL -e "main" -t vertex -o "..\Compiled\TexturedQuad.vert.dxil"
-..\bin\shadercross.exe "..\Compiled\TexturedQuad.vert.spv" -s SPIRV -d MSL -e "main" -t vertex -o "..\Compiled\TexturedQuad.vert.msl"
-
-
-..\bin\shadercross.exe ".\TexturedQuad.frag.hlsl" -s HLSL -d SPIRV -e "main" -t fragment -o "..\Compiled\TexturedQuad.frag.spv"
-
-..\bin\shadercross.exe "..\Compiled\TexturedQuad.frag.spv" -s SPIRV -d DXBC -e "main" -t fragment -o "..\Compiled\TexturedQuad.frag.dxbc"
-..\bin\shadercross.exe "..\Compiled\TexturedQuad.frag.spv" -s SPIRV -d DXIL -e "main" -t fragment -o "..\Compiled\TexturedQuad.frag.dxil"
-..\bin\shadercross.exe "..\Compiled\TexturedQuad.frag.spv" -s SPIRV -d MSL -e "main" -t fragment -o "..\Compiled\TexturedQuad.frag.msl"
-
-
-..\bin\shadercross.exe ".\SpriteBatch.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o "..\Compiled\SpriteBatch.comp.spv"
-
-..\bin\shadercross.exe "..\Compiled\SpriteBatch.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o "..\Compiled\SpriteBatch.comp.dxbc"
-..\bin\shadercross.exe "..\Compiled\SpriteBatch.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o "..\Compiled\SpriteBatch.comp.dxil"
-..\bin\shadercross.exe "..\Compiled\SpriteBatch.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o "..\Compiled\SpriteBatch.comp.msl"
-
-
-..\bin\shadercross.exe ".\ComputeCollisionHits.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.spv"
-
-..\bin\shadercross.exe "..\Compiled\ComputeCollisionHits.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.dxbc"
-..\bin\shadercross.exe "..\Compiled\ComputeCollisionHits.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.dxil"
-..\bin\shadercross.exe "..\Compiled\ComputeCollisionHits.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o "..\Compiled\ComputeCollisionHits.comp.msl"
-
-..\bin\shadercross.exe ".\ComputeCollisionResolutions.comp.hlsl" -s HLSL -d SPIRV -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.spv"
-
-..\bin\shadercross.exe "..\Compiled\ComputeCollisionResolutions.comp.spv" -s SPIRV -d DXBC -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.dxbc"
-..\bin\shadercross.exe "..\Compiled\ComputeCollisionResolutions.comp.spv" -s SPIRV -d DXIL -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.dxil"
-..\bin\shadercross.exe "..\Compiled\ComputeCollisionResolutions.comp.spv" -s SPIRV -d MSL -e "main" -t compute -o "..\Compiled\ComputeCollisionResolutions.comp.msl"
+		..\bin\shadercross.exe "..\Compiled\!fullNameNoExtesion!.spv" -s SPIRV -d DXBC -e "main" -t !shaderType! -o "..\Compiled\!fullNameNoExtesion!.dxbc"
+		..\bin\shadercross.exe "..\Compiled\!fullNameNoExtesion!.spv" -s SPIRV -d DXIL -e "main" -t !shaderType! -o "..\Compiled\!fullNameNoExtesion!.dxil"
+		..\bin\shadercross.exe "..\Compiled\!fullNameNoExtesion!.spv" -s SPIRV -d MSL -e "main" -t !shaderType! -o "..\Compiled\!fullNameNoExtesion!.msl"
+	)
+)

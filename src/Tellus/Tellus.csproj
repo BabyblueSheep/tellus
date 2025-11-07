@@ -13,70 +13,8 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionHits.comp.spv" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionHits.comp.spv</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionHits.comp.dxbc" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionHits.comp.dxbc</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionHits.comp.dxil" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionHits.comp.dxil</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionHits.comp.msl" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionHits.comp.msl</LogicalName>
-		</EmbeddedResource>
-		
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionResolutions.comp.spv" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionResolutions.comp.spv</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionResolutions.comp.dxbc" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionResolutions.comp.dxbc</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionResolutions.comp.dxil" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionResolutions.comp.dxil</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/ComputeCollisionResolutions.comp.msl" Visible="false">
-			<LogicalName>Tellus.Assets.ComputeCollisionResolutions.comp.msl</LogicalName>
-		</EmbeddedResource>
-		
-		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.spv" Visible="false">
-			<LogicalName>Tellus.Assets.SpriteBatch.comp.spv</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.dxbc" Visible="false">
-			<LogicalName>Tellus.Assets.SpriteBatch.comp.dxbc</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.dxil" Visible="false">
-			<LogicalName>Tellus.Assets.SpriteBatch.comp.dxil</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/SpriteBatch.comp.msl" Visible="false">
-			<LogicalName>Tellus.Assets.SpriteBatch.comp.msl</LogicalName>
-		</EmbeddedResource>
-		
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.vert.spv" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.vert.spv</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.vert.dxbc" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.vert.dxbc</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.vert.dxil" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.vert.dxil</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.vert.msl" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.vert.msl</LogicalName>
-		</EmbeddedResource>
-		
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.spv" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.frag.spv</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.dxbc" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.frag.dxbc</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.dxil" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.frag.dxil</LogicalName>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Assets/Compiled/TexturedQuad.frag.msl" Visible="false">
-			<LogicalName>Tellus.Assets.TexturedQuad.frag.msl</LogicalName>
+		<EmbeddedResource Include="$(ProjectDir)Assets/Compiled/**" Visible="false">
+			<LogicalName>Tellus.%(Filename)%(Extension)</LogicalName>
 		</EmbeddedResource>
 	</ItemGroup>
-
 </Project>

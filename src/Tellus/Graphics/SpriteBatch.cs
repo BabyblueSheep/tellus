@@ -122,20 +122,20 @@ public sealed class SpriteBatch : GraphicsResource
 
     public SpriteBatch(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
-        Utils.LoadShaderFromManifest(Device, "Assets.TexturedQuad.vert", new ShaderCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "TexturedQuad.vert", new ShaderCreateInfo()
         {
             Stage = ShaderStage.Vertex,
             NumUniformBuffers = 1,
         }, out _defaultVertexShader);
 
-        Utils.LoadShaderFromManifest(Device, "Assets.TexturedQuad.frag", new ShaderCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "TexturedQuad.frag", new ShaderCreateInfo()
         {
             Stage = ShaderStage.Fragment,
             NumStorageTextures = 1,
             NumSamplers = 1,
         }, out _defaultFragmentShader);
 
-        Utils.LoadShaderFromManifest(Device, "Assets.SpriteBatch.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "SpriteBatch.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 1,
             NumReadWriteStorageBuffers = 1,

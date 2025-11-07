@@ -1,7 +1,7 @@
 // https://dyn4j.org/2010/01/sat/
 // https://www.metanetsoftware.com/technique/tutorialA.html
 
-#include "./ComputeCollisionCommon.comp.hlsl"
+#include "../ComputeCollisionCommon.comp.hlsl"
 
 StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferOne : register(t0, space0);
 StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferTwo : register(t1, space0);

@@ -90,7 +90,8 @@ internal class CollisionGame : Game
     private readonly CollisionHandler _collisionHandler;
     private readonly CollisionHandler.BodyStorageBuffer _storageBufferBodiesOne;
     private readonly CollisionHandler.BodyStorageBuffer _storageBufferBodiesTwo;
-    private readonly CollisionHandler.HitResultStorageBuffer _storageBufferResult;
+    private readonly CollisionHandler.HitResultStorageBuffer _storageBufferHitResult;
+    private readonly CollisionHandler.ResolutionResultStorageBuffer _storageBufferResolutionResult;
 
     private readonly CircleCollidingObject _playerObject;
     private readonly List<CollidingObject> _targetObjects;
@@ -189,7 +190,8 @@ internal class CollisionGame : Game
         _collisionHandler = new CollisionHandler(GraphicsDevice);
         _storageBufferBodiesOne = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
         _storageBufferBodiesTwo = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
-        _storageBufferResult = new CollisionHandler.HitResultStorageBuffer(GraphicsDevice);
+        _storageBufferHitResult = new CollisionHandler.HitResultStorageBuffer(GraphicsDevice);
+        _storageBufferResolutionResult = new CollisionHandler.ResolutionResultStorageBuffer(GraphicsDevice);
 
         _storageBufferBodiesTwo.UploadData(commandBuffer, _targetObjects.Select(item => (ICollisionBody)item));
 
@@ -299,15 +301,20 @@ internal class CollisionGame : Game
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
         _storageBufferBodiesOne.UploadData(commandBuffer, [_playerObject]);
-        _storageBufferResult.ClearData(commandBuffer);
-        _collisionHandler.ComputeCollisionHits(commandBuffer, _storageBufferBodiesOne, _storageBufferBodiesTwo, _storageBufferResult);
-        _storageBufferResult.DownloadData(commandBuffer);
+
+        _storageBufferHitResult.ClearData(commandBuffer);
+        _collisionHandler.ComputeCollisionHits(commandBuffer, _storageBufferBodiesOne, _storageBufferBodiesTwo, _storageBufferHitResult);
+        _storageBufferHitResult.DownloadData(commandBuffer);
+
+        _storageBufferResolutionResult.ClearData(commandBuffer);
+        _collisionHandler.ComputeCollisionResolutions(commandBuffer, _storageBufferBodiesOne, _storageBufferBodiesTwo, _storageBufferResolutionResult);
+        _storageBufferResolutionResult.DownloadData(commandBuffer);
 
         var fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
         GraphicsDevice.WaitForFence(fence);
         GraphicsDevice.ReleaseFence(fence);
 
-        var hitResults = _storageBufferResult.GetData([_playerObject], _targetObjects.Select(item => (ICollisionBody)item).ToList());
+        var hitResults = _storageBufferHitResult.GetData([_playerObject], _targetObjects.Select(item => (ICollisionBody)item).ToList());
 
         foreach (var collisionResult in hitResults)
         {
@@ -318,14 +325,12 @@ internal class CollisionGame : Game
             item2.HasCollidedThisFrame = true;
         }
 
-        /*
-        var resolutionResults = _collisionHandler.ComputeCollisionResolutions(isGroupTwoImmovable: true);
+        var resolutionResults = _storageBufferResolutionResult.GetData([_playerObject]);
         foreach (var collisionResult in resolutionResults)
         {
             CircleCollidingObject item1 = (CircleCollidingObject)collisionResult.Item1;
             item1.Center += collisionResult.Item2;
         }
-        */
     }
 
     protected override void Draw(double alpha)

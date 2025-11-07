@@ -66,7 +66,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             commandBuffer.EndCopyPass(copyPass);
         }
 
-        unsafe public IEnumerable<(ICollisionBody, Vector2)> GetData(IList<ICollisionBody> bodyList)
+        public IEnumerable<(ICollisionBody, Vector2)> GetData(IList<ICollisionBody> bodyList)
         {
             var tempTransferDownloadSpan = _downloadBuffer.Map<int>(false, 0);
             int collisionResultAmount = tempTransferDownloadSpan[0];
@@ -84,6 +84,8 @@ public sealed partial class CollisionHandler : GraphicsResource
 
                 resultList.Add((bodyList[index], vector));
             }
+
+            _downloadBuffer.Unmap();
 
             foreach (var result in resultList)
             {

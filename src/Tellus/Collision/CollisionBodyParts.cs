@@ -81,20 +81,3 @@ public struct TriangleCollisionBodyPart : ICollisionBodyPart
     public readonly Vector4 DecimalFields => new Vector4(PointTwo, PointThree.X, PointThree.Y);
     public readonly Point IntegerFields => new Point(0, 0);
 }
-
-public struct LineCollisionBodyPart : ICollisionBodyPart
-{
-    public Vector2 PointOne;
-    public Vector2 PointTwo;
-
-    public LineCollisionBodyPart(Vector2 pointOne, Vector2 pointTwo)
-    {
-        PointOne = pointOne;
-        PointTwo = pointTwo;
-    }
-
-    public readonly int ShapeType => 3;
-    public readonly Vector2 BodyPartCenter => PointOne;
-    public readonly Vector4 DecimalFields => new Vector4(PointTwo, 0, 0);
-    public readonly Point IntegerFields => new Point(0, 0);
-}

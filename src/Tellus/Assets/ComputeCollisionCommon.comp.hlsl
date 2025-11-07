@@ -20,12 +20,72 @@ struct CollisionBodyData
     float2 Offset;
 };
 
+struct RayData
+{
+    float2 Origin;
+    float2 Direction;
+    float Length;
+};
+
 #define TAU 6.28318530718
+#define EPSILON 1e-6
 
 #define CIRCLE_TYPE 0
 #define RECTANGLE_TYPE 1
 #define TRIANGLE_TYPE 2
-#define LINE_TYPE 3
+
+float cross(float2 x, float2 y)
+{
+    return x.x * y.y - x.y * y.x;
+}
+
+// https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect/565282#565282
+// https://github.com/pgkelley4/line-segments-intersect/blob/master/js/line-segments-intersect.js
+
+// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+// https://mathworld.wolfram.com/Line-LineIntersection.html
+bool getLineLineIntersection(RayData lineInfo, RayData rayInfo, out float2 intersectionPoint)
+{
+    intersectionPoint = 0;
+    
+    float2 lineFullDirection = lineInfo.Direction * lineInfo.Length;
+    float2 rayFullDirection = rayInfo.Direction * rayInfo.Length;
+    
+    float numerator = cross(rayInfo.Origin - lineInfo.Origin, lineFullDirection);
+    float denominator = cross(lineFullDirection, rayFullDirection);
+    
+    if (numerator == 0 && denominator == 0) // Collinear
+    {
+        float t0 = dot(rayInfo.Origin - lineInfo.Origin, lineFullDirection) / dot(lineFullDirection, lineFullDirection);
+        float t1 = t0 + dot(rayFullDirection, lineFullDirection) / dot(lineFullDirection, lineFullDirection);
+        
+        float start = (dot(lineFullDirection, rayFullDirection) < 0) ? t1 : t0;
+        float end = (dot(lineFullDirection, rayFullDirection) < 0) ? t0 : t1;
+        
+        if (start <= 1 && end >= 0)
+        {
+            intersectionPoint = (dot(lineFullDirection, rayFullDirection) < 0) ? lineInfo.Origin : rayInfo.Origin;
+            return true;
+        }
+        return false;
+    }
+    else if (denominator == 0 && numerator != 0) // Parralel
+    {
+        return false;
+    }
+    else if (denominator != 0) // Intersecting
+    {
+        float u = numerator / denominator;
+        float t = cross(rayInfo.Origin - lineInfo.Origin, rayFullDirection) / denominator;
+        if (u >= 0 && u <= 1 && t >= 0 && t <= 1)
+        {
+            intersectionPoint = rayInfo.Origin + rayFullDirection * u;
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
 
 bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
 {
@@ -96,12 +156,6 @@ void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyD
         vertexPositions[0] = bodyPartData.Center;
         vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
         vertexPositions[2] = float2(bodyPartData.DecimalFields.z, bodyPartData.DecimalFields.w);
-    }
-    else if (bodyPartData.ShapeType == LINE_TYPE)
-    {
-        vertexAmount = 2;
-        vertexPositions[0] = bodyPartData.Center;
-        vertexPositions[1] = float2(bodyPartData.DecimalFields.x, bodyPartData.DecimalFields.y);
     }
     
     for (int k = 0; k < 16; k++)
