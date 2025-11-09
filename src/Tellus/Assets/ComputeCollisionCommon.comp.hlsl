@@ -32,6 +32,7 @@ struct RayCasterData
     int RayIndexStart;
     int RayIndexLength;
     float2 Offset;
+    int Padding;
 };
 
 #define TAU 6.28318530718

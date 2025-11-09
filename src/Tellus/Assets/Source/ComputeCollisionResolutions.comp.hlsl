@@ -107,29 +107,31 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     float2 totalMinimumTransitionVector = float2(0.0, 0.0);
     bool hasCollidedWithAnything = false;
     
-    for (int iteration = 0; iteration < 4; iteration++)
-    {  
+    for (int iteration = 0; iteration < 16; iteration++)
+    {
         bool hasCollidedWithAnythingThisIteration = false;
-        for (int i = 0; i < StoredBodyCountImmovable; i++)
+        
+        for (int i = 0; i < collisionBodyDataMovable.BodyPartIndexLength; i++)
         {
-            bool hasCollidedWithShape = false;
             float smallestCurrentMinimumTransitionVectorLength = 999999.9;
             float2 smallestCurrentMinimumTransitionVector = float2(0.0, 0.0);
             
-            CollisionBodyData collisionBodyDataImmovable = BodyDataBufferImmovable[i];
-        
-            for (int j = 0; j < collisionBodyDataMovable.BodyPartIndexLength; j++)
+            bool hasCollidedWithAnythingThisBodyPart = false;
+            
+            CollisionBodyPartData collisionBodyPartDataMovable = BodyPartDataBufferMovable[i + collisionBodyDataMovable.BodyPartIndexStart];
+            
+            constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
+            
+            for (int j = 0; j < StoredBodyCountImmovable; j++)
             {
-                CollisionBodyPartData collisionBodyPartDataMovable = BodyPartDataBufferMovable[j + collisionBodyDataMovable.BodyPartIndexStart];
-            
-                constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
-            
+                CollisionBodyData collisionBodyDataImmovable = BodyDataBufferImmovable[j];
+                
                 for (int k = 0; k < collisionBodyDataImmovable.BodyPartIndexLength; k++)
                 {
                     CollisionBodyPartData collisionBodyPartDataImmovable = BodyPartDataBufferImmovable[k + collisionBodyDataImmovable.BodyPartIndexStart];
             
                     constructVertexPositions(collisionBodyPartDataImmovable, collisionBodyDataImmovable, bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable);
-                
+                    
                     float4 overlapInfo = doBodyPartsOverlap(bodyPartVerticesMovable, bodyPartVerticeLengthsMovable, bodyPartVerticesImmovable, bodyPartVerticeLengthsImmovable);
             
                     bool doBodyPartsCollide = overlapInfo.x != 0.0;
@@ -139,9 +141,9 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                     if (!doBodyPartsCollide)
                         continue;
                     
-                    hasCollidedWithShape = true;
                     hasCollidedWithAnything = true;
                     hasCollidedWithAnythingThisIteration = true;
+                    hasCollidedWithAnythingThisBodyPart = true;
                     
                     if (abs(smallestCurrentMinimumTransitionVectorLength) > abs(minimumTransitionVectorLength))
                     {
@@ -153,8 +155,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                 }
             }
             
-            collisionBodyDataMovable.Offset += smallestCurrentMinimumTransitionVector;
-            totalMinimumTransitionVector += smallestCurrentMinimumTransitionVector;
+            if (hasCollidedWithAnythingThisBodyPart)
+            {
+                collisionBodyDataMovable.Offset += smallestCurrentMinimumTransitionVector;
+                totalMinimumTransitionVector += smallestCurrentMinimumTransitionVector;
+                
+                break;
+            }
         }
         
         if (!hasCollidedWithAnythingThisIteration)

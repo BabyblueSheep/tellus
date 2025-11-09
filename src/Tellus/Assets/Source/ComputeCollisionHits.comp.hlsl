@@ -81,7 +81,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                 continue;
             
             int collisionAmount;
-            int _;
             CollisionResultBuffer.InterlockedAdd(0, 1, collisionAmount);
     
             if (collisionAmount < ColliderShapeResultBufferLength)

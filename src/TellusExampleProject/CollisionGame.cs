@@ -20,55 +20,42 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace TellusExampleProject;
 
-internal abstract class CollidingObject
-{
-    public bool HasCollidedThisFrame;
-}
-
-internal class CircleCollidingObject : CollidingObject, ICollisionBody
+internal sealed class PlayerObject : ICollisionBody, ICollisionRayCaster
 {
     public Vector2 Center;
+    public bool HasCollidedThisFrame;
     public float Radius;
 
     public Vector2 BodyOffset => Center;
     public IEnumerable<ICollisionBodyPart> BodyParts => [
-        new CircleCollisionBodyPart(Vector2.Zero, Radius, 16)
+    new CircleCollisionBodyPart(Vector2.Zero, Radius, 16),
     ];
-}
-
-internal sealed class PlayerObject : CircleCollidingObject, ICollisionRayCaster
-{
-    public Vector2 RayOriginOffset => Center;
 
     public readonly List<CollisionRay> SavedRays = [];
 
+    public Vector2 RayOriginOffset => Center;
     public IEnumerable<CollisionRay> Rays => [
-        new CollisionRay(Vector2.Zero, Vector2.UnitY, 200)    
+        new CollisionRay(Vector2.Zero, Vector2.UnitY, 200),
+        new CollisionRay(Vector2.Zero, Vector2.UnitX, 200),
+        new CollisionRay(Vector2.Zero, -Vector2.UnitY, 200),
+        new CollisionRay(Vector2.Zero, -Vector2.UnitX, 200),
+        new CollisionRay(Vector2.Zero, Vector2.Normalize((Vector2.UnitX + Vector2.UnitY)), 200),
+        new CollisionRay(Vector2.Zero, Vector2.Normalize((Vector2.UnitX - Vector2.UnitY)), 200),
+        new CollisionRay(Vector2.Zero, Vector2.Normalize((-Vector2.UnitX + Vector2.UnitY)), 200),
+        new CollisionRay(Vector2.Zero, Vector2.Normalize((-Vector2.UnitX - Vector2.UnitY)), 200),
     ];
 }
 
-internal sealed class RectangleCollidingObject : CollidingObject, ICollisionBody
+internal sealed class WallObject : ICollisionBody
 {
     public Vector2 Center;
-    public float Angle;
-    public Vector2 SideLengths;
+
+    public List<RectangleCollisionBodyPart> RectangleParts = [];
+    public List<TriangleCollisionBodyPart> TriangleParts = [];
 
     public Vector2 BodyOffset => Center;
-    public IEnumerable<ICollisionBodyPart> BodyParts => [
-        new RectangleCollisionBodyPart(Vector2.Zero, Angle, SideLengths)
-    ];
-}
 
-internal sealed class TriangleCollidingObject : CollidingObject, ICollisionBody
-{
-    public Vector2 PointOne;
-    public Vector2 PointTwo;
-    public Vector2 PointThree;
-
-    public Vector2 BodyOffset => PointOne;
-    public IEnumerable<ICollisionBodyPart> BodyParts => [
-        new TriangleCollisionBodyPart(Vector2.Zero, PointTwo - PointOne, PointThree - PointOne)
-    ];
+    public IEnumerable<ICollisionBodyPart> BodyParts => RectangleParts.Cast<ICollisionBodyPart>().Concat(TriangleParts.Cast<ICollisionBodyPart>());
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
@@ -103,7 +90,7 @@ internal class CollisionGame : Game
     private readonly CollisionHandler.ResolutionResultStorageBuffer _storageBufferResolutionResult;
 
     private readonly PlayerObject _playerObject;
-    private readonly List<CollidingObject> _targetObjects;
+    private readonly List<WallObject> _staticObjects;
 
     private readonly Texture _circleSprite;
     private readonly Texture _squareSprite;
@@ -162,27 +149,50 @@ internal class CollisionGame : Game
         #region Colliders
         _playerObject = new PlayerObject()
         {
-            Radius = 16
+            Radius = 16,
+            Center = new Vector2(150, 150)
         };
 
-        _targetObjects = new List<CollidingObject>(2);
+        _staticObjects = [];
 
-        var random = new Random();
-        for (int i = 0; i < 2; i++)
+        var wallObject = new WallObject();
+        wallObject.Center = new Vector2(200, 200);
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(-150, 0), 0f, new Vector2(50, 350)));
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(0, -150), 0f, new Vector2(350, 50)));
+        wallObject.TriangleParts.Add(new TriangleCollisionBodyPart(new Vector2(-125, -125), new Vector2(-125, -125 + 50), new Vector2(-125 + 50, -125)));
+        _staticObjects.Add(wallObject);
+
+        wallObject = new WallObject();
+        wallObject.Center = new Vector2(500, 150);
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(0, -100), 0f, new Vector2(300, 50)));
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(125, -50), 0f, new Vector2(50, 50)));
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(150, 75), 0f, new Vector2(50, 200)));
+        wallObject.TriangleParts.Add(new TriangleCollisionBodyPart(new Vector2(0, -76), new Vector2(100, -76), new Vector2(100, -26)));
+        wallObject.TriangleParts.Add(new TriangleCollisionBodyPart(new Vector2(100, -26), new Vector2(125, -26), new Vector2(125, 48)));
+        _staticObjects.Add(wallObject);
+
+        wallObject = new WallObject();
+        wallObject.Center = new Vector2(300, 400);
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(150, 0), -MathF.PI * 0.125f, new Vector2(500, 50)));
+        wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(-150, 0), MathF.PI * 0.25f, new Vector2(500, 75)));
+        _staticObjects.Add(wallObject);
+
+        /*var random = new Random();
+        for (int i = 0; i < 80; i++)
         {
             Vector2 center = new Vector2(random.NextSingle() * 900, random.NextSingle() * 900);
             int shapeType = random.Next(3);
             switch (shapeType)
             {
                 case 0:
-                    _targetObjects.Add(new CircleCollidingObject()
+                    _staticObjects.Add(new CircleCollidingObject()
                     {
                         Radius = random.NextSingle() * 24 + 8,
                         Center = center,
                     });
                     break;
                 case 1:
-                    _targetObjects.Add(new RectangleCollidingObject()
+                    _staticObjects.Add(new RectangleCollidingObject()
                     {
                         Center = center,
                         Angle = random.NextSingle() * MathF.Tau,
@@ -190,7 +200,7 @@ internal class CollisionGame : Game
                     });
                     break;
                 case 2:
-                    _targetObjects.Add(new TriangleCollidingObject()
+                    _staticObjects.Add(new TriangleCollidingObject()
                     {
                         PointOne = center,
                         PointTwo = center + new Vector2(random.NextSingle() * 24 + 8, 0),
@@ -198,7 +208,7 @@ internal class CollisionGame : Game
                     });
                     break;
             }
-        }
+        }*/
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
         _storageBufferBodiesOne = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
@@ -207,7 +217,7 @@ internal class CollisionGame : Game
         _storageBufferResolutionResult = new CollisionHandler.ResolutionResultStorageBuffer(GraphicsDevice);
         _rayBuffer = new CollisionHandler.RayCasterStorageBuffer(GraphicsDevice, createDownloadBuffer: true);
 
-        _storageBufferBodiesTwo.UploadData(commandBuffer, _targetObjects.Select(item => (ICollisionBody)item));
+        _storageBufferBodiesTwo.UploadData(commandBuffer, _staticObjects.Select(item => (ICollisionBody)item));
 
         #endregion
 
@@ -216,24 +226,24 @@ internal class CollisionGame : Game
         (
             GraphicsDevice,
             BufferUsageFlags.Vertex,
-            80 * 3
+            1024
         );
 
         TransferBuffer vertexBuffer = TransferBuffer.Create<PositionColorVertex>
         (
             GraphicsDevice,
             TransferBufferUsage.Upload,
-            80 * 3
+            1024
         );
 
         var vertexSpan = vertexBuffer.Map<PositionColorVertex>(false);
-        foreach (var colliderObject in _targetObjects)
+        foreach (var colliderObject in _staticObjects)
         {
-            if (colliderObject is TriangleCollidingObject triangle)
+            foreach (var triangle in colliderObject.TriangleParts)
             {
-                vertexSpan[_triangleCount * 3].Position = new Vector4(triangle.PointOne, 0f, 1f);
-                vertexSpan[_triangleCount * 3 + 1].Position = new Vector4(triangle.PointTwo, 0f, 1f);
-                vertexSpan[_triangleCount * 3 + 2].Position = new Vector4(triangle.PointThree, 0f, 1f);
+                vertexSpan[_triangleCount * 3].Position = new Vector4(triangle.PointOne + colliderObject.Center, 0f, 1f);
+                vertexSpan[_triangleCount * 3 + 1].Position = new Vector4(triangle.PointTwo + colliderObject.Center, 0f, 1f);
+                vertexSpan[_triangleCount * 3 + 2].Position = new Vector4(triangle.PointThree + colliderObject.Center, 0f, 1f);
 
                 vertexSpan[_triangleCount * 3].Color = new Vector4(1f, 1f, 1f, 1f);
                 vertexSpan[_triangleCount * 3 + 1].Color = new Vector4(1f, 1f, 1f, 1f);
@@ -336,10 +346,6 @@ internal class CollisionGame : Game
     protected override void Update(TimeSpan delta)
     {
         _playerObject.HasCollidedThisFrame = false;
-        foreach (var collider in _targetObjects)
-        {
-            collider.HasCollidedThisFrame = false;
-        }
 
         if (Inputs.Keyboard.IsDown(KeyCode.A))
             _playerObject.Center.X -= 5;
@@ -349,6 +355,7 @@ internal class CollisionGame : Game
             _playerObject.Center.Y -= 5;
         if (Inputs.Keyboard.IsDown(KeyCode.S))
             _playerObject.Center.Y += 5;
+
 
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
@@ -368,24 +375,32 @@ internal class CollisionGame : Game
 
         commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
-        var hitResults = _storageBufferHitResult.GetData([_playerObject], _targetObjects.Select(item => (ICollisionBody)item).ToList());
+        var hitResults = _storageBufferHitResult.GetData([_playerObject], _staticObjects.Select(item => (ICollisionBody)item).ToList());
 
         foreach (var collisionResult in hitResults)
         {
-            CollidingObject item1 = (CollidingObject)collisionResult.Item1;
-            CollidingObject item2 = (CollidingObject)collisionResult.Item2;
+            ICollisionBody item1 = collisionResult.Item1;
+            ICollisionBody item2 = collisionResult.Item2;
 
-            item1.HasCollidedThisFrame = true;
-            item2.HasCollidedThisFrame = true;
+            if (item1 is PlayerObject player)
+            {
+                player.HasCollidedThisFrame = true;
+            }
         }
 
         var resolutionResults = _storageBufferResolutionResult.GetData([_playerObject]);
         foreach (var collisionResult in resolutionResults)
         {
-            CircleCollidingObject item1 = (CircleCollidingObject)collisionResult.Item1;
-            item1.Center += collisionResult.Item2;
+            ICollisionBody item = collisionResult.Item1;
+            Vector2 pushVector = collisionResult.Item2;
+
+            if (item is PlayerObject player)
+            {
+                player.Center += pushVector;
+            }
         }
 
+        /*
         _rayBuffer.UploadData(commandBuffer, [_playerObject]);
         _collisionHandler.ComputeRayRestrictions(commandBuffer, _storageBufferBodiesTwo, _rayBuffer);
         _rayBuffer.DownloadData(commandBuffer);
@@ -407,6 +422,7 @@ internal class CollisionGame : Game
                 }
             }
         }
+        */
     }
 
     protected override void Draw(double alpha)
@@ -460,8 +476,33 @@ internal class CollisionGame : Game
                 0.5f
             );
 
-            foreach (var objectCollider in _targetObjects)
+            
+            foreach (var objectCollider in _staticObjects)
             {
+                _spriteBatch.Draw(
+                    _circleSprite,
+                    Vector2.One * 4,
+                    new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
+                    objectCollider.Center,
+                    0,
+                    Vector2.One * 8,
+                    Color.Black * 0.5f,
+                    0.5f
+                );
+                foreach (var rectangle in objectCollider.RectangleParts)
+                {
+                    _spriteBatch.Draw(
+                        _squareSprite,
+                        rectangle.SideLengths * 0.5f,
+                        new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
+                        rectangle.Center + objectCollider.Center,
+                        rectangle.Angle,
+                        rectangle.SideLengths,
+                        Color.White,
+                        0.6f
+                    );
+                }
+                /*
                 if (objectCollider is CircleCollidingObject circle)
                 {
                     _spriteBatch.Draw(
@@ -487,8 +528,9 @@ internal class CollisionGame : Game
                         Color.White,
                         0.6f
                     );
-                }
+                }*/
             }
+            
 
             _spriteBatch.End(commandBuffer, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
 
@@ -498,6 +540,7 @@ internal class CollisionGame : Game
             renderPass.BindVertexBuffers(_triangleVertexBuffer);
             renderPass.DrawPrimitives((uint)_triangleCount * 3, 1, 0, 0);
 
+            /*
             int lineCount = 0;
             var lineVertexSpan = _lineVertexTransferBuffer.Map<PositionColorVertex>(false);
             foreach (var ray in _playerObject.SavedRays)
@@ -519,6 +562,7 @@ internal class CollisionGame : Game
             renderPass.BindGraphicsPipeline(_linePipeline);
             renderPass.BindVertexBuffers(_lineVertexBuffer);
             renderPass.DrawPrimitives((uint)lineCount * 3, 1, 0, 0);
+            */
 
             commandBuffer.EndRenderPass(renderPass);
         }

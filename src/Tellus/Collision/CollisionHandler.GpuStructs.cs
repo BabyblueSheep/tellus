@@ -64,7 +64,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         public int CollisionBodyIndexTwo;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 12)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     private struct CollisionResolutionData
     {
         [FieldOffset(0)]
@@ -72,6 +72,9 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         [FieldOffset(4)]
         public Vector2 TotalMinimumTransitionVector;
+
+        [FieldOffset(8)]
+        public int Padding;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -87,7 +90,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         public Vector2 Offset;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 20)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     private struct CollisionRayData
     {
         [FieldOffset(0)]
@@ -98,6 +101,9 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         [FieldOffset(16)]
         public float RayLength;
+
+        [FieldOffset(20)]
+        public int Padding;
     }
 
     record struct CollisionComputeUniforms(uint StoredBodyCountOne, uint StoredBodyCountTwo, uint ColliderShapeResultBufferLength);

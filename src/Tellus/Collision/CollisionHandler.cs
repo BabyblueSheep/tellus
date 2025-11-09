@@ -38,7 +38,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             NumReadWriteStorageBuffers = 1,
             NumUniformBuffers = 1,
             ThreadCountX = 16,
-            ThreadCountY = 16,
+            ThreadCountY = 1,
             ThreadCountZ = 1
         }, out _rayRestrictComputePipeline);
     }
@@ -98,7 +98,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         computePass.BindComputePipeline(_rayRestrictComputePipeline);
         computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, rayListBuffer.RayCasterDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch((bodyListBuffer.ValidBodyCount + 15) / 16, (rayListBuffer.ValidRayCasterCount + 15) / 16, 1);
+        computePass.Dispatch((rayListBuffer.ValidRayCasterCount + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
