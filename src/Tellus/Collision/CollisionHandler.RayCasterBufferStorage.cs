@@ -74,21 +74,21 @@ public sealed partial class CollisionHandler : GraphicsResource
 
             foreach (var rayCaster in rayCasterList)
             {
-                rayCasterDataUploadSpan[rayDataIndex].RayIndexStart = rayCasterDataIndex;
+                rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart = rayDataIndex;
 
                 foreach (var ray in rayCaster.Rays)
                 {
-                    rayDataUploadSpan[rayCasterDataIndex].RayOrigin = ray.RayOrigin;
-                    rayDataUploadSpan[rayCasterDataIndex].RayDirection = ray.RayDirection;
-                    rayDataUploadSpan[rayCasterDataIndex].RayLength = ray.RayLength;
+                    rayDataUploadSpan[rayDataIndex].RayOrigin = ray.RayOrigin;
+                    rayDataUploadSpan[rayDataIndex].RayDirection = ray.RayDirection;
+                    rayDataUploadSpan[rayDataIndex].RayLength = ray.RayLength;
 
-                    rayCasterDataIndex++;
+                    rayDataIndex++;
                 }
 
-                rayCasterDataUploadSpan[rayDataIndex].RayIndexLength = rayCasterDataIndex - rayCasterDataUploadSpan[rayDataIndex].RayIndexStart;
-                rayCasterDataUploadSpan[rayDataIndex].Offset = rayCaster.RayOriginOffset;
+                rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexLength = rayDataIndex - rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart;
+                rayCasterDataUploadSpan[rayCasterDataIndex].Offset = rayCaster.RayOriginOffset;
 
-                rayDataIndex++;
+                rayCasterDataIndex++;
             }
 
             _rayCasterDataTransferBuffer.Unmap();
@@ -137,6 +137,7 @@ public sealed partial class CollisionHandler : GraphicsResource
                         RayDirection = transferDownloadSpan[i].RayDirection,
                         RayLength = transferDownloadSpan[i].RayLength,
                     });
+                    i++;
                 }
                 resultList.Add((rayCaster, rays));
             }

@@ -34,7 +34,7 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         Utils.LoadShaderFromManifest(Device, "ComputeCollisionRayRestrict.comp", new ComputePipelineCreateInfo()
         {
-            NumReadonlyStorageBuffers = 2,
+            NumReadonlyStorageBuffers = 3,
             NumReadWriteStorageBuffers = 1,
             NumUniformBuffers = 1,
             ThreadCountX = 16,
@@ -83,9 +83,23 @@ public sealed partial class CollisionHandler : GraphicsResource
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void ComputeRayRestrictions()
+    public void ComputeRayRestrictions(CommandBuffer commandBuffer, BodyStorageBuffer bodyListBuffer, RayCasterStorageBuffer rayListBuffer)
     {
+        var uniforms = new RayComputeUniforms
+        {
+            StoredBodyCount = bodyListBuffer.ValidBodyCount,
+            StoredRayCasterCount = rayListBuffer.ValidRayCasterCount,
+        };
 
+        var computePass = commandBuffer.BeginComputePass
+        (
+            new StorageBufferReadWriteBinding(rayListBuffer.RayDataBuffer, false)
+        );
+        computePass.BindComputePipeline(_rayRestrictComputePipeline);
+        computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, rayListBuffer.RayCasterDataBuffer);
+        commandBuffer.PushComputeUniformData(uniforms);
+        computePass.Dispatch((bodyListBuffer.ValidBodyCount + 15) / 16, (rayListBuffer.ValidRayCasterCount + 15) / 16, 1);
+        commandBuffer.EndComputePass(computePass);
     }
 
     protected override void Dispose(bool disposing)

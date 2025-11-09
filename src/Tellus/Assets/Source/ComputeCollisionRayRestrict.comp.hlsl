@@ -2,13 +2,14 @@
 
 StructuredBuffer<CollisionBodyPartData> BodyPartDataBuffer : register(t0, space0);
 StructuredBuffer<CollisionBodyData> BodyDataBuffer : register(t1, space0);
+StructuredBuffer<RayCasterData> RayCasterDataBuffer : register(t2, space0);
 
-RWStructuredBuffer<RayData> RayBuffer : register(u0, space1);
+RWByteAddressBuffer RayDataBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
     uint StoredBodyCount;
-    uint StoredRayCount;
+    uint StoredRayCasterCount;
 };
 
 [numthreads(16, 16, 1)]
@@ -17,47 +18,62 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     uint x = GlobalInvocationID.x;
     uint y = GlobalInvocationID.y;
     
-    if (x >= StoredBodyCount || y >= StoredRayCount)
+    if (x >= StoredBodyCount || y >= StoredRayCasterCount)
     {
         return;
     }
     
     CollisionBodyData collisionBodyData = BodyDataBuffer[x];
-    RayData rayData = RayBuffer[y];
+    RayCasterData rayCasterData = RayCasterDataBuffer[y];
 
     float2 bodyPartVertices[16];
     int bodyPartVerticeLengths;
     
+    RayData rayData;
     RayData lineInfo;
     
     float2 intersectionPoint;
-    float smallestNewLength = rayData.Length;
     
-    for (int i = 0; i < collisionBodyData.BodyPartIndexLength; i++)
+    for (int i = 0; i < rayCasterData.RayIndexLength; i++)
     {
-        CollisionBodyPartData collisionBodyPartData = BodyPartDataBuffer[i + collisionBodyData.BodyPartIndexStart];
+        int rayIndex = i + rayCasterData.RayIndexStart;
+        rayData.Origin.x = asfloat(RayDataBuffer.Load(rayIndex * 20));
+        rayData.Origin.y = asfloat(RayDataBuffer.Load(rayIndex * 20 + 4));
+        rayData.Direction.x = asfloat(RayDataBuffer.Load(rayIndex * 20 + 8));
+        rayData.Direction.y = asfloat(RayDataBuffer.Load(rayIndex * 20 + 12));
+        rayData.Length = asfloat(RayDataBuffer.Load(rayIndex * 20 + 16));
+
+        rayData.Origin += rayCasterData.Offset;
         
-        constructVertexPositions(collisionBodyPartData, collisionBodyData, bodyPartVertices, bodyPartVerticeLengths);
+        float smallestNewLength = rayData.Length;
         
-        for (int i = 0; i < bodyPartVerticeLengths; i++)
+        for (int j = 0; j < collisionBodyData.BodyPartIndexLength; j++)
         {
-            int j = (i == (bodyPartVerticeLengths - 1)) ? 0 : (i + 1);
-            
-            lineInfo.Origin = bodyPartVertices[i];
-            lineInfo.Direction = normalize(bodyPartVertices[j] - bodyPartVertices[i]);
-            lineInfo.Length = length(bodyPartVertices[j] - bodyPartVertices[i]);
-            
-            bool didIntersect = getLineLineIntersection(lineInfo, rayData, intersectionPoint);
-            if (didIntersect)
+            CollisionBodyPartData collisionBodyPartData = BodyPartDataBuffer[j + collisionBodyData.BodyPartIndexStart];
+        
+            constructVertexPositions(collisionBodyPartData, collisionBodyData, bodyPartVertices, bodyPartVerticeLengths);
+        
+            for (int m = 0; m < bodyPartVerticeLengths; m++)
             {
-                float newLength = length(intersectionPoint - bodyPartVertices[i]);
-                if (newLength < smallestNewLength)
+                int n = (m == (bodyPartVerticeLengths - 1)) ? 0 : (m + 1);
+            
+                lineInfo.Origin = bodyPartVertices[m];
+                lineInfo.Direction = normalize(bodyPartVertices[n] - bodyPartVertices[m]);
+                lineInfo.Length = length(bodyPartVertices[n] - bodyPartVertices[m]);
+            
+                bool didIntersect = getLineLineIntersection(lineInfo, rayData, intersectionPoint);
+                if (didIntersect)
                 {
-                    smallestNewLength = newLength;
+                    float newLength = length(intersectionPoint - rayData.Origin);
+                    if (newLength < smallestNewLength)
+                    {
+                        smallestNewLength = newLength;
+                    }
                 }
             }
         }
+        
+        //RayDataBuffer[i + rayCasterData.RayIndexStart].Length = smallestNewLength;
+        RayDataBuffer.Store(rayIndex * 20 + 16, asuint(smallestNewLength));
     }
-    
-    RayBuffer[y].Length = smallestNewLength;
 }

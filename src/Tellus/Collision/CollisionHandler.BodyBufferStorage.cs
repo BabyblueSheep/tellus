@@ -90,7 +90,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             copyPass.UploadToBuffer(_bodyDataTransferBuffer, BodyDataBuffer, true);
             copyPass.UploadToBuffer(_bodyPartDataTransferBuffer, BodyPartDataBuffer, true);
             commandBuffer.EndCopyPass(copyPass);
-
+            
             ValidBodyCount = (uint)bodyDataIndex;
         }
 

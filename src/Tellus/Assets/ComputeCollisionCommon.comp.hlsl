@@ -27,8 +27,15 @@ struct RayData
     float Length;
 };
 
+struct RayCasterData
+{
+    int RayIndexStart;
+    int RayIndexLength;
+    float2 Offset;
+};
+
 #define TAU 6.28318530718
-#define EPSILON 1e-6
+#define EPSILON 0.001
 
 #define CIRCLE_TYPE 0
 #define RECTANGLE_TYPE 1
@@ -44,47 +51,51 @@ float cross(float2 x, float2 y)
 
 // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 // https://mathworld.wolfram.com/Line-LineIntersection.html
-bool getLineLineIntersection(RayData lineInfo, RayData rayInfo, out float2 intersectionPoint)
+// https://theswissbay.ch/pdf/Gentoomen%20Library/Game%20Development/Programming/Graphics%20Gems%203.pdf
+bool getLineLineIntersection(RayData lineOneInfo, RayData lineTwoInfo, out float2 intersectionPoint)
 {
     intersectionPoint = 0;
+
+    float2 lineOneDirection = lineOneInfo.Direction * lineOneInfo.Length;
+    float2 lineTwoDirection = lineTwoInfo.Direction * lineTwoInfo.Length;
+    float2 originDifference = lineTwoInfo.Origin - lineOneInfo.Origin;
     
-    float2 lineFullDirection = lineInfo.Direction * lineInfo.Length;
-    float2 rayFullDirection = rayInfo.Direction * rayInfo.Length;
+    float lineOneNominator = cross(originDifference, lineTwoDirection);
+    float lineTwoNominator = cross(originDifference, lineOneDirection);
+    float denominator = cross(lineOneDirection, lineTwoDirection);
     
-    float numerator = cross(rayInfo.Origin - lineInfo.Origin, lineFullDirection);
-    float denominator = cross(lineFullDirection, rayFullDirection);
     
-    if (numerator == 0 && denominator == 0) // Collinear
+    bool denominatorIsZero = abs(denominator) < EPSILON;
+    bool nominatorTwoIsZero = abs(lineTwoNominator) < EPSILON;
+    
+    bool areLinesCollinear = denominatorIsZero && nominatorTwoIsZero;
+    bool areLinesParallel = denominatorIsZero && !nominatorTwoIsZero;
+    bool areLinesIntersecting = !denominatorIsZero;
+    
+    if (areLinesCollinear)
     {
-        float t0 = dot(rayInfo.Origin - lineInfo.Origin, lineFullDirection) / dot(lineFullDirection, lineFullDirection);
-        float t1 = t0 + dot(rayFullDirection, lineFullDirection) / dot(lineFullDirection, lineFullDirection);
+        return false; // TODO: figure out what to do here
+    }
+    else if (areLinesParallel)
+    {
+        return false;
+    }
+    else if (areLinesIntersecting)
+    {
+        float lineProgressOne = lineOneNominator / denominator;
+        float lineProgressTwo = lineTwoNominator / denominator;
         
-        float start = (dot(lineFullDirection, rayFullDirection) < 0) ? t1 : t0;
-        float end = (dot(lineFullDirection, rayFullDirection) < 0) ? t0 : t1;
-        
-        if (start <= 1 && end >= 0)
+        if ((lineProgressOne >= 0.0 && lineProgressOne <= 1.0) && (lineProgressTwo >= 0.0 && lineProgressTwo <= 1.0))
         {
-            intersectionPoint = (dot(lineFullDirection, rayFullDirection) < 0) ? lineInfo.Origin : rayInfo.Origin;
+            intersectionPoint = lineTwoInfo.Origin + lineTwoInfo.Direction * lineTwoInfo.Length * lineProgressTwo;
             return true;
         }
         return false;
     }
-    else if (denominator == 0 && numerator != 0) // Parralel
+    else
     {
         return false;
     }
-    else if (denominator != 0) // Intersecting
-    {
-        float u = numerator / denominator;
-        float t = cross(rayInfo.Origin - lineInfo.Origin, rayFullDirection) / denominator;
-        if (u >= 0 && u <= 1 && t >= 0 && t <= 1)
-        {
-            intersectionPoint = rayInfo.Origin + rayFullDirection * u;
-            return true;
-        }
-        return false;
-    }
-    return false;
 }
 
 bool doProjectionsOverlap(float2 projectionOne, float2 projectionTwo)
