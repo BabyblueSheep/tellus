@@ -111,13 +111,11 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     {
         bool hasCollidedWithAnythingThisIteration = false;
         
+        float smallestCurrentMinimumTransitionVectorLength = 999999.9;
+        float2 smallestCurrentMinimumTransitionVector = float2(0.0, 0.0);
+        
         for (int i = 0; i < collisionBodyDataMovable.BodyPartIndexLength; i++)
-        {
-            float smallestCurrentMinimumTransitionVectorLength = 999999.9;
-            float2 smallestCurrentMinimumTransitionVector = float2(0.0, 0.0);
-            
-            bool hasCollidedWithAnythingThisBodyPart = false;
-            
+        {   
             CollisionBodyPartData collisionBodyPartDataMovable = BodyPartDataBufferMovable[i + collisionBodyDataMovable.BodyPartIndexStart];
             
             constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
@@ -141,9 +139,11 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                     if (!doBodyPartsCollide)
                         continue;
                     
+                    if (abs(minimumTransitionVectorLength) < EPSILON)
+                        continue;
+                    
                     hasCollidedWithAnything = true;
                     hasCollidedWithAnythingThisIteration = true;
-                    hasCollidedWithAnythingThisBodyPart = true;
                     
                     if (abs(smallestCurrentMinimumTransitionVectorLength) > abs(minimumTransitionVectorLength))
                     {
@@ -154,19 +154,16 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                     }
                 }
             }
-            
-            if (hasCollidedWithAnythingThisBodyPart)
-            {
-                collisionBodyDataMovable.Offset += smallestCurrentMinimumTransitionVector;
-                totalMinimumTransitionVector += smallestCurrentMinimumTransitionVector;
-                
-                break;
-            }
         }
         
         if (!hasCollidedWithAnythingThisIteration)
         {
             break;
+        }
+        else
+        {
+            collisionBodyDataMovable.Offset += smallestCurrentMinimumTransitionVector;
+            totalMinimumTransitionVector += smallestCurrentMinimumTransitionVector;
         }
     }
     
