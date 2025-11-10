@@ -86,7 +86,7 @@ struct type_UniformBlock
     uint ColliderShapeResultBufferLength;
 };
 
-constant float4 _61 = {};
+constant float4 _60 = {};
 
 kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_CollisionBodyPartData& BodyPartDataBufferMovable [[buffer(1)]], const device type_StructuredBuffer_CollisionBodyPartData& BodyPartDataBufferImmovable [[buffer(2)]], const device type_StructuredBuffer_CollisionBodyData& BodyDataBufferMovable [[buffer(3)]], const device type_StructuredBuffer_CollisionBodyData& BodyDataBufferImmovable [[buffer(4)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(5)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
@@ -101,7 +101,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
         float4 _104;
         _97 = float2(0.0);
         _100 = BodyDataBufferMovable._m0[gl_GlobalInvocationID.x].Offset;
-        _104 = _61;
+        _104 = _60;
         float2 _98;
         float2 _101;
         spvUnsafeArray<float2, 16> _78;
@@ -482,7 +482,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                                     continue;
                                 }
                                 float _550 = abs(_255.y);
-                                if (_550 < 0.100000001490116119384765625)
+                                if (_550 < 0.001000000047497451305389404296875)
                                 {
                                     _253 = _239;
                                     _258 = _236;
@@ -545,10 +545,10 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             int _569 = int(_568);
             if (uint(_569) < UniformBlock.ColliderShapeResultBufferLength)
             {
-                int _576 = _569 * 12;
-                CollisionResultBuffer._m0[uint(12 + _576) >> 2u] = gl_GlobalInvocationID.x;
-                CollisionResultBuffer._m0[uint(_576 + 16) >> 2u] = as_type<uint>(_97.x);
-                CollisionResultBuffer._m0[uint(_576 + 20) >> 2u] = as_type<uint>(_97.y);
+                int _576 = _569 * 16;
+                CollisionResultBuffer._m0[uint(16 + _576) >> 2u] = gl_GlobalInvocationID.x;
+                CollisionResultBuffer._m0[uint(_576 + 20) >> 2u] = as_type<uint>(_97.x);
+                CollisionResultBuffer._m0[uint(_576 + 24) >> 2u] = as_type<uint>(_97.y);
             }
         }
         break;

@@ -72,7 +72,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             int collisionResultAmount = tempTransferDownloadSpan[0];
             _downloadBuffer.Unmap();
 
-            var transferDownloadSpan = _downloadBuffer.Map<CollisionResolutionData>(true, 12);
+            var transferDownloadSpan = _downloadBuffer.Map<CollisionResolutionData>(true, 16);
 
             List<(ICollisionBody, Vector2)> resultList = [];
 

@@ -58,6 +58,21 @@ internal sealed class WallObject : ICollisionBody
     public IEnumerable<ICollisionBodyPart> BodyParts => RectangleParts.Cast<ICollisionBodyPart>().Concat(TriangleParts.Cast<ICollisionBodyPart>());
 }
 
+internal sealed class MovingObject : ICollisionBody
+{
+    public Vector2 Center;
+    public Vector2 Velocity;
+    public bool HasCollidedThisFrame;
+    public float Radius;
+
+    public Random Random = new Random();
+
+    public Vector2 BodyOffset => Center;
+    public IEnumerable<ICollisionBodyPart> BodyParts => [
+    new CircleCollisionBodyPart(Vector2.Zero, Radius, 16),
+    ];
+}
+
 [StructLayout(LayoutKind.Explicit, Size = 32)]
 file struct PositionColorVertex : IVertexType
 {
@@ -83,14 +98,17 @@ file struct PositionColorVertex : IVertexType
 internal class CollisionGame : Game
 {
     private readonly CollisionHandler _collisionHandler;
-    private readonly CollisionHandler.BodyStorageBuffer _storageBufferBodiesOne;
-    private readonly CollisionHandler.BodyStorageBuffer _storageBufferBodiesTwo;
+    private readonly CollisionHandler.BodyStorageBuffer _storageBufferPlayerBody;
+    private readonly CollisionHandler.BodyStorageBuffer _storageBufferStaticBodies;
+    private readonly CollisionHandler.BodyStorageBuffer _storageBufferMovingBodies;
     private readonly CollisionHandler.RayCasterStorageBuffer _rayBuffer;
     private readonly CollisionHandler.HitResultStorageBuffer _storageBufferHitResult;
-    private readonly CollisionHandler.ResolutionResultStorageBuffer _storageBufferResolutionResult;
+    private readonly CollisionHandler.ResolutionResultStorageBuffer _storageBufferPlayerResolutionResult;
+    private readonly CollisionHandler.ResolutionResultStorageBuffer _storageBufferMovingResolutionResult;
 
     private readonly PlayerObject _playerObject;
     private readonly List<WallObject> _staticObjects;
+    private readonly List<MovingObject> _movingObjects;
 
     private readonly Texture _circleSprite;
     private readonly Texture _squareSprite;
@@ -177,47 +195,28 @@ internal class CollisionGame : Game
         wallObject.RectangleParts.Add(new RectangleCollisionBodyPart(new Vector2(-150, 0), MathF.PI * 0.25f, new Vector2(500, 75)));
         _staticObjects.Add(wallObject);
 
-        /*var random = new Random();
-        for (int i = 0; i < 80; i++)
+        _movingObjects = [];
+        var random = new Random();
+        for (int i = 0; i < 16; i++)
         {
-            Vector2 center = new Vector2(random.NextSingle() * 900, random.NextSingle() * 900);
-            int shapeType = random.Next(3);
-            switch (shapeType)
+            _movingObjects.Add(new MovingObject()
             {
-                case 0:
-                    _staticObjects.Add(new CircleCollidingObject()
-                    {
-                        Radius = random.NextSingle() * 24 + 8,
-                        Center = center,
-                    });
-                    break;
-                case 1:
-                    _staticObjects.Add(new RectangleCollidingObject()
-                    {
-                        Center = center,
-                        Angle = random.NextSingle() * MathF.Tau,
-                        SideLengths = new Vector2(random.NextSingle() * 56 + 8, random.NextSingle() * 56 + 8),
-                    });
-                    break;
-                case 2:
-                    _staticObjects.Add(new TriangleCollidingObject()
-                    {
-                        PointOne = center,
-                        PointTwo = center + new Vector2(random.NextSingle() * 24 + 8, 0),
-                        PointThree = center + new Vector2(random.NextSingle() * 24 + 8, random.NextSingle() * 24 + 8)
-                    });
-                    break;
-            }
-        }*/
+                Center = new Vector2(random.NextSingle() * 300 + 200, random.NextSingle() * 250 + 100),
+                Radius = random.NextSingle() * 8 + 8,
+                Velocity = Vector2.Normalize(new Vector2(random.NextSingle() * 2 - 1, random.NextSingle() * 2 - 1)) * (random.NextSingle() * 24 + 8),
+            });
+        }
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
-        _storageBufferBodiesOne = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
-        _storageBufferBodiesTwo = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
+        _storageBufferPlayerBody = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
+        _storageBufferStaticBodies = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
+        _storageBufferMovingBodies = new CollisionHandler.BodyStorageBuffer(GraphicsDevice);
         _storageBufferHitResult = new CollisionHandler.HitResultStorageBuffer(GraphicsDevice);
-        _storageBufferResolutionResult = new CollisionHandler.ResolutionResultStorageBuffer(GraphicsDevice);
+        _storageBufferPlayerResolutionResult = new CollisionHandler.ResolutionResultStorageBuffer(GraphicsDevice);
+        _storageBufferMovingResolutionResult = new CollisionHandler.ResolutionResultStorageBuffer(GraphicsDevice);
         _rayBuffer = new CollisionHandler.RayCasterStorageBuffer(GraphicsDevice, createDownloadBuffer: true);
 
-        _storageBufferBodiesTwo.UploadData(commandBuffer, _staticObjects.Select(item => (ICollisionBody)item));
+        _storageBufferStaticBodies.UploadData(commandBuffer, _staticObjects);
 
         #endregion
 
@@ -348,26 +347,35 @@ internal class CollisionGame : Game
         _playerObject.HasCollidedThisFrame = false;
 
         if (Inputs.Keyboard.IsDown(KeyCode.A))
-            _playerObject.Center.X -= 5;
+            _playerObject.Center.X -= 32;
         if (Inputs.Keyboard.IsDown(KeyCode.D))
-            _playerObject.Center.X += 5;
+            _playerObject.Center.X += 32;
         if (Inputs.Keyboard.IsDown(KeyCode.W))
-            _playerObject.Center.Y -= 5;
+            _playerObject.Center.Y -= 32;
         if (Inputs.Keyboard.IsDown(KeyCode.S))
-            _playerObject.Center.Y += 5;
+            _playerObject.Center.Y += 32;
 
+        foreach (var movingObject in _movingObjects)
+        {
+            if (movingObject.Random.Next(16) == 0)
+            {
+                movingObject.Velocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * (movingObject.Random.NextSingle() * 24 + 8);
+            }
+            movingObject.Center += movingObject.Velocity;
+        }
 
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
-        _storageBufferBodiesOne.UploadData(commandBuffer, [_playerObject]);
+        _storageBufferPlayerBody.UploadData(commandBuffer, [_playerObject]);
+        _storageBufferMovingBodies.UploadData(commandBuffer, _movingObjects);
 
-        _storageBufferHitResult.ClearData(commandBuffer);
-        _collisionHandler.ComputeCollisionHits(commandBuffer, _storageBufferBodiesOne, _storageBufferBodiesTwo, _storageBufferHitResult);
-        _storageBufferHitResult.DownloadData(commandBuffer);
+        _storageBufferPlayerResolutionResult.ClearData(commandBuffer);
+        _collisionHandler.ComputeCollisionResolutions(commandBuffer, _storageBufferPlayerBody, _storageBufferStaticBodies, _storageBufferPlayerResolutionResult);
+        _storageBufferPlayerResolutionResult.DownloadData(commandBuffer);
 
-        _storageBufferResolutionResult.ClearData(commandBuffer);
-        _collisionHandler.ComputeCollisionResolutions(commandBuffer, _storageBufferBodiesOne, _storageBufferBodiesTwo, _storageBufferResolutionResult);
-        _storageBufferResolutionResult.DownloadData(commandBuffer);
+        _storageBufferMovingResolutionResult.ClearData(commandBuffer);
+        _collisionHandler.ComputeCollisionResolutions(commandBuffer, _storageBufferMovingBodies, _storageBufferStaticBodies, _storageBufferMovingResolutionResult);
+        _storageBufferMovingResolutionResult.DownloadData(commandBuffer);
 
         var fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
         GraphicsDevice.WaitForFence(fence);
@@ -375,21 +383,9 @@ internal class CollisionGame : Game
 
         commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
-        var hitResults = _storageBufferHitResult.GetData([_playerObject], _staticObjects.Select(item => (ICollisionBody)item).ToList());
+       
 
-        foreach (var collisionResult in hitResults)
-        {
-            ICollisionBody item1 = collisionResult.Item1;
-            ICollisionBody item2 = collisionResult.Item2;
-
-            if (item1 is PlayerObject player)
-            {
-                player.HasCollidedThisFrame = true;
-            }
-        }
-
-        var resolutionResults = _storageBufferResolutionResult.GetData([_playerObject]);
-        foreach (var collisionResult in resolutionResults)
+        foreach (var collisionResult in _storageBufferPlayerResolutionResult.GetData([_playerObject]))
         {
             ICollisionBody item = collisionResult.Item1;
             Vector2 pushVector = collisionResult.Item2;
@@ -397,6 +393,17 @@ internal class CollisionGame : Game
             if (item is PlayerObject player)
             {
                 player.Center += pushVector;
+            }
+        }
+
+        foreach (var collisionResult in _storageBufferMovingResolutionResult.GetData(_movingObjects.Select(x => (ICollisionBody)x).ToList()))
+        {
+            ICollisionBody item = collisionResult.Item1;
+            Vector2 pushVector = collisionResult.Item2;
+
+            if (item is MovingObject moving)
+            {
+                moving.Center += pushVector;
             }
         }
 
@@ -476,7 +483,20 @@ internal class CollisionGame : Game
                 0.5f
             );
 
-            
+            foreach (var objectCollider in _movingObjects)
+            {
+                _spriteBatch.Draw(
+                    _circleSprite,
+                    new Vector2(objectCollider.Radius),
+                    new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
+                    objectCollider.Center,
+                    0f,
+                    new Vector2(objectCollider.Radius * 2f),
+                    Color.Blue,
+                    0.3f
+                );
+            }
+
             foreach (var objectCollider in _staticObjects)
             {
                 _spriteBatch.Draw(

@@ -175,11 +175,11 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
         if (collisionAmount < ColliderShapeResultBufferLength)
         {
-            CollisionResultBuffer.Store(12 + collisionAmount * 12 + 0, x);
+            CollisionResultBuffer.Store(16 + collisionAmount * 16 + 0, x);
             uint totalMtvX = asuint(totalMinimumTransitionVector.x);
-            CollisionResultBuffer.Store(12 + collisionAmount * 12 + 4, totalMtvX);
+            CollisionResultBuffer.Store(16 + collisionAmount * 16 + 4, totalMtvX);
             uint totalMtvY = asuint(totalMinimumTransitionVector.y);
-            CollisionResultBuffer.Store(12 + collisionAmount * 12 + 8, totalMtvY);
+            CollisionResultBuffer.Store(16 + collisionAmount * 16 + 8, totalMtvY);
         }
     }
 }
