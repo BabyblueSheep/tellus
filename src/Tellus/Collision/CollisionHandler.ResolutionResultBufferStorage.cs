@@ -11,7 +11,7 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
-    public sealed class ResolutionResultStorageBuffer : GraphicsResource
+    public sealed class ResolutionResultBufferStorage : GraphicsResource
     {
         private readonly TransferBuffer _uploadBuffer;
         private readonly TransferBuffer _downloadBuffer;
@@ -19,7 +19,7 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         public uint CollisionResultAmount { get; private set; }
 
-        public ResolutionResultStorageBuffer(GraphicsDevice device, uint collisionResultAmount = 512) : base(device)
+        public ResolutionResultBufferStorage(GraphicsDevice device, uint collisionResultAmount = 512) : base(device)
         {
             _uploadBuffer = TransferBuffer.Create<CollisionResolutionData>(
                 Device,

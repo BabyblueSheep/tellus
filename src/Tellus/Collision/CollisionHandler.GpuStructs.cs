@@ -103,9 +103,21 @@ public sealed partial class CollisionHandler : GraphicsResource
         public float RayLength;
 
         [FieldOffset(20)]
-        public int Padding;
+        public int RayVelocityIndex;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    private struct CollisionBodyRayCasterPair
+    {
+        [FieldOffset(0)]
+        public int BodyIndex;
+
+        [FieldOffset(4)]
+        public int RayCasterIndex;
     }
 
     record struct CollisionComputeUniforms(uint StoredBodyCountOne, uint StoredBodyCountTwo, uint ColliderShapeResultBufferLength);
     record struct RayComputeUniforms(uint StoredBodyCount, uint StoredRayCasterCount);
+    record struct IncrementRaysUniforms(uint StoredRayCasterCount);
+    record struct IncrementPairsUniforms(uint StoredPairCount);
 }

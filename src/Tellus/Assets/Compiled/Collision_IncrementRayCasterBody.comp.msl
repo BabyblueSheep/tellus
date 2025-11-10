@@ -1,0 +1,79 @@
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Returns 2D texture coords corresponding to 1D texel buffer coords
+static inline __attribute__((always_inline))
+uint2 spvTexelBufferCoord(uint tc)
+{
+    return uint2(tc % 4096, tc / 4096);
+}
+
+struct RayData
+{
+    float2 Origin;
+    float2 Direction;
+    float Length;
+    char _m0_final_padding[4];
+};
+
+struct type_StructuredBuffer_RayData
+{
+    RayData _m0[1];
+};
+
+struct RayCasterData
+{
+    int RayIndexStart;
+    int RayIndexLength;
+    float2 Offset;
+    int RayVelocityIndex;
+    char _m0_final_padding[4];
+};
+
+struct type_RWStructuredBuffer_RayCasterData
+{
+    RayCasterData _m0[1];
+};
+
+struct CollisionBodyData
+{
+    int BodyPartIndexStart;
+    int BodyPartIndexLength;
+    float2 Offset;
+};
+
+struct type_RWStructuredBuffer_CollisionBodyData
+{
+    CollisionBodyData _m0[1];
+};
+
+struct type_UniformBlock
+{
+    uint StoredPairCount;
+};
+
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_RayData& RayDataBuffer [[buffer(1)]], device type_RWStructuredBuffer_RayCasterData& RayCasterDataBuffer [[buffer(2)]], device type_RWStructuredBuffer_CollisionBodyData& BodyDataBuffer [[buffer(3)]], texture2d<int> PairDataBuffer [[texture(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    do
+    {
+        if (gl_GlobalInvocationID.x >= UniformBlock.StoredPairCount)
+        {
+            break;
+        }
+        int _62 = RayCasterDataBuffer._m0[gl_GlobalInvocationID.x].RayVelocityIndex;
+        uint _63 = uint(_62);
+        float2 _65 = RayDataBuffer._m0[_63].Direction;
+        float _67 = RayDataBuffer._m0[_63].Length;
+        float2 _68 = _65 * _67;
+        uint _69 = uint(PairDataBuffer.read(spvTexelBufferCoord(gl_GlobalInvocationID.x)).y);
+        RayCasterDataBuffer._m0[_69].Offset += _68;
+        uint _73 = uint(PairDataBuffer.read(spvTexelBufferCoord(gl_GlobalInvocationID.x)).x);
+        BodyDataBuffer._m0[_73].Offset += _68;
+        break;
+    } while(false);
+}
+

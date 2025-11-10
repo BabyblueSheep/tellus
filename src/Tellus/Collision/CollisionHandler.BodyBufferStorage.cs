@@ -10,7 +10,7 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
-    public sealed class BodyStorageBuffer : GraphicsResource
+    public sealed class BodyBufferStorage : GraphicsResource
     {
         private readonly TransferBuffer _bodyPartDataTransferBuffer;
         public Buffer BodyPartDataBuffer { get; }
@@ -22,7 +22,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         public uint BodyCount { get; private set; }
         public uint ValidBodyCount { get; private set; }
 
-        public BodyStorageBuffer(GraphicsDevice device, uint bodyPartCount = 1024, uint bodyCount = 128) : base(device)
+        public BodyBufferStorage(GraphicsDevice device, uint bodyPartCount = 1024, uint bodyCount = 128) : base(device)
         {
             _bodyPartDataTransferBuffer = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,

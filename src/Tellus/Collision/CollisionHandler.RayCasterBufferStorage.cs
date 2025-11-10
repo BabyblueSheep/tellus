@@ -10,7 +10,7 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
-    public sealed class RayCasterStorageBuffer : GraphicsResource
+    public sealed class RayCasterBufferStorage : GraphicsResource
     {
         private readonly TransferBuffer _rayDataUploadBuffer;
         private readonly TransferBuffer? _rayDataDownloadBuffer;
@@ -23,7 +23,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         public uint RayCasterCount { get; private set; }
         public uint ValidRayCasterCount { get; private set; }
 
-        public RayCasterStorageBuffer(GraphicsDevice device, uint rayCount = 1024, uint rayCasterCount = 128, bool createDownloadBuffer = false) : base(device)
+        public RayCasterBufferStorage(GraphicsDevice device, uint rayCount = 1024, uint rayCasterCount = 128, bool createDownloadBuffer = false) : base(device)
         {
             _rayDataUploadBuffer = TransferBuffer.Create<CollisionRayData>(
                 Device,

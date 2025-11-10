@@ -77,7 +77,7 @@ struct RayCasterData
     int RayIndexStart;
     int RayIndexLength;
     float2 Offset;
-    int Padding;
+    int RayVelocityIndex;
     char _m0_final_padding[4];
 };
 

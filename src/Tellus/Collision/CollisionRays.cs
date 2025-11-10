@@ -23,7 +23,7 @@ public struct CollisionRay
     public CollisionRay(Vector2 origin, Vector2 direction, float length)
     {
         RayOrigin = origin;
-        RayDirection = Vector2.Normalize(direction);
+        RayDirection = direction;
         RayLength = length;
     }
 
