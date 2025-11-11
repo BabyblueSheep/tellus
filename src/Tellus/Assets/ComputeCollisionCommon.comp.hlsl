@@ -25,6 +25,7 @@ struct RayData
     float2 Origin;
     float2 Direction;
     float Length;
+    int Flags;
 };
 
 struct RayCasterData
@@ -33,6 +34,7 @@ struct RayCasterData
     int RayIndexLength;
     float2 Offset;
     int RayVelocityIndex;
+    int Padding;
 };
 
 #define TAU 6.28318530718

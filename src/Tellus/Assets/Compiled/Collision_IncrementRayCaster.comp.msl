@@ -8,7 +8,7 @@ struct RayData
     float2 Origin;
     float2 Direction;
     float Length;
-    char _m0_final_padding[4];
+    int Flags;
 };
 
 struct type_StructuredBuffer_RayData
@@ -22,7 +22,7 @@ struct RayCasterData
     int RayIndexLength;
     float2 Offset;
     int RayVelocityIndex;
-    char _m0_final_padding[4];
+    int Padding;
 };
 
 struct type_RWStructuredBuffer_RayCasterData
@@ -32,19 +32,21 @@ struct type_RWStructuredBuffer_RayCasterData
 
 struct type_UniformBlock
 {
-    uint StoredRayCasterCount;
+    int RayCasterDataBufferStartIndex;
+    int RayCasterDataBufferLength;
 };
 
 kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_RayData& RayDataBuffer [[buffer(1)]], device type_RWStructuredBuffer_RayCasterData& RayCasterDataBuffer [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     do
     {
-        if (gl_GlobalInvocationID.x >= UniformBlock.StoredRayCasterCount)
+        if (gl_GlobalInvocationID.x >= uint(UniformBlock.RayCasterDataBufferLength))
         {
             break;
         }
-        uint _48 = uint(RayCasterDataBuffer._m0[gl_GlobalInvocationID.x].RayVelocityIndex);
-        RayCasterDataBuffer._m0[gl_GlobalInvocationID.x].Offset += (RayDataBuffer._m0[_48].Direction * RayDataBuffer._m0[_48].Length);
+        uint _50 = gl_GlobalInvocationID.x + uint(UniformBlock.RayCasterDataBufferStartIndex);
+        uint _53 = uint(RayCasterDataBuffer._m0[_50].RayVelocityIndex);
+        RayCasterDataBuffer._m0[_50].Offset += (RayDataBuffer._m0[_53].Direction * RayDataBuffer._m0[_53].Length);
         break;
     } while(false);
 }

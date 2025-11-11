@@ -16,7 +16,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         private readonly TransferBuffer _downloadBuffer;
         public Buffer Buffer { get; }
 
-        public uint CollisionResultAmount { get; private set; }
+        public int CollisionResultAmount { get; private set; }
 
         public HitResultBufferStorage(GraphicsDevice device, uint collisionResultAmount = 512) : base(device)
         {
@@ -47,7 +47,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             }
             _uploadBuffer.Unmap();
 
-            CollisionResultAmount = collisionResultAmount;
+            CollisionResultAmount = (int)collisionResultAmount;
         }
 
         public void ClearData(CommandBuffer commandBuffer)

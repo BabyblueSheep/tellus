@@ -8,8 +8,10 @@ RWStructuredBuffer<RayData> RayDataBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    uint StoredBodyCount;
-    uint StoredRayCasterCount;
+    int BodyDataBufferStartIndex;
+    int BodyDataBufferLength;
+    int RayCasterDataBufferStartIndex;
+    int RayCasterDataBufferLength;
 };
 
 [numthreads(16, 1, 1)]
@@ -17,12 +19,12 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
 {
     uint x = GlobalInvocationID.x;
     
-    if (x >= StoredRayCasterCount)
+    if (x >= RayCasterDataBufferLength)
     {
         return;
     }
     
-    RayCasterData rayCasterData = RayCasterDataBuffer[x];
+    RayCasterData rayCasterData = RayCasterDataBuffer[x + RayCasterDataBufferStartIndex];
 
     float2 bodyPartVertices[16];
     int bodyPartVerticeLengths;
@@ -36,11 +38,14 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         RayData rayData = RayDataBuffer[i + rayCasterData.RayIndexStart];
         rayData.Origin += rayCasterData.Offset;
         
+        if ((rayData.Flags & 1) == 0)
+            continue;
+        
         float smallestNewLength = rayData.Length;
         
-        for (int j = 0; j < StoredBodyCount; j++)
+        for (int j = 0; j < BodyDataBufferLength; j++)
         {
-            CollisionBodyData collisionBodyData = BodyDataBuffer[j];
+            CollisionBodyData collisionBodyData = BodyDataBuffer[j + BodyDataBufferStartIndex];
             
             for (int k = 0; k < collisionBodyData.BodyPartIndexLength; k++)
             {

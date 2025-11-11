@@ -12,9 +12,11 @@ RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    uint StoredBodyCountOne;
-    uint StoredBodyCountTwo;
-    uint ColliderShapeResultBufferLength;
+    int BodyDataBufferOneStartIndex;
+    int BodyDataBufferOneLength;
+    int BodyDataBufferTwoStartIndex;
+    int BodyDataBufferTwoLength;
+    int ColliderShapeResultBufferLength;
 };
 
 bool doBodyPartsOverlap(float2 shapeVerticesMain[16], int shapeVerticesMainAmount, float2 shapeVerticesSub[16], int shapeVerticesSubAmount)
@@ -47,13 +49,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     uint x = GlobalInvocationID.x;
     uint y = GlobalInvocationID.y;
     
-    if (x >= StoredBodyCountOne || y >= StoredBodyCountTwo)
+    if (x >= BodyDataBufferOneStartIndex || y >= BodyDataBufferTwoStartIndex)
     {
         return;
     }
     
-    CollisionBodyData collisionBodyDataOne = BodyDataBufferOne[x];
-    CollisionBodyData collisionBodyDataTwo = BodyDataBufferTwo[y];
+    CollisionBodyData collisionBodyDataOne = BodyDataBufferOne[x + BodyDataBufferOneStartIndex];
+    CollisionBodyData collisionBodyDataTwo = BodyDataBufferTwo[y + BodyDataBufferTwoStartIndex];
     
     float2 bodyPartVerticesOne[16];
     int bodyPartVerticeLengthsOne;
@@ -85,8 +87,8 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
             if (collisionAmount < ColliderShapeResultBufferLength)
             {
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x);
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x + BodyDataBufferOneStartIndex);
+                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y + BodyDataBufferTwoStartIndex);
                 CollisionResultBuffer.Store(8 + collisionAmount * 8 + 8, 0);
             }
             

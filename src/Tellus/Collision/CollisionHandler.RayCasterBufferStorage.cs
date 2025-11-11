@@ -12,6 +12,8 @@ public sealed partial class CollisionHandler : GraphicsResource
 {
     public sealed class RayCasterBufferStorage : GraphicsResource
     {
+        private readonly Dictionary<string, (int, int)> _rayCasterListToRange;
+
         private readonly TransferBuffer _rayDataUploadBuffer;
         private readonly TransferBuffer? _rayDataDownloadBuffer;
         public Buffer RayDataBuffer { get; }
@@ -19,12 +21,12 @@ public sealed partial class CollisionHandler : GraphicsResource
         private readonly TransferBuffer _rayCasterDataTransferBuffer;
         public Buffer RayCasterDataBuffer { get; }
 
-        public uint RayCount { get; private set; }
-        public uint RayCasterCount { get; private set; }
-        public uint ValidRayCasterCount { get; private set; }
+        public int ValidRayCasterCount { get; private set; }
 
         public RayCasterBufferStorage(GraphicsDevice device, uint rayCount = 1024, uint rayCasterCount = 128, bool createDownloadBuffer = false) : base(device)
         {
+            _rayCasterListToRange = [];
+
             _rayDataUploadBuffer = TransferBuffer.Create<CollisionRayData>(
                 Device,
                 TransferBufferUsage.Upload,
@@ -34,7 +36,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             RayDataBuffer = Buffer.Create<CollisionRayData>
             (
                 Device,
-                BufferUsageFlags.ComputeStorageRead,
+                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite,
                 rayCount
             );
 
@@ -56,39 +58,56 @@ public sealed partial class CollisionHandler : GraphicsResource
             RayCasterDataBuffer = Buffer.Create<CollisionRayCasterData>
             (
                 Device,
-                BufferUsageFlags.ComputeStorageRead,
+                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite,
                 rayCasterCount
             );
-
-            RayCount = rayCount;
-            RayCasterCount = rayCasterCount;
         }
 
-        public void UploadData(CommandBuffer commandBuffer, IEnumerable<ICollisionRayCaster> rayCasterList)
+        public (int, int) GetRayCasterRange(string? bodyName)
         {
+            if (bodyName == null)
+                return (0, ValidRayCasterCount);
+            return _rayCasterListToRange[bodyName];
+        }
+
+        public void UploadData(CommandBuffer commandBuffer, (string, IEnumerable<ICollisionRayCaster>)[] rayCasterListList)
+        {
+            _rayCasterListToRange.Clear();
+
             var rayCasterDataUploadSpan = _rayCasterDataTransferBuffer.Map<CollisionRayCasterData>(true);
             var rayDataUploadSpan = _rayDataUploadBuffer.Map<CollisionRayData>(true);
 
             int rayCasterDataIndex = 0;
             int rayDataIndex = 0;
 
-            foreach (var rayCaster in rayCasterList)
+            foreach (var rayCasterListItem in rayCasterListList)
             {
-                rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart = rayDataIndex;
+                int rayCasterListIndexStart = rayCasterDataIndex;
 
-                foreach (var ray in rayCaster.Rays)
+                foreach (var rayCaster in rayCasterListItem.Item2)
                 {
-                    rayDataUploadSpan[rayDataIndex].RayOrigin = ray.RayOrigin;
-                    rayDataUploadSpan[rayDataIndex].RayDirection = ray.RayDirection;
-                    rayDataUploadSpan[rayDataIndex].RayLength = ray.RayLength;
+                    rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart = rayDataIndex;
 
-                    rayDataIndex++;
+                    foreach (var ray in rayCaster.Rays)
+                    {
+                        rayDataUploadSpan[rayDataIndex].RayOrigin = ray.RayOrigin;
+                        rayDataUploadSpan[rayDataIndex].RayDirection = ray.RayDirection;
+                        rayDataUploadSpan[rayDataIndex].RayLength = ray.RayLength;
+
+                        rayDataUploadSpan[rayDataIndex].Flags = 0;
+                        rayDataUploadSpan[rayDataIndex].Flags |= (ray.CanBeRestricted ? 1 : 0);
+
+                        rayDataIndex++;
+                    }
+
+                    rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexLength = rayDataIndex - rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart;
+                    rayCasterDataUploadSpan[rayCasterDataIndex].Offset = rayCaster.RayOriginOffset;
+                    rayCasterDataUploadSpan[rayCasterDataIndex].RayVelocityIndex = rayCaster.RayVelocityIndex + rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart;
+
+                    rayCasterDataIndex++;
                 }
 
-                rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexLength = rayDataIndex - rayCasterDataUploadSpan[rayCasterDataIndex].RayIndexStart;
-                rayCasterDataUploadSpan[rayCasterDataIndex].Offset = rayCaster.RayOriginOffset;
-
-                rayCasterDataIndex++;
+                _rayCasterListToRange.Add(rayCasterListItem.Item1, (rayCasterListIndexStart, rayCasterDataIndex - rayCasterListIndexStart));
             }
 
             _rayCasterDataTransferBuffer.Unmap();
@@ -99,7 +118,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             copyPass.UploadToBuffer(_rayDataUploadBuffer, RayDataBuffer, true);
             commandBuffer.EndCopyPass(copyPass);
 
-            ValidRayCasterCount = (uint)rayCasterDataIndex;
+            ValidRayCasterCount = rayCasterDataIndex;
         }
 
         public void DownloadData(CommandBuffer commandBuffer)
@@ -114,14 +133,14 @@ public sealed partial class CollisionHandler : GraphicsResource
             commandBuffer.EndCopyPass(copyPass);
         }
 
-        public IEnumerable<(ICollisionRayCaster, IEnumerable<CollisionRay>)> GetData(IEnumerable<ICollisionRayCaster> rayCasterList)
+        public IEnumerable<(ICollisionRayCaster, IList<CollisionRay>)> GetData(IEnumerable<ICollisionRayCaster> rayCasterList)
         {
             if (_rayDataDownloadBuffer == null)
             {
                 throw new NullReferenceException($"{nameof(_rayDataDownloadBuffer)} is null!");
             }
 
-            var transferDownloadSpan = _rayDataDownloadBuffer.Map<CollisionRayData>(true, 0);
+            var transferDownloadSpan = _rayDataDownloadBuffer.Map<CollisionRayData>(true);
 
             List<(ICollisionRayCaster, List<CollisionRay>)> resultList = [];
 

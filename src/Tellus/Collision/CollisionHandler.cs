@@ -12,6 +12,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     private readonly ComputePipeline _rayRestrictComputePipeline;
 
     private readonly ComputePipeline _incrementRayCasterPipeline;
+    private readonly ComputePipeline _incrementRayCasterBodyPipeline;
 
     public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
@@ -54,15 +55,27 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountY = 1,
             ThreadCountZ = 1
         }, out _incrementRayCasterPipeline);
+
+        Utils.LoadShaderFromManifest(Device, "Collision_IncrementRayCasterBody.comp", new ComputePipelineCreateInfo()
+        {
+            NumReadonlyStorageBuffers = 2,
+            NumReadWriteStorageBuffers = 2,
+            NumUniformBuffers = 1,
+            ThreadCountX = 16,
+            ThreadCountY = 1,
+            ThreadCountZ = 1
+        }, out _incrementRayCasterBodyPipeline);
     }
 
-    public void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyBufferStorage bodyListOneBuffer, BodyBufferStorage bodyListTwoBuffer, HitResultBufferStorage resultBuffer)
+    public void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyBufferStorage bodyListOneBuffer, (int, int) bodyListOneRange, BodyBufferStorage bodyListTwoBuffer, (int, int) bodyListTwoRange, HitResultBufferStorage resultBuffer)
     {
-        var uniforms = new CollisionComputeUniforms
+        var uniforms = new ComputeBodyBodyHitsUniforms
         {
-            StoredBodyCountOne = bodyListOneBuffer.ValidBodyCount,
-            StoredBodyCountTwo = bodyListTwoBuffer.ValidBodyCount,
-            ColliderShapeResultBufferLength = resultBuffer.CollisionResultAmount
+            BodyDataBufferOneStartIndex = bodyListOneRange.Item1,
+            BodyDataBufferOneLength = bodyListOneRange.Item2,
+            BodyDataBufferTwoStartIndex = bodyListTwoRange.Item1,
+            BodyDataBufferTwoLength = bodyListTwoRange.Item2,
+            ColliderShapeResultBufferLength = resultBuffer.CollisionResultAmount,
         };
 
         var computePass = commandBuffer.BeginComputePass
@@ -72,17 +85,19 @@ public sealed partial class CollisionHandler : GraphicsResource
         computePass.BindComputePipeline(_hitComputePipeline);
         computePass.BindStorageBuffers(bodyListOneBuffer.BodyPartDataBuffer, bodyListTwoBuffer.BodyPartDataBuffer, bodyListOneBuffer.BodyDataBuffer, bodyListTwoBuffer.BodyDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch((bodyListOneBuffer.ValidBodyCount + 15) / 16, (bodyListTwoBuffer.ValidBodyCount + 15) / 16, 1);
+        computePass.Dispatch(((uint)uniforms.BodyDataBufferOneLength + 15) / 16, ((uint)uniforms.BodyDataBufferTwoLength + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyBufferStorage bodyListMovableBuffer, BodyBufferStorage bodyListImmovableBuffer, ResolutionResultBufferStorage resultBuffer)
+    public void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyBufferStorage bodyListMovableBuffer, (int, int) bodyListMovableRange, BodyBufferStorage bodyListImmovableBuffer, (int, int) bodyListImmovableRange, ResolutionResultBufferStorage resultBuffer)
     {
-        var uniforms = new CollisionComputeUniforms
+        var uniforms = new ResolveBodyBodyCollisionsUniforms
         {
-            StoredBodyCountOne = bodyListMovableBuffer.ValidBodyCount,
-            StoredBodyCountTwo = bodyListImmovableBuffer.ValidBodyCount,
-            ColliderShapeResultBufferLength = resultBuffer.CollisionResultAmount
+            BodyDataBufferOneStartIndex = bodyListMovableRange.Item1,
+            BodyDataBufferOneLength = bodyListMovableRange.Item2,
+            BodyDataBufferTwoStartIndex = bodyListImmovableRange.Item1,
+            BodyDataBufferTwoLength = bodyListImmovableRange.Item2,
+            ColliderShapeResultBufferLength = resultBuffer.CollisionResultAmount,
         };
 
         var computePass = commandBuffer.BeginComputePass
@@ -92,16 +107,18 @@ public sealed partial class CollisionHandler : GraphicsResource
         computePass.BindComputePipeline(_resolutionComputePipeline);
         computePass.BindStorageBuffers(bodyListMovableBuffer.BodyPartDataBuffer, bodyListImmovableBuffer.BodyPartDataBuffer, bodyListMovableBuffer.BodyDataBuffer, bodyListImmovableBuffer.BodyDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch((bodyListMovableBuffer.ValidBodyCount + 15) / 16, 1, 1);
+        computePass.Dispatch(((uint)uniforms.BodyDataBufferOneLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void RestrictRays(CommandBuffer commandBuffer, BodyBufferStorage bodyListBuffer, RayCasterBufferStorage rayListBuffer)
+    public void RestrictRays(CommandBuffer commandBuffer, BodyBufferStorage bodyListBuffer, (int, int) bodyListRange, RayCasterBufferStorage rayListBuffer, (int, int) rayCasterRange)
     {
-        var uniforms = new RayComputeUniforms
+        var uniforms = new RestrictRaysUniforms
         {
-            StoredBodyCount = bodyListBuffer.ValidBodyCount,
-            StoredRayCasterCount = rayListBuffer.ValidRayCasterCount,
+            BodyDataBufferStartIndex = bodyListRange.Item1,
+            BodyDataBufferLength = bodyListRange.Item2,
+            RayCasterDataBufferStartIndex = rayCasterRange.Item1,
+            RayCasterDataBufferLength = rayCasterRange.Item2,
         };
 
         var computePass = commandBuffer.BeginComputePass
@@ -111,47 +128,49 @@ public sealed partial class CollisionHandler : GraphicsResource
         computePass.BindComputePipeline(_rayRestrictComputePipeline);
         computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, rayListBuffer.RayCasterDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch((rayListBuffer.ValidRayCasterCount + 15) / 16, 1, 1);
+        computePass.Dispatch(((uint)uniforms.RayCasterDataBufferLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void IncrementRayCasterOffsets(CommandBuffer commandBuffer, RayCasterBufferStorage rayListBuffer)
+    public void IncrementRayCasterOffsets(CommandBuffer commandBuffer, RayCasterBufferStorage rayListBuffer, (int, int) rayCasterRange)
     {
-        var uniforms = new IncrementRaysUniforms
+        var uniforms = new IncrementRayCasterOffsetsUniforms
         {
-            StoredRayCasterCount = rayListBuffer.ValidRayCasterCount,
+            RayCasterDataBufferStartIndex = rayCasterRange.Item1,
+            RayCasterDataBufferLength = rayCasterRange.Item2
         };
 
         var computePass = commandBuffer.BeginComputePass
         (
             new StorageBufferReadWriteBinding(rayListBuffer.RayCasterDataBuffer, false)
         );
-        computePass.BindComputePipeline(_rayRestrictComputePipeline);
+        computePass.BindComputePipeline(_incrementRayCasterPipeline);
         computePass.BindStorageBuffers(rayListBuffer.RayDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch((rayListBuffer.ValidRayCasterCount + 15) / 16, 1, 1);
+        computePass.Dispatch(((uint)uniforms.RayCasterDataBufferLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void IncrementRayCasterBodiesOffsets(CommandBuffer commandBuffer, BodyBufferStorage bodyBufer, RayCasterBufferStorage rayListBuffer, BodyRayCasterPairBufferStorage pairBuffer)
+    public void IncrementRayCasterBodiesOffsets(CommandBuffer commandBuffer, BodyBufferStorage bodyBufer, RayCasterBufferStorage rayListBuffer, BodyRayCasterPairBufferStorage pairBuffer, (int, int) pairRange)
     {
-        var uniforms = new IncrementPairsUniforms
+        var uniforms = new IncrementRayCasterBodiesOffsetsUniforms
         {
-            StoredPairCount = pairBuffer.ValidPairCount,
+            PairDataBufferStartIndex = pairRange.Item1,
+            PairDataBufferLength = pairRange.Item2
         };
 
         var computePass = commandBuffer.BeginComputePass
         (
             [],
             [
-                new StorageBufferReadWriteBinding(rayListBuffer.RayCasterDataBuffer, false),
-                new StorageBufferReadWriteBinding(bodyBufer.BodyDataBuffer, false)
+            new StorageBufferReadWriteBinding(rayListBuffer.RayCasterDataBuffer, false),
+            new StorageBufferReadWriteBinding(bodyBufer.BodyDataBuffer, false)
             ]
         );
-        computePass.BindComputePipeline(_rayRestrictComputePipeline);
+        computePass.BindComputePipeline(_incrementRayCasterBodyPipeline);
         computePass.BindStorageBuffers(pairBuffer.PairDataBuffer, rayListBuffer.RayDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch((rayListBuffer.ValidRayCasterCount + 15) / 16, 1, 1);
+        computePass.Dispatch(((uint)uniforms.PairDataBufferLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 

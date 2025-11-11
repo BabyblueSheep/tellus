@@ -73,11 +73,11 @@ public sealed partial class CollisionHandler : GraphicsResource
         [FieldOffset(4)]
         public Vector2 TotalMinimumTransitionVector;
 
-        [FieldOffset(8)]
+        [FieldOffset(12)]
         public int Padding;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     private struct CollisionRayCasterData
     {
         [FieldOffset(0)]
@@ -88,6 +88,12 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         [FieldOffset(8)]
         public Vector2 Offset;
+
+        [FieldOffset(16)]
+        public int RayVelocityIndex;
+
+        [FieldOffset(20)]
+        public int Padding;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 24)]
@@ -103,7 +109,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         public float RayLength;
 
         [FieldOffset(20)]
-        public int RayVelocityIndex;
+        public int Flags;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 8)]
@@ -116,8 +122,9 @@ public sealed partial class CollisionHandler : GraphicsResource
         public int RayCasterIndex;
     }
 
-    record struct CollisionComputeUniforms(uint StoredBodyCountOne, uint StoredBodyCountTwo, uint ColliderShapeResultBufferLength);
-    record struct RayComputeUniforms(uint StoredBodyCount, uint StoredRayCasterCount);
-    record struct IncrementRaysUniforms(uint StoredRayCasterCount);
-    record struct IncrementPairsUniforms(uint StoredPairCount);
+    record struct ComputeBodyBodyHitsUniforms(int BodyDataBufferOneStartIndex, int BodyDataBufferOneLength, int BodyDataBufferTwoStartIndex, int BodyDataBufferTwoLength, int ColliderShapeResultBufferLength);
+    record struct ResolveBodyBodyCollisionsUniforms(int BodyDataBufferOneStartIndex, int BodyDataBufferOneLength, int BodyDataBufferTwoStartIndex, int BodyDataBufferTwoLength, int ColliderShapeResultBufferLength);
+    record struct RestrictRaysUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength);
+    record struct IncrementRayCasterOffsetsUniforms(int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength);
+    record struct IncrementRayCasterBodiesOffsetsUniforms(int PairDataBufferStartIndex, int PairDataBufferLength);
 }

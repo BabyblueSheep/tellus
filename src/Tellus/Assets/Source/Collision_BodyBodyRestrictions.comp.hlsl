@@ -12,9 +12,11 @@ RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    uint StoredBodyCountMovable;
-    uint StoredBodyCountImmovable;
-    uint ColliderShapeResultBufferLength;
+    int BodyDataBufferMovableStartIndex;
+    int BodyDataBufferMovableLength;
+    int BodyDataBufferImmovableStartIndex;
+    int BodyDataBufferImmovableLength;
+    int ColliderShapeResultBufferLength;
 };
 
 float getProjectionOverlap(float2 projectionOne, float2 projectionTwo)
@@ -92,12 +94,12 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
 {
     uint x = GlobalInvocationID.x;
     
-    if (x >= StoredBodyCountMovable)
+    if (x >= BodyDataBufferMovableLength)
     {
         return;
     }
     
-    CollisionBodyData collisionBodyDataMovable = BodyDataBufferMovable[x];
+    CollisionBodyData collisionBodyDataMovable = BodyDataBufferMovable[x + BodyDataBufferMovableStartIndex];
     
     float2 bodyPartVerticesMovable[16];
     int bodyPartVerticeLengthsMovable;
@@ -120,9 +122,9 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             
             constructVertexPositions(collisionBodyPartDataMovable, collisionBodyDataMovable, bodyPartVerticesMovable, bodyPartVerticeLengthsMovable);
             
-            for (int j = 0; j < StoredBodyCountImmovable; j++)
+            for (int j = 0; j < BodyDataBufferImmovableLength; j++)
             {
-                CollisionBodyData collisionBodyDataImmovable = BodyDataBufferImmovable[j];
+                CollisionBodyData collisionBodyDataImmovable = BodyDataBufferImmovable[j + BodyDataBufferImmovableStartIndex];
                 
                 for (int k = 0; k < collisionBodyDataImmovable.BodyPartIndexLength; k++)
                 {
@@ -170,7 +172,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     if (hasCollidedWithAnything)
     {
         int collisionAmount;
-        int _;
         CollisionResultBuffer.InterlockedAdd(0, 1, collisionAmount);
     
         if (collisionAmount < ColliderShapeResultBufferLength)

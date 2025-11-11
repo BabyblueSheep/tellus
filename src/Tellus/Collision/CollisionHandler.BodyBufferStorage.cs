@@ -1,9 +1,4 @@
 ﻿using MoonWorks.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
@@ -12,18 +7,20 @@ public sealed partial class CollisionHandler : GraphicsResource
 {
     public sealed class BodyBufferStorage : GraphicsResource
     {
+        private readonly Dictionary<string, (int, int)> _bodyListToRange;
+
         private readonly TransferBuffer _bodyPartDataTransferBuffer;
         public Buffer BodyPartDataBuffer { get; }
 
         private readonly TransferBuffer _bodyDataTransferBuffer;
         public Buffer BodyDataBuffer { get; }
 
-        public uint BodyPartCount { get; private set; }
-        public uint BodyCount { get; private set; }
-        public uint ValidBodyCount { get; private set; }
+        public int ValidBodyCount { get; private set; }
 
         public BodyBufferStorage(GraphicsDevice device, uint bodyPartCount = 1024, uint bodyCount = 128) : base(device)
         {
+            _bodyListToRange = [];
+
             _bodyPartDataTransferBuffer = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,
                 TransferBufferUsage.Upload,
@@ -46,41 +43,54 @@ public sealed partial class CollisionHandler : GraphicsResource
             BodyDataBuffer = Buffer.Create<CollisionBodyData>
             (
                 Device,
-                BufferUsageFlags.ComputeStorageRead,
+                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite,
                 bodyCount
             );
-
-            BodyPartCount = bodyPartCount;
-            BodyCount = bodyCount;
         }
 
-        public void UploadData(CommandBuffer commandBuffer, IEnumerable<ICollisionBody> bodyList)
+        public (int, int) GetBodyRange(string? bodyName)
         {
+            if (bodyName == null)
+                return (0, ValidBodyCount);
+            return _bodyListToRange[bodyName];
+        }
+
+        public void UploadData(CommandBuffer commandBuffer, (string, IEnumerable<ICollisionBody>)[] bodyListList)
+        {
+            _bodyListToRange.Clear();
+
             var bodyDataUploadSpan = _bodyDataTransferBuffer.Map<CollisionBodyData>(true);
             var bodyPartDataUploadSpan = _bodyPartDataTransferBuffer.Map<CollisionBodyPartData>(true);
 
             int bodyDataIndex = 0;
             int bodyPartDataIndex = 0;
 
-            foreach (var body in bodyList)
+            foreach (var bodyListListItem in bodyListList)
             {
-                bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart = bodyPartDataIndex;
+                int bodyListIndexStart = bodyDataIndex;
 
-                foreach (var bodyPart in body.BodyParts)
+                foreach (var body in bodyListListItem.Item2)
                 {
-                    bodyPartDataUploadSpan[bodyPartDataIndex].CollisionBodyIndex = bodyDataIndex;
-                    bodyPartDataUploadSpan[bodyPartDataIndex].ShapeType = bodyPart.ShapeType;
-                    bodyPartDataUploadSpan[bodyPartDataIndex].Center = bodyPart.BodyPartCenter;
-                    bodyPartDataUploadSpan[bodyPartDataIndex].DecimalFields = bodyPart.DecimalFields;
-                    bodyPartDataUploadSpan[bodyPartDataIndex].IntegerFields = bodyPart.IntegerFields;
+                    bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart = bodyPartDataIndex;
 
-                    bodyPartDataIndex++;
+                    foreach (var bodyPart in body.BodyParts)
+                    {
+                        bodyPartDataUploadSpan[bodyPartDataIndex].CollisionBodyIndex = bodyDataIndex;
+                        bodyPartDataUploadSpan[bodyPartDataIndex].ShapeType = bodyPart.ShapeType;
+                        bodyPartDataUploadSpan[bodyPartDataIndex].Center = bodyPart.BodyPartCenter;
+                        bodyPartDataUploadSpan[bodyPartDataIndex].DecimalFields = bodyPart.DecimalFields;
+                        bodyPartDataUploadSpan[bodyPartDataIndex].IntegerFields = bodyPart.IntegerFields;
+
+                        bodyPartDataIndex++;
+                    }
+
+                    bodyDataUploadSpan[bodyDataIndex].BodyPartIndexLength = bodyPartDataIndex - bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart;
+                    bodyDataUploadSpan[bodyDataIndex].Offset = body.BodyOffset;
+
+                    bodyDataIndex++;
                 }
 
-                bodyDataUploadSpan[bodyDataIndex].BodyPartIndexLength = bodyPartDataIndex - bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart;
-                bodyDataUploadSpan[bodyDataIndex].Offset = body.BodyOffset;
-
-                bodyDataIndex++;
+                _bodyListToRange.Add(bodyListListItem.Item1, (bodyListIndexStart, bodyDataIndex - bodyListIndexStart));
             }
 
             _bodyDataTransferBuffer.Unmap();
@@ -91,7 +101,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             copyPass.UploadToBuffer(_bodyPartDataTransferBuffer, BodyPartDataBuffer, true);
             commandBuffer.EndCopyPass(copyPass);
             
-            ValidBodyCount = (uint)bodyDataIndex;
+            ValidBodyCount = bodyDataIndex;
         }
 
         protected override void Dispose(bool disposing)

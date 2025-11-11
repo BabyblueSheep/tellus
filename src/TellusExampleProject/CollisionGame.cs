@@ -28,9 +28,11 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionRayCaster
     public bool HasCollidedThisFrame;
     public float Radius;
 
+    public Vector2 LaserEnd;
+
     public Vector2 BodyOffset => Center;
     public IEnumerable<ICollisionBodyPart> BodyParts => [
-    new CircleCollisionBodyPart(Vector2.Zero, Radius, 16),
+        new CircleCollisionBodyPart(Vector2.Zero, Radius, 16),
     ];
 
     public readonly List<CollisionRay> SavedRays = [];
@@ -38,6 +40,7 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionRayCaster
     public Vector2 RayOriginOffset => Center;
     public IEnumerable<CollisionRay> Rays => [
         new CollisionRay(Vector2.Zero, Velocity.SafeNormalize(Vector2.Zero), Velocity.Length()),
+        new CollisionRay(Vector2.Zero, (LaserEnd - Center).SafeNormalize(Vector2.Zero), (LaserEnd - Center).Length()) with { CanBeRestricted = false },
     ];
 }
 
@@ -53,10 +56,11 @@ internal sealed class WallObject : ICollisionBody
     public IEnumerable<ICollisionBodyPart> BodyParts => RectangleParts.Cast<ICollisionBodyPart>().Concat(TriangleParts.Cast<ICollisionBodyPart>());
 }
 
-internal sealed class MovingObject : ICollisionBody
+internal sealed class MovingObject : ICollisionBody, ICollisionRayCaster
 {
     public Vector2 Center;
     public Vector2 Velocity;
+
     public bool HasCollidedThisFrame;
     public float Radius;
 
@@ -65,6 +69,11 @@ internal sealed class MovingObject : ICollisionBody
     public Vector2 BodyOffset => Center;
     public IEnumerable<ICollisionBodyPart> BodyParts => [
         new CircleCollisionBodyPart(Vector2.Zero, Radius, 16),
+    ];
+
+    public Vector2 RayOriginOffset => Center;
+    public IEnumerable<CollisionRay> Rays => [
+        new CollisionRay(Vector2.Zero, Velocity.SafeNormalize(Vector2.Zero), Velocity.Length()),
     ];
 }
 
@@ -93,13 +102,11 @@ file struct PositionColorVertex : IVertexType
 internal class CollisionGame : Game
 {
     private readonly CollisionHandler _collisionHandler;
-    private readonly CollisionHandler.BodyBufferStorage _storageBufferPlayerBody;
     private readonly CollisionHandler.BodyBufferStorage _storageBufferStaticBodies;
     private readonly CollisionHandler.BodyBufferStorage _storageBufferMovingBodies;
     private readonly CollisionHandler.RayCasterBufferStorage _rayBuffer;
-    private readonly CollisionHandler.HitResultBufferStorage _storageBufferHitResult;
-    private readonly CollisionHandler.ResolutionResultBufferStorage _storageBufferPlayerResolutionResult;
-    private readonly CollisionHandler.ResolutionResultBufferStorage _storageBufferMovingResolutionResult;
+    private readonly CollisionHandler.ResolutionResultBufferStorage _resolutionResultBuffer;
+    private readonly CollisionHandler.BodyRayCasterPairBufferStorage _pairBuffer;
 
     private readonly PlayerObject _playerObject;
     private readonly List<WallObject> _staticObjects;
@@ -204,15 +211,17 @@ internal class CollisionGame : Game
         }
 
         _collisionHandler = new CollisionHandler(GraphicsDevice);
-        _storageBufferPlayerBody = new CollisionHandler.BodyBufferStorage(GraphicsDevice);
         _storageBufferStaticBodies = new CollisionHandler.BodyBufferStorage(GraphicsDevice);
         _storageBufferMovingBodies = new CollisionHandler.BodyBufferStorage(GraphicsDevice);
-        _storageBufferHitResult = new CollisionHandler.HitResultBufferStorage(GraphicsDevice);
-        _storageBufferPlayerResolutionResult = new CollisionHandler.ResolutionResultBufferStorage(GraphicsDevice);
-        _storageBufferMovingResolutionResult = new CollisionHandler.ResolutionResultBufferStorage(GraphicsDevice);
+        _resolutionResultBuffer = new CollisionHandler.ResolutionResultBufferStorage(GraphicsDevice);
         _rayBuffer = new CollisionHandler.RayCasterBufferStorage(GraphicsDevice, createDownloadBuffer: true);
+        _pairBuffer = new CollisionHandler.BodyRayCasterPairBufferStorage(GraphicsDevice);
 
-        _storageBufferStaticBodies.UploadData(commandBuffer, _staticObjects);
+        _storageBufferStaticBodies.UploadData
+        (
+            commandBuffer,
+            [(nameof(_staticObjects), _staticObjects)]
+        );
 
         #endregion
 
@@ -344,69 +353,99 @@ internal class CollisionGame : Game
 
         _playerObject.Velocity = Vector2.Zero;
         if (Inputs.Keyboard.IsDown(KeyCode.A))
-            _playerObject.Velocity.X -= 16;
+            _playerObject.Velocity.X -= 8;
         if (Inputs.Keyboard.IsDown(KeyCode.D))
-            _playerObject.Velocity.X += 16;
+            _playerObject.Velocity.X += 8;
         if (Inputs.Keyboard.IsDown(KeyCode.W))
-            _playerObject.Velocity.Y -= 16;
+            _playerObject.Velocity.Y -= 8;
         if (Inputs.Keyboard.IsDown(KeyCode.S))
-            _playerObject.Velocity.Y += 16;
+            _playerObject.Velocity.Y += 8;
 
-        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        _playerObject.LaserEnd = new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y);
 
-        _rayBuffer.UploadData(commandBuffer, [_playerObject]);
-        _collisionHandler.RestrictRays(commandBuffer, _storageBufferStaticBodies, _rayBuffer);
-        _rayBuffer.DownloadData(commandBuffer);
-        
-        /*
-        var fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
-        GraphicsDevice.WaitForFence(fence);
-        GraphicsDevice.ReleaseFence(fence);
-
-        foreach (var rayRestrictionResult in _rayBuffer.GetData([_playerObject]))
-        {
-            ICollisionRayCaster item = rayRestrictionResult.Item1;
-            IEnumerable<CollisionRay> rays = rayRestrictionResult.Item2;
-
-            if (item is PlayerObject player)
-            {
-                foreach (var ray in rays)
-                {
-                    player.Center += ray.RayDirection * ray.RayLength;
-                }
-            }
-        }*/
-        /*foreach (var movingObject in _movingObjects)
+        foreach (var movingObject in _movingObjects)
         {
             if (movingObject.Random.Next(16) == 0)
             {
                 movingObject.Velocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * 8;
             }
-            movingObject.Center += movingObject.Velocity;
-        }*/
+        }
 
-        commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
-        _storageBufferPlayerBody.UploadData(commandBuffer, [_playerObject]);
-        _storageBufferMovingBodies.UploadData(commandBuffer, _movingObjects);
+        var collisionBodies = _movingObjects.Cast<ICollisionBody>().Append(_playerObject).ToList();
+        var collisionRayCasters = _movingObjects.Cast<ICollisionRayCaster>().Append(_playerObject).ToList();
 
-        _storageBufferPlayerResolutionResult.ClearData(commandBuffer);
-        _collisionHandler.ResolveBodyBodyCollisions(commandBuffer, _storageBufferPlayerBody, _storageBufferStaticBodies, _storageBufferPlayerResolutionResult);
-        _storageBufferPlayerResolutionResult.DownloadData(commandBuffer);
+        _storageBufferMovingBodies.UploadData
+        (
+            commandBuffer, 
+            [(nameof(_movingObjects), _movingObjects), (nameof(_playerObject), [_playerObject])]
+        );
+        _rayBuffer.UploadData
+        (
+            commandBuffer,
+            [(nameof(_movingObjects), _movingObjects), (nameof(_playerObject), [_playerObject])]
+        );
+        _pairBuffer.UploadData
+        (
+            commandBuffer,
+            [(nameof(_movingObjects), collisionBodies, collisionRayCasters)]
+        );
 
-        _storageBufferMovingResolutionResult.ClearData(commandBuffer);
-        _collisionHandler.ResolveBodyBodyCollisions(commandBuffer, _storageBufferMovingBodies, _storageBufferStaticBodies, _storageBufferMovingResolutionResult);
-        _storageBufferMovingResolutionResult.DownloadData(commandBuffer);
+        _collisionHandler.RestrictRays
+        (
+            commandBuffer,
+            _storageBufferStaticBodies, _storageBufferStaticBodies.GetBodyRange(null),
+            _rayBuffer, _rayBuffer.GetRayCasterRange(null)
+        );
+        _collisionHandler.IncrementRayCasterBodiesOffsets
+        (
+            commandBuffer,
+            _storageBufferMovingBodies,
+            _rayBuffer,
+            _pairBuffer, _pairBuffer.GetPairRange(null)
+        );
+        _rayBuffer.DownloadData(commandBuffer);
 
-        fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
+        _resolutionResultBuffer.ClearData(commandBuffer);
+        _collisionHandler.ResolveBodyBodyCollisions
+        (
+            commandBuffer,
+            _storageBufferMovingBodies, _storageBufferMovingBodies.GetBodyRange(null),
+            _storageBufferStaticBodies, _storageBufferStaticBodies.GetBodyRange(null),
+            _resolutionResultBuffer
+        );
+        _resolutionResultBuffer.DownloadData(commandBuffer);
+
+        var fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
         GraphicsDevice.WaitForFence(fence);
         GraphicsDevice.ReleaseFence(fence);
 
-        //commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        foreach (var rayRestrictionResult in _rayBuffer.GetData(collisionRayCasters))
+        {
+            ICollisionRayCaster item = rayRestrictionResult.Item1;
+            IList<CollisionRay> rays = rayRestrictionResult.Item2;
 
-       
+            if (item is PlayerObject player)
+            {
+                CollisionRay velocity = rays[item.RayVelocityIndex];
+                player.Center += velocity.RayDirection * velocity.RayLength;
 
-        foreach (var collisionResult in _storageBufferPlayerResolutionResult.GetData([_playerObject]))
+                player.SavedRays.Clear();
+                
+                foreach (var ray in rays)
+                {
+                    player.SavedRays.Add(ray);
+                }
+            }
+            else if (item is MovingObject moving)
+            {
+                CollisionRay velocity = rays[item.RayVelocityIndex];
+                moving.Center += velocity.RayDirection * velocity.RayLength;
+            }
+        }
+
+        foreach (var collisionResult in _resolutionResultBuffer.GetData(collisionBodies))
         {
             ICollisionBody item = collisionResult.Item1;
             Vector2 pushVector = collisionResult.Item2;
@@ -415,42 +454,11 @@ internal class CollisionGame : Game
             {
                 player.Center += pushVector;
             }
-        }
-
-        foreach (var collisionResult in _storageBufferMovingResolutionResult.GetData(_movingObjects.Select(x => (ICollisionBody)x).ToList()))
-        {
-            ICollisionBody item = collisionResult.Item1;
-            Vector2 pushVector = collisionResult.Item2;
-
-            if (item is MovingObject moving)
+            else if (item is MovingObject moving)
             {
                 moving.Center += pushVector;
             }
         }
-
-        /*
-        _rayBuffer.UploadData(commandBuffer, [_playerObject]);
-        _collisionHandler.ComputeRayRestrictions(commandBuffer, _storageBufferBodiesTwo, _rayBuffer);
-        _rayBuffer.DownloadData(commandBuffer);
-
-        fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
-        GraphicsDevice.WaitForFence(fence);
-        GraphicsDevice.ReleaseFence(fence);
-        
-        var rayResults = _rayBuffer.GetData([_playerObject]);
-
-        foreach (var data in rayResults)
-        {
-            if (data.Item1 is PlayerObject player)
-            {
-                player.SavedRays.Clear();
-                foreach (var ray in data.Item2)
-                {
-                    player.SavedRays.Add(ray);
-                }
-            }
-        }
-        */
     }
 
     protected override void Draw(double alpha)
@@ -543,33 +551,6 @@ internal class CollisionGame : Game
                         0.6f
                     );
                 }
-                /*
-                if (objectCollider is CircleCollidingObject circle)
-                {
-                    _spriteBatch.Draw(
-                        _circleSprite,
-                        new Vector2(circle.Radius),
-                        new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                        circle.Center,
-                        0f,
-                        new Vector2(circle.Radius * 2f),
-                        Color.White,
-                        0.6f
-                    );
-                }
-                else if (objectCollider is RectangleCollidingObject rectangle)
-                {
-                    _spriteBatch.Draw(
-                        _squareSprite,
-                        rectangle.SideLengths * 0.5f,
-                        new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                        rectangle.Center,
-                        rectangle.Angle,
-                        rectangle.SideLengths,
-                        Color.White,
-                        0.6f
-                    );
-                }*/
             }
             
 
@@ -581,7 +562,7 @@ internal class CollisionGame : Game
             renderPass.BindVertexBuffers(_triangleVertexBuffer);
             renderPass.DrawPrimitives((uint)_triangleCount * 3, 1, 0, 0);
 
-            /*
+            
             int lineCount = 0;
             var lineVertexSpan = _lineVertexTransferBuffer.Map<PositionColorVertex>(false);
             foreach (var ray in _playerObject.SavedRays)
@@ -603,7 +584,7 @@ internal class CollisionGame : Game
             renderPass.BindGraphicsPipeline(_linePipeline);
             renderPass.BindVertexBuffers(_lineVertexBuffer);
             renderPass.DrawPrimitives((uint)lineCount * 3, 1, 0, 0);
-            */
+            
 
             commandBuffer.EndRenderPass(renderPass);
         }

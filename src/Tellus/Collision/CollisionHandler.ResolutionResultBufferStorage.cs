@@ -1,9 +1,5 @@
-﻿using Microsoft.VisualBasic;
-using MoonWorks.Graphics;
-using MoonWorks.Storage;
+﻿using MoonWorks.Graphics;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using Buffer = MoonWorks.Graphics.Buffer;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
@@ -17,7 +13,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         private readonly TransferBuffer _downloadBuffer;
         public Buffer Buffer { get; }
 
-        public uint CollisionResultAmount { get; private set; }
+        public int CollisionResultAmount { get; private set; }
 
         public ResolutionResultBufferStorage(GraphicsDevice device, uint collisionResultAmount = 512) : base(device)
         {
@@ -36,7 +32,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             Buffer = Buffer.Create<CollisionResolutionData>
             (
                 Device,
-                BufferUsageFlags.ComputeStorageWrite,
+                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite,
                 collisionResultAmount + 1
             );
 
@@ -49,7 +45,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             }
             _uploadBuffer.Unmap();
 
-            CollisionResultAmount = collisionResultAmount;
+            CollisionResultAmount = (int)collisionResultAmount;
         }
 
         public void ClearData(CommandBuffer commandBuffer)

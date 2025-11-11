@@ -12,9 +12,11 @@ RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
-    uint StoredBodyCount;
-    uint StoredRayCasterCount;
-    uint ColliderShapeResultBufferLength;
+    int BodyDataBufferStartIndex;
+    int BodyDataBufferLength;
+    int RayCasterDataBufferStartIndex;
+    int RayCasterDataBufferLength;
+    int ColliderShapeResultBufferLength;
 };
 
 [numthreads(16, 16, 1)]
@@ -23,13 +25,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     uint x = GlobalInvocationID.x;
     uint y = GlobalInvocationID.y;
     
-    if (x >= StoredBodyCount || y >= StoredRayCasterCount)
+    if (x >= BodyDataBufferLength || y >= RayCasterDataBufferLength)
     {
         return;
     }
     
-    CollisionBodyData collisionBodyData = BodyDataBuffer[x];
-    RayCasterData rayCasterData = RayCasterDataBuffer[y];
+    CollisionBodyData collisionBodyData = BodyDataBuffer[x + BodyDataBufferStartIndex];
+    RayCasterData rayCasterData = RayCasterDataBuffer[y + RayCasterDataBufferStartIndex];
     
     float2 bodyPartVertices[16];
     int bodyPartVerticeLengths;
