@@ -89,7 +89,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             {
                 CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x + BodyDataBufferOneStartIndex);
                 CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y + BodyDataBufferTwoStartIndex);
-                CollisionResultBuffer.Store(8 + collisionAmount * 8 + 8, 0);
             }
             
             return;

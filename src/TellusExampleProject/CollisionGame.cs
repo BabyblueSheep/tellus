@@ -105,6 +105,7 @@ internal class CollisionGame : Game
     private readonly CollisionHandler.BodyBufferStorage _storageBufferStaticBodies;
     private readonly CollisionHandler.BodyBufferStorage _storageBufferMovingBodies;
     private readonly CollisionHandler.RayCasterBufferStorage _rayBuffer;
+    private readonly CollisionHandler.HitResultBufferStorage _rayHitResultBuffer;
     private readonly CollisionHandler.ResolutionResultBufferStorage _resolutionResultBuffer;
     private readonly CollisionHandler.BodyRayCasterPairBufferStorage _pairBuffer;
 
@@ -213,6 +214,7 @@ internal class CollisionGame : Game
         _collisionHandler = new CollisionHandler(GraphicsDevice);
         _storageBufferStaticBodies = new CollisionHandler.BodyBufferStorage(GraphicsDevice);
         _storageBufferMovingBodies = new CollisionHandler.BodyBufferStorage(GraphicsDevice);
+        _rayHitResultBuffer = new CollisionHandler.HitResultBufferStorage(GraphicsDevice);
         _resolutionResultBuffer = new CollisionHandler.ResolutionResultBufferStorage(GraphicsDevice);
         _rayBuffer = new CollisionHandler.RayCasterBufferStorage(GraphicsDevice, createDownloadBuffer: true);
         _pairBuffer = new CollisionHandler.BodyRayCasterPairBufferStorage(GraphicsDevice);
@@ -365,6 +367,7 @@ internal class CollisionGame : Game
 
         foreach (var movingObject in _movingObjects)
         {
+            movingObject.HasCollidedThisFrame = false;
             if (movingObject.Random.Next(16) == 0)
             {
                 movingObject.Velocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * 8;
@@ -417,6 +420,16 @@ internal class CollisionGame : Game
         );
         _resolutionResultBuffer.DownloadData(commandBuffer);
 
+        _rayHitResultBuffer.ClearData(commandBuffer);
+        _collisionHandler.ComputeRayBodyHits
+        (
+            commandBuffer,
+            _storageBufferMovingBodies, _storageBufferMovingBodies.GetBodyRange(nameof(_movingObjects)),
+            _rayBuffer, _rayBuffer.GetRayCasterRange(nameof(_playerObject)),
+            _rayHitResultBuffer
+        );
+        _rayHitResultBuffer.DownloadData(commandBuffer);
+
         var fence = GraphicsDevice.SubmitAndAcquireFence(commandBuffer);
         GraphicsDevice.WaitForFence(fence);
         GraphicsDevice.ReleaseFence(fence);
@@ -457,6 +470,17 @@ internal class CollisionGame : Game
             else if (item is MovingObject moving)
             {
                 moving.Center += pushVector;
+            }
+        }
+
+        foreach (var hitResult in _rayHitResultBuffer.GetData(_movingObjects.Cast<ICollisionBody>().ToList(), [(ICollisionRayCaster)_playerObject]))
+        {
+            ICollisionBody body = hitResult.Item1;
+            ICollisionRayCaster rayCaster = hitResult.Item2;
+
+            if (rayCaster is PlayerObject player && body is MovingObject moving)
+            {
+                moving.HasCollidedThisFrame = true;
             }
         }
     }
@@ -521,7 +545,7 @@ internal class CollisionGame : Game
                     objectCollider.Center,
                     0f,
                     new Vector2(objectCollider.Radius * 2f),
-                    Color.Blue,
+                    objectCollider.HasCollidedThisFrame ? Color.Magenta : Color.Blue,
                     0.3f
                 );
             }

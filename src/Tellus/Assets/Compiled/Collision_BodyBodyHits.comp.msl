@@ -115,7 +115,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
         bool _113;
         bool _116;
         bool _118;
-        bool _518;
+        bool _514;
         bool _112 = false;
         bool _115;
         bool _117;
@@ -453,7 +453,6 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                             int _504 = _498 * 8;
                             CollisionResultBuffer._m0[uint(8 + _504) >> 2u] = _96;
                             CollisionResultBuffer._m0[uint(_504 + 12) >> 2u] = _105;
-                            CollisionResultBuffer._m0[uint(_504 + 16) >> 2u] = 0u;
                         }
                         _116 = _492;
                         _118 = _235;
@@ -470,7 +469,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                 }
                 if (_113)
                 {
-                    _518 = _113;
+                    _514 = _113;
                     break;
                 }
                 _112 = _113;
@@ -481,11 +480,11 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             }
             else
             {
-                _518 = _112;
+                _514 = _112;
                 break;
             }
         }
-        if (_518)
+        if (_514)
         {
             break;
         }

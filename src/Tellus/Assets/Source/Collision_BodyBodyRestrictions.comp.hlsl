@@ -5,10 +5,10 @@
 
 StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferMovable : register(t0, space0);
 StructuredBuffer<CollisionBodyPartData> BodyPartDataBufferImmovable : register(t1, space0);
-StructuredBuffer<CollisionBodyData> BodyDataBufferMovable : register(t2, space0);
-StructuredBuffer<CollisionBodyData> BodyDataBufferImmovable : register(t3, space0);
+StructuredBuffer<CollisionBodyData> BodyDataBufferImmovable : register(t2, space0);
 
 RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
+RWStructuredBuffer<CollisionBodyData> BodyDataBufferMovable : register(u1, space1);
 
 cbuffer UniformBlock : register(b0, space2)
 {
@@ -176,11 +176,14 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
         if (collisionAmount < ColliderShapeResultBufferLength)
         {
-            CollisionResultBuffer.Store(16 + collisionAmount * 16 + 0, x);
+            CollisionResultBuffer.Store(16 + collisionAmount * 16 + 0, x + BodyDataBufferMovableStartIndex);
             uint totalMtvX = asuint(totalMinimumTransitionVector.x);
             CollisionResultBuffer.Store(16 + collisionAmount * 16 + 4, totalMtvX);
             uint totalMtvY = asuint(totalMinimumTransitionVector.y);
             CollisionResultBuffer.Store(16 + collisionAmount * 16 + 8, totalMtvY);
+            
+            BodyDataBufferMovable[x + BodyDataBufferMovableStartIndex].Offset += totalMinimumTransitionVector;
+
         }
     }
 }

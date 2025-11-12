@@ -46,7 +46,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         
         for (int j = 0; j < collisionBodyData.BodyPartIndexLength; j++)
         {
-            CollisionBodyPartData collisionBodyPartData = BodyPartDataBuffer[i + collisionBodyData.BodyPartIndexStart];
+            CollisionBodyPartData collisionBodyPartData = BodyPartDataBuffer[j + collisionBodyData.BodyPartIndexStart];
         
             constructVertexPositions(collisionBodyPartData, collisionBodyData, bodyPartVertices, bodyPartVerticeLengths);
             
@@ -68,7 +68,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
                     {
                         CollisionResultBuffer.Store(8 + collisionAmount * 8 + 0, x);
                         CollisionResultBuffer.Store(8 + collisionAmount * 8 + 4, y);
-                        CollisionResultBuffer.Store(8 + collisionAmount * 8 + 8, 0);
                     }
                     
                     return;

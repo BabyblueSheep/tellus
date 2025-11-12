@@ -136,7 +136,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
         uint _111 = gl_GlobalInvocationID.y + uint(UniformBlock.RayCasterDataBufferStartIndex);
         spvUnsafeArray<float2, 16> _78;
         bool _120;
-        bool _358;
+        bool _354;
         bool _119 = false;
         int _122 = 0;
         for (;;)
@@ -152,7 +152,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                 {
                     if (_140 < BodyDataBuffer._m0[_102].BodyPartIndexLength)
                     {
-                        uint _146 = uint(_122 + BodyDataBuffer._m0[_102].BodyPartIndexStart);
+                        uint _146 = uint(_140 + BodyDataBuffer._m0[_102].BodyPartIndexStart);
                         for (int _156 = 0; _156 < 16; )
                         {
                             _78[_156] = float2(0.0);
@@ -329,7 +329,6 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                                         int _343 = _337 * 8;
                                         CollisionResultBuffer._m0[uint(8 + _343) >> 2u] = gl_GlobalInvocationID.x;
                                         CollisionResultBuffer._m0[uint(_343 + 12) >> 2u] = gl_GlobalInvocationID.y;
-                                        CollisionResultBuffer._m0[uint(_343 + 16) >> 2u] = 0u;
                                     }
                                     _138 = true;
                                     break;
@@ -360,7 +359,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                 }
                 if (_120)
                 {
-                    _358 = _120;
+                    _354 = _120;
                     break;
                 }
                 _119 = _120;
@@ -369,11 +368,11 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
             }
             else
             {
-                _358 = _119;
+                _354 = _119;
                 break;
             }
         }
-        if (_358)
+        if (_354)
         {
             break;
         }

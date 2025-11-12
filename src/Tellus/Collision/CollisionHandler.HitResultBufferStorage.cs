@@ -64,7 +64,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             commandBuffer.EndCopyPass(copyPass);
         }
 
-        unsafe public IEnumerable<(ICollisionBody, ICollisionBody)> GetData(IList<ICollisionBody> bodyListOne, IList<ICollisionBody> bodyListTwo)
+        public IEnumerable<(ICollisionBody, ICollisionBody)> GetData(IList<ICollisionBody> bodyListOne, IList<ICollisionBody> bodyListTwo)
         {
             var tempTransferDownloadSpan = _downloadBuffer.Map<int>(false, 0);
             int collisionResultAmount = tempTransferDownloadSpan[0];
@@ -73,6 +73,33 @@ public sealed partial class CollisionHandler : GraphicsResource
             var transferDownloadSpan = _downloadBuffer.Map<CollisionHitData>(true, 8);
 
             List<(ICollisionBody, ICollisionBody)> resultList = [];
+
+            for (int i = 0; i < collisionResultAmount; i++)
+            {
+                CollisionHitData resultData = transferDownloadSpan[i];
+                int indexOne = resultData.CollisionBodyIndexOne;
+                int indexTwo = resultData.CollisionBodyIndexTwo;
+
+                resultList.Add((bodyListOne[indexOne], bodyListTwo[indexTwo]));
+            }
+
+            _downloadBuffer.Unmap();
+
+            foreach (var result in resultList)
+            {
+                yield return result;
+            }
+        }
+
+        public IEnumerable<(ICollisionBody, ICollisionRayCaster)> GetData(IList<ICollisionBody> bodyListOne, IList<ICollisionRayCaster> bodyListTwo)
+        {
+            var tempTransferDownloadSpan = _downloadBuffer.Map<int>(false, 0);
+            int collisionResultAmount = tempTransferDownloadSpan[0];
+            _downloadBuffer.Unmap();
+
+            var transferDownloadSpan = _downloadBuffer.Map<CollisionHitData>(true, 8);
+
+            List<(ICollisionBody, ICollisionRayCaster)> resultList = [];
 
             for (int i = 0; i < collisionResultAmount; i++)
             {
