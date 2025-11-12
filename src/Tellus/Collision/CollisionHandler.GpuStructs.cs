@@ -124,6 +124,7 @@ public sealed partial class CollisionHandler : GraphicsResource
 
     record struct ComputeBodyBodyHitsUniforms(int BodyDataBufferOneStartIndex, int BodyDataBufferOneLength, int BodyDataBufferTwoStartIndex, int BodyDataBufferTwoLength, int ColliderShapeResultBufferLength);
     record struct ResolveBodyBodyCollisionsUniforms(int BodyDataBufferOneStartIndex, int BodyDataBufferOneLength, int BodyDataBufferTwoStartIndex, int BodyDataBufferTwoLength, int ColliderShapeResultBufferLength);
+    record struct ComputeRayBodyHitsUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength, int ColliderShapeResultBufferLength);
     record struct RestrictRaysUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength);
     record struct IncrementRayCasterOffsetsUniforms(int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength);
     record struct IncrementRayCasterBodiesOffsetsUniforms(int PairDataBufferStartIndex, int PairDataBufferLength);
