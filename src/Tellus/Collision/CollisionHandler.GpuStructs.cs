@@ -78,54 +78,54 @@ public sealed partial class CollisionHandler : GraphicsResource
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 24)]
-    private struct CollisionRayCasterData
+    private struct CollisionLineCollectionData
     {
         [FieldOffset(0)]
-        public int RayIndexStart;
+        public int LineIndexStart;
 
         [FieldOffset(4)]
-        public int RayIndexLength;
+        public int LineIndexLength;
 
         [FieldOffset(8)]
         public Vector2 Offset;
 
         [FieldOffset(16)]
-        public int RayVelocityIndex;
+        public int LineVelocityIndex;
 
         [FieldOffset(20)]
         public int Padding;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 24)]
-    private struct CollisionRayData
+    private struct CollisionLineData
     {
         [FieldOffset(0)]
-        public Vector2 RayOrigin;
+        public Vector2 Origin;
 
         [FieldOffset(8)]
-        public Vector2 RayDirection;
+        public Vector2 Vector;
 
         [FieldOffset(16)]
-        public float RayLength;
+        public float Length;
 
         [FieldOffset(20)]
         public int Flags;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    private struct CollisionBodyRayCasterPair
+    private struct CollisionBodyLineCollectionPair
     {
         [FieldOffset(0)]
         public int BodyIndex;
 
         [FieldOffset(4)]
-        public int RayCasterIndex;
+        public int LineCollectionIndex;
     }
 
     record struct ComputeBodyBodyHitsUniforms(int BodyDataBufferOneStartIndex, int BodyDataBufferOneLength, int BodyDataBufferTwoStartIndex, int BodyDataBufferTwoLength, int ColliderShapeResultBufferLength);
     record struct ResolveBodyBodyCollisionsUniforms(int BodyDataBufferOneStartIndex, int BodyDataBufferOneLength, int BodyDataBufferTwoStartIndex, int BodyDataBufferTwoLength, int ColliderShapeResultBufferLength);
-    record struct ComputeRayBodyHitsUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength, int ColliderShapeResultBufferLength);
-    record struct RestrictRaysUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength);
-    record struct IncrementRayCasterOffsetsUniforms(int RayCasterDataBufferStartIndex, int RayCasterDataBufferLength);
-    record struct IncrementRayCasterBodiesOffsetsUniforms(int PairDataBufferStartIndex, int PairDataBufferLength);
+    record struct ComputeLineBodyHitsUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int LineCollectionDataBufferStartIndex, int LineCollectionDataBufferLength, int ColliderShapeResultBufferLength);
+    record struct RestrictLinesUniforms(int BodyDataBufferStartIndex, int BodyDataBufferLength, int LineCollectionDataBufferStartIndex, int LineCollectionDataBufferLength);
+    record struct IncrementLineCollectionOffsetsUniforms(int LineCollectionDataBufferStartIndex, int LineCollectionDataBufferLength);
+    record struct IncrementLineCollectionBodiesOffsetsUniforms(int PairDataBufferStartIndex, int PairDataBufferLength);
 }

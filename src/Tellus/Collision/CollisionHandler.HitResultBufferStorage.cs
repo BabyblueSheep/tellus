@@ -91,7 +91,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             }
         }
 
-        public IEnumerable<(ICollisionBody, ICollisionRayCaster)> GetData(IList<ICollisionBody> bodyListOne, IList<ICollisionRayCaster> bodyListTwo)
+        public IEnumerable<(ICollisionBody, ICollisionLineCollection)> GetData(IList<ICollisionBody> bodyListOne, IList<ICollisionLineCollection> bodyListTwo)
         {
             var tempTransferDownloadSpan = _downloadBuffer.Map<int>(false, 0);
             int collisionResultAmount = tempTransferDownloadSpan[0];
@@ -99,7 +99,7 @@ public sealed partial class CollisionHandler : GraphicsResource
 
             var transferDownloadSpan = _downloadBuffer.Map<CollisionHitData>(true, 8);
 
-            List<(ICollisionBody, ICollisionRayCaster)> resultList = [];
+            List<(ICollisionBody, ICollisionLineCollection)> resultList = [];
 
             for (int i = 0; i < collisionResultAmount; i++)
             {

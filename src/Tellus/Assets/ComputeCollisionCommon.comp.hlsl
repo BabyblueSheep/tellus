@@ -20,20 +20,20 @@ struct CollisionBodyData
     float2 Offset;
 };
 
-struct RayData
+struct LineData
 {
     float2 Origin;
-    float2 Direction;
+    float2 Vector;
     float Length;
     int Flags;
 };
 
-struct RayCasterData
+struct LineCollectionData
 {
-    int RayIndexStart;
-    int RayIndexLength;
+    int LineIndexStart;
+    int LineIndexLength;
     float2 Offset;
-    int RayVelocityIndex;
+    int LineVelocityIndex;
     int Padding;
 };
 
@@ -55,13 +55,13 @@ float cross(float2 x, float2 y)
 // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 // https://mathworld.wolfram.com/Line-LineIntersection.html
 // https://theswissbay.ch/pdf/Gentoomen%20Library/Game%20Development/Programming/Graphics%20Gems%203.pdf
-bool getLineLineIntersection(RayData lineOneInfo, RayData lineTwoInfo, out float2 intersectionPoint)
+bool getLineLineIntersection(float4 lineOne, float4 lineTwo, out float2 intersectionPoint)
 {
     intersectionPoint = 0;
 
-    float2 lineOneDirection = lineOneInfo.Direction * lineOneInfo.Length;
-    float2 lineTwoDirection = lineTwoInfo.Direction * lineTwoInfo.Length;
-    float2 originDifference = lineTwoInfo.Origin - lineOneInfo.Origin;
+    float2 lineOneDirection = lineOne.zw - lineOne.xy;
+    float2 lineTwoDirection = lineTwo.zw - lineTwo.xy;
+    float2 originDifference = lineTwo.xy - lineOne.xy;
     
     float lineOneNominator = cross(originDifference, lineTwoDirection);
     float lineTwoNominator = cross(originDifference, lineOneDirection);
@@ -90,7 +90,7 @@ bool getLineLineIntersection(RayData lineOneInfo, RayData lineTwoInfo, out float
         
         if ((lineProgressOne >= 0.0 && lineProgressOne <= 1.0) && (lineProgressTwo >= 0.0 && lineProgressTwo <= 1.0))
         {
-            intersectionPoint = lineTwoInfo.Origin + lineTwoInfo.Direction * lineTwoInfo.Length * lineProgressTwo;
+            intersectionPoint = lerp(lineTwo.xy, lineTwo.zw, lineProgressTwo);
             return true;
         }
         return false;

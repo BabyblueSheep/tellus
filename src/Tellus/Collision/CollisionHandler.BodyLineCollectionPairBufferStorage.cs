@@ -1,16 +1,11 @@
 ﻿using MoonWorks.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
-    public sealed class BodyRayCasterPairBufferStorage : GraphicsResource
+    public sealed class BodyLineCollectionPairBufferStorage : GraphicsResource
     {
         private readonly Dictionary<string, (int, int)> _pairListToRange;
 
@@ -19,18 +14,18 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         public int ValidPairCount { get; private set; }
 
-        public BodyRayCasterPairBufferStorage(GraphicsDevice device, uint pairCount = 1024) : base(device)
+        public BodyLineCollectionPairBufferStorage(GraphicsDevice device, uint pairCount = 1024) : base(device)
         {
             _pairListToRange = [];
 
-            _pairDataTransferBuffer = TransferBuffer.Create<CollisionBodyRayCasterPair>
+            _pairDataTransferBuffer = TransferBuffer.Create<CollisionBodyLineCollectionPair>
             (
                 Device,
                 TransferBufferUsage.Upload,
                 pairCount
             );
 
-            PairDataBuffer = Buffer.Create<CollisionBodyRayCasterPair>
+            PairDataBuffer = Buffer.Create<CollisionBodyLineCollectionPair>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead,
@@ -45,32 +40,32 @@ public sealed partial class CollisionHandler : GraphicsResource
             return _pairListToRange[bodyName];
         }
 
-        public void UploadData(CommandBuffer commandBuffer, (string, IList<ICollisionBody>, IList<ICollisionRayCaster>)[] bodyRayCasterListPairList)
+        public void UploadData(CommandBuffer commandBuffer, (string, IList<ICollisionBody>, IList<ICollisionLineCollection>)[] bodyLineCollectionListPairList)
         {
             _pairListToRange.Clear();
 
-            var bodyDataUploadSpan = _pairDataTransferBuffer.Map<CollisionBodyRayCasterPair>(true);
+            var bodyDataUploadSpan = _pairDataTransferBuffer.Map<CollisionBodyLineCollectionPair>(true);
 
             int pairIndex = 0;
 
-            foreach (var bodyRayCasterListPair in bodyRayCasterListPairList)
+            foreach (var bodyLineCollectionListPair in bodyLineCollectionListPairList)
             {
                 int pairListIndexStart = pairIndex;
 
-                for (int i = 0; i < bodyRayCasterListPair.Item2.Count; i++)
+                for (int i = 0; i < bodyLineCollectionListPair.Item2.Count; i++)
                 {
-                    for (int j = 0; j < bodyRayCasterListPair.Item3.Count; j++)
+                    for (int j = 0; j < bodyLineCollectionListPair.Item3.Count; j++)
                     {
-                        if (ReferenceEquals(bodyRayCasterListPair.Item2[i], bodyRayCasterListPair.Item3[j]))
+                        if (ReferenceEquals(bodyLineCollectionListPair.Item2[i], bodyLineCollectionListPair.Item3[j]))
                         {
                             bodyDataUploadSpan[pairIndex].BodyIndex = i;
-                            bodyDataUploadSpan[pairIndex].RayCasterIndex = j;
+                            bodyDataUploadSpan[pairIndex].LineCollectionIndex = j;
                             pairIndex++;
                         }
                     }
                 }
 
-                _pairListToRange.Add(bodyRayCasterListPair.Item1, (pairListIndexStart, pairIndex - pairListIndexStart));
+                _pairListToRange.Add(bodyLineCollectionListPair.Item1, (pairListIndexStart, pairIndex - pairListIndexStart));
             }
 
             _pairDataTransferBuffer.Unmap();

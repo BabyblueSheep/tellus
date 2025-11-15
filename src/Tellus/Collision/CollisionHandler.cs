@@ -9,11 +9,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     private readonly ComputePipeline _hitComputePipeline;
     private readonly ComputePipeline _resolutionComputePipeline;
 
-    private readonly ComputePipeline _rayHitComputePipeline;
-    private readonly ComputePipeline _rayRestrictComputePipeline;
+    private readonly ComputePipeline _lineHitComputePipeline;
+    private readonly ComputePipeline _lineRestrictComputePipeline;
 
-    private readonly ComputePipeline _incrementRayCasterPipeline;
-    private readonly ComputePipeline _incrementRayCasterBodyPipeline;
+    private readonly ComputePipeline _incrementLineCollectionPipeline;
+    private readonly ComputePipeline _incrementLineCollectionBodyPipeline;
 
     public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
     {
@@ -37,7 +37,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _resolutionComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_RayBodyHits.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "Collision_LineBodyHits.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 4,
             NumReadWriteStorageBuffers = 1,
@@ -45,9 +45,9 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountX = 16,
             ThreadCountY = 16,
             ThreadCountZ = 1
-        }, out _rayHitComputePipeline);
+        }, out _lineHitComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_RayBodyRestrictions.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "Collision_LineBodyRestrictions.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 3,
             NumReadWriteStorageBuffers = 1,
@@ -55,9 +55,9 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountX = 16,
             ThreadCountY = 1,
             ThreadCountZ = 1
-        }, out _rayRestrictComputePipeline);
+        }, out _lineRestrictComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_IncrementRayCaster.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "Collision_IncrementLineCollection.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 1,
             NumReadWriteStorageBuffers = 1,
@@ -65,9 +65,9 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountX = 16,
             ThreadCountY = 1,
             ThreadCountZ = 1
-        }, out _incrementRayCasterPipeline);
+        }, out _incrementLineCollectionPipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_IncrementRayCasterBody.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(Device, "Collision_IncrementLineCollectionBody.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 2,
             NumReadWriteStorageBuffers = 2,
@@ -75,7 +75,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountX = 16,
             ThreadCountY = 1,
             ThreadCountZ = 1
-        }, out _incrementRayCasterBodyPipeline);
+        }, out _incrementLineCollectionBodyPipeline);
     }
 
     public void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyBufferStorage bodyListOneBuffer, (int, int) bodyListOneRange, BodyBufferStorage bodyListTwoBuffer, (int, int) bodyListTwoRange, HitResultBufferStorage resultBuffer)
@@ -126,14 +126,14 @@ public sealed partial class CollisionHandler : GraphicsResource
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void ComputeRayBodyHits(CommandBuffer commandBuffer, BodyBufferStorage bodyListBuffer, (int, int) bodyListRange, RayCasterBufferStorage rayListBuffer, (int, int) rayCasterRange, HitResultBufferStorage resultBuffer)
+    public void ComputeLineBodyHits(CommandBuffer commandBuffer, BodyBufferStorage bodyListBuffer, (int, int) bodyListRange, LineCollectionBufferStorage lineListBuffer, (int, int) lineCollectionRange, HitResultBufferStorage resultBuffer)
     {
-        var uniforms = new ComputeRayBodyHitsUniforms
+        var uniforms = new ComputeLineBodyHitsUniforms
         {
             BodyDataBufferStartIndex = bodyListRange.Item1,
             BodyDataBufferLength = bodyListRange.Item2,
-            RayCasterDataBufferStartIndex = rayCasterRange.Item1,
-            RayCasterDataBufferLength = rayCasterRange.Item2,
+            LineCollectionDataBufferStartIndex = lineCollectionRange.Item1,
+            LineCollectionDataBufferLength = lineCollectionRange.Item2,
             ColliderShapeResultBufferLength = resultBuffer.CollisionResultAmount,
         };
 
@@ -141,56 +141,56 @@ public sealed partial class CollisionHandler : GraphicsResource
         (
             new StorageBufferReadWriteBinding(resultBuffer.Buffer, false)
         );
-        computePass.BindComputePipeline(_rayHitComputePipeline);
-        computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, rayListBuffer.RayCasterDataBuffer, rayListBuffer.RayDataBuffer);
+        computePass.BindComputePipeline(_lineHitComputePipeline);
+        computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, lineListBuffer.LineCollectionDataBuffer, lineListBuffer.LineDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch(((uint)uniforms.BodyDataBufferLength + 15) / 16, ((uint)uniforms.RayCasterDataBufferLength + 15) / 16, 1);
+        computePass.Dispatch(((uint)uniforms.BodyDataBufferLength + 15) / 16, ((uint)uniforms.LineCollectionDataBufferLength + 15) / 16, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void RestrictRays(CommandBuffer commandBuffer, BodyBufferStorage bodyListBuffer, (int, int) bodyListRange, RayCasterBufferStorage rayListBuffer, (int, int) rayCasterRange)
+    public void RestrictLines(CommandBuffer commandBuffer, BodyBufferStorage bodyListBuffer, (int, int) bodyListRange, LineCollectionBufferStorage lineListBuffer, (int, int) listCollectionRange)
     {
-        var uniforms = new RestrictRaysUniforms
+        var uniforms = new RestrictLinesUniforms
         {
             BodyDataBufferStartIndex = bodyListRange.Item1,
             BodyDataBufferLength = bodyListRange.Item2,
-            RayCasterDataBufferStartIndex = rayCasterRange.Item1,
-            RayCasterDataBufferLength = rayCasterRange.Item2,
+            LineCollectionDataBufferStartIndex = listCollectionRange.Item1,
+            LineCollectionDataBufferLength = listCollectionRange.Item2,
         };
 
         var computePass = commandBuffer.BeginComputePass
         (
-            new StorageBufferReadWriteBinding(rayListBuffer.RayDataBuffer, false)
+            new StorageBufferReadWriteBinding(lineListBuffer.LineDataBuffer, false)
         );
-        computePass.BindComputePipeline(_rayRestrictComputePipeline);
-        computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, rayListBuffer.RayCasterDataBuffer);
+        computePass.BindComputePipeline(_lineRestrictComputePipeline);
+        computePass.BindStorageBuffers(bodyListBuffer.BodyPartDataBuffer, bodyListBuffer.BodyDataBuffer, lineListBuffer.LineCollectionDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch(((uint)uniforms.RayCasterDataBufferLength + 15) / 16, 1, 1);
+        computePass.Dispatch(((uint)uniforms.LineCollectionDataBufferLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void IncrementRayCasterOffsets(CommandBuffer commandBuffer, RayCasterBufferStorage rayListBuffer, (int, int) rayCasterRange)
+    public void IncrementLineCollectionOffsets(CommandBuffer commandBuffer, LineCollectionBufferStorage lineListBuffer, (int, int) lineCollectionRange)
     {
-        var uniforms = new IncrementRayCasterOffsetsUniforms
+        var uniforms = new IncrementLineCollectionOffsetsUniforms
         {
-            RayCasterDataBufferStartIndex = rayCasterRange.Item1,
-            RayCasterDataBufferLength = rayCasterRange.Item2
+            LineCollectionDataBufferStartIndex = lineCollectionRange.Item1,
+            LineCollectionDataBufferLength = lineCollectionRange.Item2
         };
 
         var computePass = commandBuffer.BeginComputePass
         (
-            new StorageBufferReadWriteBinding(rayListBuffer.RayCasterDataBuffer, false)
+            new StorageBufferReadWriteBinding(lineListBuffer.LineCollectionDataBuffer, false)
         );
-        computePass.BindComputePipeline(_incrementRayCasterPipeline);
-        computePass.BindStorageBuffers(rayListBuffer.RayDataBuffer);
+        computePass.BindComputePipeline(_incrementLineCollectionPipeline);
+        computePass.BindStorageBuffers(lineListBuffer.LineDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
-        computePass.Dispatch(((uint)uniforms.RayCasterDataBufferLength + 15) / 16, 1, 1);
+        computePass.Dispatch(((uint)uniforms.LineCollectionDataBufferLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
     }
 
-    public void IncrementRayCasterBodiesOffsets(CommandBuffer commandBuffer, BodyBufferStorage bodyBufer, RayCasterBufferStorage rayListBuffer, BodyRayCasterPairBufferStorage pairBuffer, (int, int) pairRange)
+    public void IncrementLineCollectionBodiesOffsets(CommandBuffer commandBuffer, BodyBufferStorage bodyBufer, LineCollectionBufferStorage lineListBuffer, BodyLineCollectionPairBufferStorage pairBuffer, (int, int) pairRange)
     {
-        var uniforms = new IncrementRayCasterBodiesOffsetsUniforms
+        var uniforms = new IncrementLineCollectionBodiesOffsetsUniforms
         {
             PairDataBufferStartIndex = pairRange.Item1,
             PairDataBufferLength = pairRange.Item2
@@ -200,12 +200,12 @@ public sealed partial class CollisionHandler : GraphicsResource
         (
             [],
             [
-            new StorageBufferReadWriteBinding(rayListBuffer.RayCasterDataBuffer, false),
-            new StorageBufferReadWriteBinding(bodyBufer.BodyDataBuffer, false)
+                new StorageBufferReadWriteBinding(lineListBuffer.LineCollectionDataBuffer, false),
+                new StorageBufferReadWriteBinding(bodyBufer.BodyDataBuffer, false)
             ]
         );
-        computePass.BindComputePipeline(_incrementRayCasterBodyPipeline);
-        computePass.BindStorageBuffers(pairBuffer.PairDataBuffer, rayListBuffer.RayDataBuffer);
+        computePass.BindComputePipeline(_incrementLineCollectionBodyPipeline);
+        computePass.BindStorageBuffers(pairBuffer.PairDataBuffer, lineListBuffer.LineDataBuffer);
         commandBuffer.PushComputeUniformData(uniforms);
         computePass.Dispatch(((uint)uniforms.PairDataBufferLength + 15) / 16, 1, 1);
         commandBuffer.EndComputePass(computePass);
@@ -218,11 +218,11 @@ public sealed partial class CollisionHandler : GraphicsResource
             if (disposing)
             {
                 _hitComputePipeline.Dispose();
-                _rayHitComputePipeline.Dispose();
+                _lineHitComputePipeline.Dispose();
                 _resolutionComputePipeline.Dispose();
-                _rayRestrictComputePipeline.Dispose();
-                _incrementRayCasterPipeline.Dispose();
-                _incrementRayCasterBodyPipeline.Dispose();
+                _lineRestrictComputePipeline.Dispose();
+                _incrementLineCollectionPipeline.Dispose();
+                _incrementLineCollectionBodyPipeline.Dispose();
             }
         }
         base.Dispose(disposing);

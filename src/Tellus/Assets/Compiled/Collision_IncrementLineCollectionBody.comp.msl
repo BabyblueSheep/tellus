@@ -1,0 +1,94 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct CollisionBodyLineCollectionPair
+{
+    int BodyIndex;
+    int LineCollectionIndex;
+};
+
+struct type_StructuredBuffer_CollisionBodyLineCollectionPair
+{
+    CollisionBodyLineCollectionPair _m0[1];
+};
+
+struct LineData
+{
+    float2 Origin;
+    float2 Vector;
+    float Length;
+    int Flags;
+};
+
+struct type_StructuredBuffer_LineData
+{
+    LineData _m0[1];
+};
+
+struct LineCollectionData
+{
+    int LineIndexStart;
+    int LineIndexLength;
+    float2 Offset;
+    int LineVelocityIndex;
+    int Padding;
+};
+
+struct type_RWStructuredBuffer_LineCollectionData
+{
+    LineCollectionData _m0[1];
+};
+
+struct CollisionBodyData
+{
+    int BodyPartIndexStart;
+    int BodyPartIndexLength;
+    float2 Offset;
+};
+
+struct type_RWStructuredBuffer_CollisionBodyData
+{
+    CollisionBodyData _m0[1];
+};
+
+struct type_UniformBlock
+{
+    int PairDataBufferStartIndex;
+    int PairDataBufferLength;
+};
+
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_CollisionBodyLineCollectionPair& PairDataBuffer [[buffer(1)]], const device type_StructuredBuffer_LineData& LineDataBuffer [[buffer(2)]], device type_RWStructuredBuffer_LineCollectionData& LineCollectionCasterDataBuffer [[buffer(3)]], device type_RWStructuredBuffer_CollisionBodyData& BodyDataBuffer [[buffer(4)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    do
+    {
+        if (gl_GlobalInvocationID.x >= uint(UniformBlock.PairDataBufferLength))
+        {
+            break;
+        }
+        uint _59 = gl_GlobalInvocationID.x + uint(UniformBlock.PairDataBufferStartIndex);
+        int _61 = PairDataBuffer._m0[_59].BodyIndex;
+        int _63 = PairDataBuffer._m0[_59].LineCollectionIndex;
+        uint _64 = uint(_63);
+        int _66 = LineCollectionCasterDataBuffer._m0[_64].LineVelocityIndex;
+        uint _67 = uint(_66);
+        LineData _69 = LineDataBuffer._m0[_67];
+        if ((_69.Flags & 2) == 2)
+        {
+            float2 _81 = fast::normalize(_69.Vector - _69.Origin) * _69.Length;
+            LineCollectionCasterDataBuffer._m0[_64].Offset += _81;
+            uint _85 = uint(_61);
+            BodyDataBuffer._m0[_85].Offset += _81;
+        }
+        else
+        {
+            float2 _89 = _69.Vector * _69.Length;
+            LineCollectionCasterDataBuffer._m0[_64].Offset += _89;
+            uint _93 = uint(_61);
+            BodyDataBuffer._m0[_93].Offset += _89;
+        }
+        break;
+    } while(false);
+}
+

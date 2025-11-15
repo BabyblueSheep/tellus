@@ -5,8 +5,8 @@
 
 StructuredBuffer<CollisionBodyPartData> BodyPartDataBuffer : register(t0, space0);
 StructuredBuffer<CollisionBodyData> BodyDataBuffer : register(t1, space0);
-StructuredBuffer<RayCasterData> RayCasterDataBuffer : register(t2, space0);
-StructuredBuffer<RayData> RayDataBuffer : register(t3, space0);
+StructuredBuffer<LineCollectionData> LineCollectionDataBuffer : register(t2, space0);
+StructuredBuffer<LineData> LineDataBuffer : register(t3, space0);
 
 RWByteAddressBuffer CollisionResultBuffer : register(u0, space1);
 
@@ -14,8 +14,8 @@ cbuffer UniformBlock : register(b0, space2)
 {
     int BodyDataBufferStartIndex;
     int BodyDataBufferLength;
-    int RayCasterDataBufferStartIndex;
-    int RayCasterDataBufferLength;
+    int LineCollectionDataBufferStartIndex;
+    int LineCollectionDataBufferLength;
     int ColliderShapeResultBufferLength;
 };
 
@@ -25,24 +25,33 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     uint x = GlobalInvocationID.x;
     uint y = GlobalInvocationID.y;
     
-    if (x >= BodyDataBufferLength || y >= RayCasterDataBufferLength)
+    if (x >= BodyDataBufferLength || y >= LineCollectionDataBufferLength)
     {
         return;
     }
     
     CollisionBodyData collisionBodyData = BodyDataBuffer[x + BodyDataBufferStartIndex];
-    RayCasterData rayCasterData = RayCasterDataBuffer[y + RayCasterDataBufferStartIndex];
+    LineCollectionData lineCollectionData = LineCollectionDataBuffer[y + LineCollectionDataBufferStartIndex];
     
     float2 bodyPartVertices[16];
     int bodyPartVerticeLengths;
     
-    RayData lineInfo;
     float2 _;
     
-    for (int i = 0; i < rayCasterData.RayIndexLength; i++)
+    for (int i = 0; i < lineCollectionData.LineIndexLength; i++)
     {
-        RayData rayData = RayDataBuffer[i + rayCasterData.RayIndexStart];
-        rayData.Origin += rayCasterData.Offset;
+        LineData lineData = LineDataBuffer[i + lineCollectionData.LineIndexLength];
+        lineData.Origin += lineCollectionData.Offset;
+        float2 lineStart = lineData.Origin;
+        float2 lineEnd;
+        if ((lineData.Flags & 2) == 2)
+        {
+            lineEnd = lineData.Origin + normalize(lineData.Vector - lineData.Origin) * lineData.Length;
+        }
+        else
+        {
+            lineEnd = lineData.Origin + lineData.Vector * lineData.Length;
+        }
         
         for (int j = 0; j < collisionBodyData.BodyPartIndexLength; j++)
         {
@@ -54,11 +63,11 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             {
                 int n = (m == (bodyPartVerticeLengths - 1)) ? 0 : (m + 1);
             
-                lineInfo.Origin = bodyPartVertices[m];
-                lineInfo.Direction = normalize(bodyPartVertices[n] - bodyPartVertices[m]);
-                lineInfo.Length = length(bodyPartVertices[n] - bodyPartVertices[m]);
+                float2 bodyPartLineStart = bodyPartVertices[m];
+                float2 bodyPartLineEnd = bodyPartVertices[n];
+                
             
-                bool didIntersect = getLineLineIntersection(lineInfo, rayData, _);
+                bool didIntersect = getLineLineIntersection(float4(bodyPartLineStart, bodyPartLineEnd), float4(lineStart, lineEnd), _);
                 if (didIntersect)
                 {
                     int collisionAmount;

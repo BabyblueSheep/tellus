@@ -1,0 +1,395 @@
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma clang diagnostic ignored "-Wmissing-braces"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+#include <metal_atomic>
+
+using namespace metal;
+
+template<typename T, size_t Num>
+struct spvUnsafeArray
+{
+    T elements[Num ? Num : 1];
+    
+    thread T& operator [] (size_t pos) thread
+    {
+        return elements[pos];
+    }
+    constexpr const thread T& operator [] (size_t pos) const thread
+    {
+        return elements[pos];
+    }
+    
+    device T& operator [] (size_t pos) device
+    {
+        return elements[pos];
+    }
+    constexpr const device T& operator [] (size_t pos) const device
+    {
+        return elements[pos];
+    }
+    
+    constexpr const constant T& operator [] (size_t pos) const constant
+    {
+        return elements[pos];
+    }
+    
+    threadgroup T& operator [] (size_t pos) threadgroup
+    {
+        return elements[pos];
+    }
+    constexpr const threadgroup T& operator [] (size_t pos) const threadgroup
+    {
+        return elements[pos];
+    }
+};
+
+struct CollisionBodyPartData
+{
+    int CollisionBodyIndex;
+    int ShapeType;
+    float2 Center;
+    float4 DecimalFields;
+    int2 IntegerFields;
+    int Padding1;
+    int Padding2;
+};
+
+struct type_StructuredBuffer_CollisionBodyPartData
+{
+    CollisionBodyPartData _m0[1];
+};
+
+struct CollisionBodyData
+{
+    int BodyPartIndexStart;
+    int BodyPartIndexLength;
+    float2 Offset;
+};
+
+struct type_StructuredBuffer_CollisionBodyData
+{
+    CollisionBodyData _m0[1];
+};
+
+struct LineCollectionData
+{
+    int LineIndexStart;
+    int LineIndexLength;
+    float2 Offset;
+    int LineVelocityIndex;
+    int Padding;
+};
+
+struct type_StructuredBuffer_LineCollectionData
+{
+    LineCollectionData _m0[1];
+};
+
+struct LineData
+{
+    float2 Origin;
+    float2 Vector;
+    float Length;
+    int Flags;
+};
+
+struct type_StructuredBuffer_LineData
+{
+    LineData _m0[1];
+};
+
+struct type_RWByteAddressBuffer
+{
+    uint _m0[1];
+};
+
+struct type_UniformBlock
+{
+    int BodyDataBufferStartIndex;
+    int BodyDataBufferLength;
+    int LineCollectionDataBufferStartIndex;
+    int LineCollectionDataBufferLength;
+    int ColliderShapeResultBufferLength;
+};
+
+kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const device type_StructuredBuffer_CollisionBodyPartData& BodyPartDataBuffer [[buffer(1)]], const device type_StructuredBuffer_CollisionBodyData& BodyDataBuffer [[buffer(2)]], const device type_StructuredBuffer_LineCollectionData& LineCollectionDataBuffer [[buffer(3)]], const device type_StructuredBuffer_LineData& LineDataBuffer [[buffer(4)]], device type_RWByteAddressBuffer& CollisionResultBuffer [[buffer(5)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    do
+    {
+        bool _96;
+        if (!(gl_GlobalInvocationID.x >= uint(UniformBlock.BodyDataBufferLength)))
+        {
+            _96 = gl_GlobalInvocationID.y >= uint(UniformBlock.LineCollectionDataBufferLength);
+        }
+        else
+        {
+            _96 = true;
+        }
+        if (_96)
+        {
+            break;
+        }
+        uint _102 = gl_GlobalInvocationID.x + uint(UniformBlock.BodyDataBufferStartIndex);
+        uint _111 = gl_GlobalInvocationID.y + uint(UniformBlock.LineCollectionDataBufferStartIndex);
+        spvUnsafeArray<float2, 16> _78;
+        bool _118;
+        bool _371;
+        bool _117 = false;
+        int _120 = 0;
+        for (;;)
+        {
+            if (_120 < LineCollectionDataBuffer._m0[_111].LineIndexLength)
+            {
+                uint _126 = uint(_120 + LineCollectionDataBuffer._m0[_111].LineIndexLength);
+                float2 _133 = LineDataBuffer._m0[_126].Origin + LineCollectionDataBuffer._m0[_111].Offset;
+                float2 _145;
+                if ((LineDataBuffer._m0[_126].Flags & 2) == 2)
+                {
+                    _145 = _133 + (fast::normalize(LineDataBuffer._m0[_126].Vector - _133) * LineDataBuffer._m0[_126].Length);
+                }
+                else
+                {
+                    _145 = _133 + (LineDataBuffer._m0[_126].Vector * LineDataBuffer._m0[_126].Length);
+                }
+                bool _148;
+                bool _147 = _117;
+                int _150 = 0;
+                for (;;)
+                {
+                    if (_150 < BodyDataBuffer._m0[_102].BodyPartIndexLength)
+                    {
+                        uint _156 = uint(_150 + BodyDataBuffer._m0[_102].BodyPartIndexStart);
+                        for (int _166 = 0; _166 < 16; )
+                        {
+                            _78[_166] = float2(0.0);
+                            _166++;
+                            continue;
+                        }
+                        int _251;
+                        if (BodyPartDataBuffer._m0[_156].ShapeType == 0)
+                        {
+                            for (int _236 = 0; _236 < BodyPartDataBuffer._m0[_156].IntegerFields.x; )
+                            {
+                                float _244 = (6.283185482025146484375 * float(_236)) / float(BodyPartDataBuffer._m0[_156].IntegerFields.x);
+                                _78[_236] = BodyPartDataBuffer._m0[_156].Center + (float2(cos(_244), sin(_244)) * BodyPartDataBuffer._m0[_156].DecimalFields.x);
+                                _236++;
+                                continue;
+                            }
+                            _251 = BodyPartDataBuffer._m0[_156].IntegerFields.x;
+                        }
+                        else
+                        {
+                            int _232;
+                            if (BodyPartDataBuffer._m0[_156].ShapeType == 1)
+                            {
+                                float _194 = sin(BodyPartDataBuffer._m0[_156].DecimalFields.x);
+                                float _195 = cos(BodyPartDataBuffer._m0[_156].DecimalFields.x);
+                                float _198 = BodyPartDataBuffer._m0[_156].DecimalFields.y * (-0.5);
+                                float _199 = BodyPartDataBuffer._m0[_156].DecimalFields.z * (-0.5);
+                                _78[0] = float2(_198, _199);
+                                float _202 = BodyPartDataBuffer._m0[_156].DecimalFields.y * 0.5;
+                                _78[1] = float2(_202, _199);
+                                float _205 = BodyPartDataBuffer._m0[_156].DecimalFields.z * 0.5;
+                                _78[2] = float2(_202, _205);
+                                _78[3] = float2(_198, _205);
+                                for (int _211 = 0; _211 < 4; )
+                                {
+                                    float _225 = _78[_211].x;
+                                    float _227 = _78[_211].y;
+                                    _78[_211].x = (_78[_211].x * _195) + (_78[_211].y * (-_194));
+                                    _78[_211].y = (_225 * _194) + (_227 * _195);
+                                    _78[_211] += BodyPartDataBuffer._m0[_156].Center;
+                                    _211++;
+                                    continue;
+                                }
+                                _232 = 4;
+                            }
+                            else
+                            {
+                                bool _180 = BodyPartDataBuffer._m0[_156].ShapeType == 2;
+                                if (_180)
+                                {
+                                    _78[0] = BodyPartDataBuffer._m0[_156].Center;
+                                    _78[1] = float2(BodyPartDataBuffer._m0[_156].DecimalFields.xy);
+                                    _78[2] = float2(BodyPartDataBuffer._m0[_156].DecimalFields.zw);
+                                }
+                                _232 = _180 ? 3 : 1;
+                            }
+                            _251 = _232;
+                        }
+                        for (int _253 = 0; _253 < 16; )
+                        {
+                            _78[_253] += BodyDataBuffer._m0[_102].Offset;
+                            _253++;
+                            continue;
+                        }
+                        int _262 = 0;
+                        for (;;)
+                        {
+                            if (_262 < _251)
+                            {
+                                int _274;
+                                if (_262 == (_251 - 1))
+                                {
+                                    _274 = 0;
+                                }
+                                else
+                                {
+                                    _274 = _262 + 1;
+                                }
+                                float4 _283 = float4(_78[_262], _78[_274]);
+                                float4 _288 = float4(_133, _145);
+                                bool _349;
+                                do
+                                {
+                                    float2 _292 = _283.xy;
+                                    float2 _293 = _283.zw - _292;
+                                    float2 _295 = _288.xy;
+                                    float2 _296 = _288.zw - _295;
+                                    float2 _297 = _295 - _292;
+                                    float _298 = _297.x;
+                                    float _299 = _296.y;
+                                    float _301 = _297.y;
+                                    float _302 = _296.x;
+                                    float _305 = _293.y;
+                                    float _307 = _293.x;
+                                    float _309 = (_298 * _305) - (_301 * _307);
+                                    float _312 = (_307 * _299) - (_305 * _302);
+                                    bool _314 = abs(_312) < 0.001000000047497451305389404296875;
+                                    bool _316 = abs(_309) < 0.001000000047497451305389404296875;
+                                    bool _321;
+                                    if (_314)
+                                    {
+                                        _321 = !_316;
+                                    }
+                                    else
+                                    {
+                                        _321 = false;
+                                    }
+                                    if (_314 ? _316 : false)
+                                    {
+                                        _349 = false;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        if (_321)
+                                        {
+                                            _349 = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            if (!_314)
+                                            {
+                                                float _332 = ((_298 * _299) - (_301 * _302)) / _312;
+                                                float _333 = _309 / _312;
+                                                bool _338;
+                                                if (_332 >= 0.0)
+                                                {
+                                                    _338 = _332 <= 1.0;
+                                                }
+                                                else
+                                                {
+                                                    _338 = false;
+                                                }
+                                                bool _346;
+                                                if (_338)
+                                                {
+                                                    bool _345;
+                                                    if (_333 >= 0.0)
+                                                    {
+                                                        _345 = _333 <= 1.0;
+                                                    }
+                                                    else
+                                                    {
+                                                        _345 = false;
+                                                    }
+                                                    _346 = _345;
+                                                }
+                                                else
+                                                {
+                                                    _346 = false;
+                                                }
+                                                if (_346)
+                                                {
+                                                    _349 = true;
+                                                    break;
+                                                }
+                                                _349 = false;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                _349 = false;
+                                                break;
+                                            }
+                                            break; // unreachable workaround
+                                        }
+                                        break; // unreachable workaround
+                                    }
+                                    break; // unreachable workaround
+                                } while(false);
+                                if (_349)
+                                {
+                                    uint _353 = atomic_fetch_add_explicit((device atomic_uint*)&CollisionResultBuffer._m0[0u], 1u, memory_order_relaxed);
+                                    int _354 = int(_353);
+                                    if (_354 < UniformBlock.ColliderShapeResultBufferLength)
+                                    {
+                                        int _360 = _354 * 8;
+                                        CollisionResultBuffer._m0[uint(8 + _360) >> 2u] = gl_GlobalInvocationID.x;
+                                        CollisionResultBuffer._m0[uint(_360 + 12) >> 2u] = gl_GlobalInvocationID.y;
+                                    }
+                                    _148 = true;
+                                    break;
+                                }
+                                _262++;
+                                continue;
+                            }
+                            else
+                            {
+                                _148 = _147;
+                                break;
+                            }
+                        }
+                        if (_148)
+                        {
+                            _118 = _148;
+                            break;
+                        }
+                        _147 = _148;
+                        _150++;
+                        continue;
+                    }
+                    else
+                    {
+                        _118 = _147;
+                        break;
+                    }
+                }
+                if (_118)
+                {
+                    _371 = _118;
+                    break;
+                }
+                _117 = _118;
+                _120++;
+                continue;
+            }
+            else
+            {
+                _371 = _117;
+                break;
+            }
+        }
+        if (_371)
+        {
+            break;
+        }
+        break;
+    } while(false);
+}
+
