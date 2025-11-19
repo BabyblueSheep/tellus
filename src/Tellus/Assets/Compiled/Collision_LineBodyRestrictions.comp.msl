@@ -125,195 +125,195 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                 continue;
             }
             float2 _110 = LineDataBuffer._m0[_99].Origin + LineCollectionDataBuffer._m0[_86].Offset;
-            float2 _122;
+            float2 _118;
             if ((LineDataBuffer._m0[_99].Flags & 2) == 2)
             {
-                _122 = _110 + (fast::normalize(LineDataBuffer._m0[_99].Vector - _110) * LineDataBuffer._m0[_99].Length);
+                _118 = LineDataBuffer._m0[_99].Vector;
             }
             else
             {
-                _122 = _110 + (LineDataBuffer._m0[_99].Vector * LineDataBuffer._m0[_99].Length);
+                _118 = _110 + (LineDataBuffer._m0[_99].Vector * LineDataBuffer._m0[_99].Length);
             }
-            float _124;
-            _124 = LineDataBuffer._m0[_99].Length;
-            float _125;
-            for (int _127 = 0; _127 < UniformBlock.BodyDataBufferLength; _124 = _125, _127++)
+            float _120;
+            _120 = LineDataBuffer._m0[_99].Length;
+            float _121;
+            for (int _123 = 0; _123 < UniformBlock.BodyDataBufferLength; _120 = _121, _123++)
             {
-                uint _137 = uint(_127 + UniformBlock.BodyDataBufferStartIndex);
-                _125 = _124;
-                float _147;
-                for (int _144 = 0; _144 < BodyDataBuffer._m0[_137].BodyPartIndexLength; _144++, _125 = _147)
+                uint _133 = uint(_123 + UniformBlock.BodyDataBufferStartIndex);
+                _121 = _120;
+                float _143;
+                for (int _140 = 0; _140 < BodyDataBuffer._m0[_133].BodyPartIndexLength; _140++, _121 = _143)
                 {
-                    uint _152 = uint(_144 + BodyDataBuffer._m0[_137].BodyPartIndexStart);
-                    for (int _162 = 0; _162 < 16; )
+                    uint _148 = uint(_140 + BodyDataBuffer._m0[_133].BodyPartIndexStart);
+                    for (int _158 = 0; _158 < 16; )
                     {
-                        _72[_162] = float2(0.0);
-                        _162++;
+                        _72[_158] = float2(0.0);
+                        _158++;
                         continue;
                     }
-                    int _247;
-                    if (BodyPartDataBuffer._m0[_152].ShapeType == 0)
+                    int _243;
+                    if (BodyPartDataBuffer._m0[_148].ShapeType == 0)
                     {
-                        for (int _232 = 0; _232 < BodyPartDataBuffer._m0[_152].IntegerFields.x; )
+                        for (int _228 = 0; _228 < BodyPartDataBuffer._m0[_148].IntegerFields.x; )
                         {
-                            float _240 = (6.283185482025146484375 * float(_232)) / float(BodyPartDataBuffer._m0[_152].IntegerFields.x);
-                            _72[_232] = BodyPartDataBuffer._m0[_152].Center + (float2(cos(_240), sin(_240)) * BodyPartDataBuffer._m0[_152].DecimalFields.x);
-                            _232++;
+                            float _236 = (6.283185482025146484375 * float(_228)) / float(BodyPartDataBuffer._m0[_148].IntegerFields.x);
+                            _72[_228] = BodyPartDataBuffer._m0[_148].Center + (float2(cos(_236), sin(_236)) * BodyPartDataBuffer._m0[_148].DecimalFields.x);
+                            _228++;
                             continue;
                         }
-                        _247 = BodyPartDataBuffer._m0[_152].IntegerFields.x;
+                        _243 = BodyPartDataBuffer._m0[_148].IntegerFields.x;
                     }
                     else
                     {
-                        int _228;
-                        if (BodyPartDataBuffer._m0[_152].ShapeType == 1)
+                        int _224;
+                        if (BodyPartDataBuffer._m0[_148].ShapeType == 1)
                         {
-                            float _190 = sin(BodyPartDataBuffer._m0[_152].DecimalFields.x);
-                            float _191 = cos(BodyPartDataBuffer._m0[_152].DecimalFields.x);
-                            float _194 = BodyPartDataBuffer._m0[_152].DecimalFields.y * (-0.5);
-                            float _195 = BodyPartDataBuffer._m0[_152].DecimalFields.z * (-0.5);
-                            _72[0] = float2(_194, _195);
-                            float _198 = BodyPartDataBuffer._m0[_152].DecimalFields.y * 0.5;
-                            _72[1] = float2(_198, _195);
-                            float _201 = BodyPartDataBuffer._m0[_152].DecimalFields.z * 0.5;
-                            _72[2] = float2(_198, _201);
-                            _72[3] = float2(_194, _201);
-                            for (int _207 = 0; _207 < 4; )
+                            float _186 = sin(BodyPartDataBuffer._m0[_148].DecimalFields.x);
+                            float _187 = cos(BodyPartDataBuffer._m0[_148].DecimalFields.x);
+                            float _190 = BodyPartDataBuffer._m0[_148].DecimalFields.y * (-0.5);
+                            float _191 = BodyPartDataBuffer._m0[_148].DecimalFields.z * (-0.5);
+                            _72[0] = float2(_190, _191);
+                            float _194 = BodyPartDataBuffer._m0[_148].DecimalFields.y * 0.5;
+                            _72[1] = float2(_194, _191);
+                            float _197 = BodyPartDataBuffer._m0[_148].DecimalFields.z * 0.5;
+                            _72[2] = float2(_194, _197);
+                            _72[3] = float2(_190, _197);
+                            for (int _203 = 0; _203 < 4; )
                             {
-                                float _221 = _72[_207].x;
-                                float _223 = _72[_207].y;
-                                _72[_207].x = (_72[_207].x * _191) + (_72[_207].y * (-_190));
-                                _72[_207].y = (_221 * _190) + (_223 * _191);
-                                _72[_207] += BodyPartDataBuffer._m0[_152].Center;
-                                _207++;
+                                float _217 = _72[_203].x;
+                                float _219 = _72[_203].y;
+                                _72[_203].x = (_72[_203].x * _187) + (_72[_203].y * (-_186));
+                                _72[_203].y = (_217 * _186) + (_219 * _187);
+                                _72[_203] += BodyPartDataBuffer._m0[_148].Center;
+                                _203++;
                                 continue;
                             }
-                            _228 = 4;
+                            _224 = 4;
                         }
                         else
                         {
-                            bool _176 = BodyPartDataBuffer._m0[_152].ShapeType == 2;
-                            if (_176)
+                            bool _172 = BodyPartDataBuffer._m0[_148].ShapeType == 2;
+                            if (_172)
                             {
-                                _72[0] = BodyPartDataBuffer._m0[_152].Center;
-                                _72[1] = float2(BodyPartDataBuffer._m0[_152].DecimalFields.xy);
-                                _72[2] = float2(BodyPartDataBuffer._m0[_152].DecimalFields.zw);
+                                _72[0] = BodyPartDataBuffer._m0[_148].Center;
+                                _72[1] = float2(BodyPartDataBuffer._m0[_148].DecimalFields.xy);
+                                _72[2] = float2(BodyPartDataBuffer._m0[_148].DecimalFields.zw);
                             }
-                            _228 = _176 ? 3 : 1;
+                            _224 = _172 ? 3 : 1;
                         }
-                        _247 = _228;
+                        _243 = _224;
                     }
-                    for (int _249 = 0; _249 < 16; )
+                    for (int _245 = 0; _245 < 16; )
                     {
-                        _72[_249] += BodyDataBuffer._m0[_137].Offset;
-                        _249++;
+                        _72[_245] += BodyDataBuffer._m0[_133].Offset;
+                        _245++;
                         continue;
                     }
-                    _147 = _125;
-                    float _258;
-                    for (int _260 = 0; _260 < _247; _147 = _258, _260++)
+                    _143 = _121;
+                    float _254;
+                    for (int _256 = 0; _256 < _243; _143 = _254, _256++)
                     {
-                        int _271;
-                        if (_260 == (_247 - 1))
+                        int _267;
+                        if (_256 == (_243 - 1))
                         {
-                            _271 = 0;
+                            _267 = 0;
                         }
                         else
                         {
-                            _271 = _260 + 1;
+                            _267 = _256 + 1;
                         }
-                        float4 _280 = float4(_72[_260], _72[_271]);
-                        float4 _285 = float4(_110, _122);
-                        float2 _348;
-                        bool _349;
+                        float4 _276 = float4(_72[_256], _72[_267]);
+                        float4 _281 = float4(_110, _118);
+                        float2 _344;
+                        bool _345;
                         do
                         {
-                            float2 _289 = _280.xy;
-                            float2 _290 = _280.zw - _289;
-                            float2 _291 = _285.zw;
-                            float2 _292 = _285.xy;
-                            float2 _293 = _291 - _292;
-                            float2 _294 = _292 - _289;
-                            float _295 = _294.x;
-                            float _296 = _293.y;
-                            float _298 = _294.y;
-                            float _299 = _293.x;
-                            float _302 = _290.y;
-                            float _304 = _290.x;
-                            float _306 = (_295 * _302) - (_298 * _304);
-                            float _309 = (_304 * _296) - (_302 * _299);
-                            bool _311 = abs(_309) < 0.001000000047497451305389404296875;
-                            bool _313 = abs(_306) < 0.001000000047497451305389404296875;
-                            bool _318;
-                            if (_311)
+                            float2 _285 = _276.xy;
+                            float2 _286 = _276.zw - _285;
+                            float2 _287 = _281.zw;
+                            float2 _288 = _281.xy;
+                            float2 _289 = _287 - _288;
+                            float2 _290 = _288 - _285;
+                            float _291 = _290.x;
+                            float _292 = _289.y;
+                            float _294 = _290.y;
+                            float _295 = _289.x;
+                            float _298 = _286.y;
+                            float _300 = _286.x;
+                            float _302 = (_291 * _298) - (_294 * _300);
+                            float _305 = (_300 * _292) - (_298 * _295);
+                            bool _307 = abs(_305) < 0.001000000047497451305389404296875;
+                            bool _309 = abs(_302) < 0.001000000047497451305389404296875;
+                            bool _314;
+                            if (_307)
                             {
-                                _318 = !_313;
+                                _314 = !_309;
                             }
                             else
                             {
-                                _318 = false;
+                                _314 = false;
                             }
-                            if (_311 ? _313 : false)
+                            if (_307 ? _309 : false)
                             {
-                                _348 = float2(0.0);
-                                _349 = false;
+                                _344 = float2(0.0);
+                                _345 = false;
                                 break;
                             }
                             else
                             {
-                                if (_318)
+                                if (_314)
                                 {
-                                    _348 = float2(0.0);
-                                    _349 = false;
+                                    _344 = float2(0.0);
+                                    _345 = false;
                                     break;
                                 }
                                 else
                                 {
-                                    if (!_311)
+                                    if (!_307)
                                     {
-                                        float _329 = ((_295 * _296) - (_298 * _299)) / _309;
-                                        float _330 = _306 / _309;
-                                        bool _335;
-                                        if (_329 >= 0.0)
+                                        float _325 = ((_291 * _292) - (_294 * _295)) / _305;
+                                        float _326 = _302 / _305;
+                                        bool _331;
+                                        if (_325 >= 0.0)
                                         {
-                                            _335 = _329 <= 1.0;
+                                            _331 = _325 <= 1.0;
                                         }
                                         else
                                         {
-                                            _335 = false;
+                                            _331 = false;
                                         }
-                                        bool _343;
-                                        if (_335)
+                                        bool _339;
+                                        if (_331)
                                         {
-                                            bool _342;
-                                            if (_330 >= 0.0)
+                                            bool _338;
+                                            if (_326 >= 0.0)
                                             {
-                                                _342 = _330 <= 1.0;
+                                                _338 = _326 <= 1.0;
                                             }
                                             else
                                             {
-                                                _342 = false;
+                                                _338 = false;
                                             }
-                                            _343 = _342;
+                                            _339 = _338;
                                         }
                                         else
                                         {
-                                            _343 = false;
+                                            _339 = false;
                                         }
-                                        if (_343)
+                                        if (_339)
                                         {
-                                            _348 = mix(_292, _291, float2(_330));
-                                            _349 = true;
+                                            _344 = mix(_288, _287, float2(_326));
+                                            _345 = true;
                                             break;
                                         }
-                                        _348 = float2(0.0);
-                                        _349 = false;
+                                        _344 = float2(0.0);
+                                        _345 = false;
                                         break;
                                     }
                                     else
                                     {
-                                        _348 = float2(0.0);
-                                        _349 = false;
+                                        _344 = float2(0.0);
+                                        _345 = false;
                                         break;
                                     }
                                     break; // unreachable workaround
@@ -322,19 +322,19 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                             }
                             break; // unreachable workaround
                         } while(false);
-                        if (_349)
+                        if (_345)
                         {
-                            float _353 = length(_348 - _110);
-                            _258 = (_353 < _147) ? _353 : _147;
+                            float _349 = length(_344 - _110);
+                            _254 = (_349 < _143) ? _349 : _143;
                         }
                         else
                         {
-                            _258 = _147;
+                            _254 = _143;
                         }
                     }
                 }
             }
-            LineDataBuffer._m0[_99].Length = _124;
+            LineDataBuffer._m0[_99].Length = _120;
         }
         break;
     } while(false);

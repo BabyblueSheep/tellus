@@ -3,12 +3,31 @@ using System.Numerics;
 
 namespace Tellus.Collision;
 
+/// <summary>
+/// Describes a "body" composed of several "body parts" that get tested for collision detection.
+/// </summary>
 public interface ICollisionBody
 {
+    /// <summary>
+    /// A position offset applied to all body parts.
+    /// </summary>
+    /// <remarks>
+    /// Used to keep body parts in local space instead of world space.
+    /// </remarks>
     public Vector2 BodyOffset { get; }
+
+    /// <summary>
+    /// Gets all body parts that compose the body.
+    /// </summary>
     public IEnumerable<ICollisionBodyPart> BodyParts { get; }
 }
 
+/// <summary>
+/// Contains all information needed to transfer a body part to a GPU buffer.
+/// </summary>
+/// <remarks>
+/// Don't implement this yourself. Instead, use provided structs that implement this interface.
+/// </remarks>
 public interface ICollisionBodyPart
 {
     public int ShapeType { get; }
@@ -17,10 +36,18 @@ public interface ICollisionBodyPart
     public Point IntegerFields { get; }
 }
 
+/// <summary>
+/// A body part that represents a circular polygon.
+/// </summary>
 public struct CircleCollisionBodyPart : ICollisionBodyPart
 {
     public Vector2 Center;
-    public float Radius;
+    private float _radius;
+    public float Radius
+    {
+        get => _radius;
+        set => _radius = MathF.Max(0, value);
+    }
     private int _vertexCount;
     public int VertexCount 
     {
@@ -40,10 +67,13 @@ public struct CircleCollisionBodyPart : ICollisionBodyPart
 
     public readonly int ShapeType => 0;
     public readonly Vector2 BodyPartCenter => Center;
-    public readonly Vector4 DecimalFields => new Vector4(Radius, 0, 0, 0);
+    public readonly Vector4 DecimalFields => new Vector4(_radius, 0, 0, 0);
     public readonly Point IntegerFields => new Point(_vertexCount, 0);
 }
 
+/// <summary>
+/// A body part that represents a rectangle that can freely be rotated.
+/// </summary>
 public struct RectangleCollisionBodyPart : ICollisionBodyPart
 {
     public Vector2 Center;
@@ -63,6 +93,9 @@ public struct RectangleCollisionBodyPart : ICollisionBodyPart
     public readonly Point IntegerFields => new Point(0, 0);
 }
 
+/// <summary>
+/// A body part that represents a triangle composed of any three points.
+/// </summary>
 public struct TriangleCollisionBodyPart : ICollisionBodyPart
 {
     public Vector2 PointOne;

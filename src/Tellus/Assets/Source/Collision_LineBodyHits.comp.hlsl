@@ -40,13 +40,13 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
     
     for (int i = 0; i < lineCollectionData.LineIndexLength; i++)
     {
-        LineData lineData = LineDataBuffer[i + lineCollectionData.LineIndexLength];
+        LineData lineData = LineDataBuffer[i + lineCollectionData.LineIndexStart];
         lineData.Origin += lineCollectionData.Offset;
         float2 lineStart = lineData.Origin;
         float2 lineEnd;
         if ((lineData.Flags & 2) == 2)
         {
-            lineEnd = lineData.Origin + normalize(lineData.Vector - lineData.Origin) * lineData.Length;
+            lineEnd = lineData.Vector;
         }
         else
         {

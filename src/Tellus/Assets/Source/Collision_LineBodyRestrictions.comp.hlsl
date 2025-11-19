@@ -41,7 +41,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float2 lineEnd;
         if ((lineData.Flags & 2) == 2)
         {
-            lineEnd = lineData.Origin + normalize(lineData.Vector - lineData.Origin) * lineData.Length;
+            lineEnd = lineData.Vector;
         }
         else
         {

@@ -41,7 +41,7 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionLineCollection
     public Vector2 OriginOffset => Center;
     public IEnumerable<CollisionLine> Lines => [
         CollisionLine.CreateFiniteLengthRay(Vector2.Zero, Velocity.SafeNormalize(Vector2.Zero), Velocity.Length()) with { CanBeRestricted = true },
-        CollisionLine.CreateFiniteLengthRay(Vector2.Zero, Velocity.SafeNormalize(Vector2.Zero), Velocity.Length()),
+        CollisionLine.CreateFixedPointLineSegment(Vector2.Zero, LaserEnd, (LaserEnd - Center).Length()),
     ];
 }
 
@@ -371,7 +371,7 @@ internal class CollisionGame : Game
             movingObject.HasCollidedThisFrame = false;
             if (movingObject.Random.Next(16) == 0)
             {
-                movingObject.Velocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * 8;
+                movingObject.Velocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * (movingObject.Random.NextSingle() * 8 + 0.1f);
             }
         }
 
@@ -590,10 +590,17 @@ internal class CollisionGame : Game
             
             int lineCount = 0;
             var lineVertexSpan = _lineVertexTransferBuffer.Map<PositionColorVertex>(false);
-            foreach (var ray in _playerObject.SavedLines)
+            foreach (var line in _playerObject.SavedLines)
             {
-                lineVertexSpan[lineCount * 2].Position = new Vector4(ray.Origin + _playerObject.OriginOffset, 0f, 1f);
-                lineVertexSpan[lineCount * 2 + 1].Position = new Vector4(ray.Origin + ray.ArbitraryVector * ray.Length + _playerObject.OriginOffset, 0f, 1f);
+                lineVertexSpan[lineCount * 2].Position = new Vector4(line.Origin + _playerObject.OriginOffset, 0f, 1f);
+                if (line.IsVectorFixedPoint)
+                {
+                    lineVertexSpan[lineCount * 2 + 1].Position = new Vector4(line.ArbitraryVector, 0f, 1f);
+                }
+                else
+                {
+                    lineVertexSpan[lineCount * 2 + 1].Position = new Vector4(line.Origin + line.ArbitraryVector * line.Length + _playerObject.OriginOffset, 0f, 1f);
+                }
 
                 lineVertexSpan[lineCount * 2].Color = new Vector4(0f, 1f, 1f, 1f);
                 lineVertexSpan[lineCount * 2 + 1].Color = new Vector4(0f, 1f, 1f, 1f);

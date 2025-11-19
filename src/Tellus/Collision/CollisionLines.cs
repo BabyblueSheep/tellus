@@ -37,12 +37,12 @@ public struct CollisionLine
         return line;
     }
 
-    public static CollisionLine CreateFixedPointLineSegment(Vector2 startPoint, Vector2 endPoint)
+    public static CollisionLine CreateFixedPointLineSegment(Vector2 startPoint, Vector2 endPoint, float length)
     {
         var line = new CollisionLine();
         line.Origin = startPoint;
         line.ArbitraryVector = endPoint;
-        line.Length = (endPoint - startPoint).Length();
+        line.Length = length;
 
         line.CanBeRestricted = false;
         line.IsVectorFixedPoint = true;
