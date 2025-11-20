@@ -36,6 +36,25 @@ public interface ICollisionBodyPart
     public Point IntegerFields { get; }
 }
 
+public struct CollisionBodyPart
+{
+    public int ShapeType { get; private set; }
+    public Vector2 BodyPartCenter { get; private set; }
+    public Vector4 DecimalFields { get; private set; }
+    public Point IntegerFields { get; private set; }
+
+    public static CollisionBodyPart CreateCircle(Vector2 center, float radius, int vertexCount)
+    {
+        var bodyPart = new CollisionBodyPart();
+
+        bodyPart.BodyPartCenter = center;
+        bodyPart.DecimalFields = new Vector4(radius, 0, 0, 0);
+        bodyPart.IntegerFields = new Point(vertexCount, 0);
+
+        return bodyPart;
+    }
+}
+
 /// <summary>
 /// A body part that represents a circular polygon.
 /// </summary>
