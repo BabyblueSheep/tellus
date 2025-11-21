@@ -43,4 +43,4 @@ The class contains the following functions:
 - `IncrementLineCollectionOffsets()` - increments line collections with the "velocity" line;
 - `IncrementLineCollectionBodiesOffsets()` - increments line collections and bodies with the "velocity" line given a `BodyLineCollectionPairStorageBufferBundle`;
 
-- 
+## Example
