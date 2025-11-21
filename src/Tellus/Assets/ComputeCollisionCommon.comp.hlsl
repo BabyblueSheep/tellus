@@ -142,12 +142,12 @@ void constructVertexPositions(CollisionBodyPartData bodyPartData, CollisionBodyD
     {
         vertexAmount = 4;
         
-        float angle = bodyPartData.DecimalFields.x;
+        float angle = bodyPartData.DecimalFields.z;
         float sine = sin(angle);
         float cosine = cos(angle);
         
-        float sideA = bodyPartData.DecimalFields.y;
-        float sideB = bodyPartData.DecimalFields.z;
+        float sideA = bodyPartData.DecimalFields.x;
+        float sideB = bodyPartData.DecimalFields.y;
         
         vertexPositions[0] = float2(-sideA * 0.5, -sideB * 0.5);
         vertexPositions[1] = float2(sideA * 0.5, -sideB * 0.5);

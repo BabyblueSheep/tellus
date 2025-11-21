@@ -19,117 +19,100 @@ public interface ICollisionBody
     /// <summary>
     /// Gets all body parts that compose the body.
     /// </summary>
-    public IEnumerable<ICollisionBodyPart> BodyParts { get; }
+    public IEnumerable<CollisionBodyPart> BodyParts { get; }
 }
+
 
 /// <summary>
-/// Contains all information needed to transfer a body part to a GPU buffer.
+/// Describes information needed to create a "body part", represented as a convex polygon.
 /// </summary>
 /// <remarks>
-/// Don't implement this yourself. Instead, use provided structs that implement this interface.
+/// Don't construct this manually. Use provided static functions for convenience.
 /// </remarks>
-public interface ICollisionBodyPart
-{
-    public int ShapeType { get; }
-    public Vector2 BodyPartCenter { get; }
-    public Vector4 DecimalFields { get; }
-    public Point IntegerFields { get; }
-}
-
 public struct CollisionBodyPart
 {
+    /// <summary>
+    /// The type, or "shape ID", of the body part. Used to figure out how to use fields.
+    /// </summary>
     public int ShapeType { get; private set; }
+
+    /// <summary>
+    /// The center of the body part.
+    /// </summary>
     public Vector2 BodyPartCenter { get; private set; }
+
+    /// <summary>
+    /// Four arbitrary floating point fields. Usage is determined by <see cref="ShapeType"/>.
+    /// </summary>
     public Vector4 DecimalFields { get; private set; }
+
+    /// <summary>
+    /// Two arbitrary integer fields. Usage is determined by <see cref="ShapeType"/>.
+    /// </summary>
     public Point IntegerFields { get; private set; }
 
+    /// <summary>
+    /// Creates a body part that represents a polygon that approximates a circle.
+    /// </summary>
+    /// <param name="center">The center of the body part.</param>
+    /// <param name="radius">The radius of the "circle".</param>
+    /// <param name="vertexCount">The amount of vertices the body part will use.</param>
+    /// <returns>The body part.</returns>
+    /// <remarks><paramref name="radius"/>'s absolute value is used, and <paramref name="vertexCount"/> is clamped between 3 and 16.</remarks>
     public static CollisionBodyPart CreateCircle(Vector2 center, float radius, int vertexCount)
     {
-        var bodyPart = new CollisionBodyPart();
-
-        bodyPart.BodyPartCenter = center;
-        bodyPart.DecimalFields = new Vector4(radius, 0, 0, 0);
-        bodyPart.IntegerFields = new Point(vertexCount, 0);
+        vertexCount = Math.Clamp(vertexCount, 3, 16);
+        radius = Math.Abs(radius);
+        var bodyPart = new CollisionBodyPart
+        {
+            ShapeType = 0,
+            BodyPartCenter = center,
+            DecimalFields = new Vector4(radius, 0, 0, 0),
+            IntegerFields = new Point(vertexCount, 0)
+        };
 
         return bodyPart;
     }
-}
 
-/// <summary>
-/// A body part that represents a circular polygon.
-/// </summary>
-public struct CircleCollisionBodyPart : ICollisionBodyPart
-{
-    public Vector2 Center;
-    private float _radius;
-    public float Radius
+    /// <summary>
+    /// Creates a body part that represents a rectangle arbitrarily rotated.
+    /// </summary>
+    /// <param name="center">The center of the body part.</param>
+    /// <param name="sideFullLengths">The full width and height of the rectangle.</param>
+    /// <param name="angle">The angle to rotate the rectangle at.</param>
+    /// <returns>The body part.</returns>
+    /// <remarks>The absolute value of <paramref name="sideFullLengths"/>'s elements are used.</remarks>
+    public static CollisionBodyPart CreateRectangle(Vector2 center, Vector2 sideFullLengths, float angle)
     {
-        get => _radius;
-        set => _radius = MathF.Max(0, value);
-    }
-    private int _vertexCount;
-    public int VertexCount 
-    {
-        get => _vertexCount;
-        set
+        sideFullLengths = Vector2.Abs(sideFullLengths);
+        var bodyPart = new CollisionBodyPart
         {
-            _vertexCount = Math.Clamp(value, 3, 16);
-        } 
+            ShapeType = 1,
+            BodyPartCenter = center,
+            DecimalFields = new Vector4(sideFullLengths.X, sideFullLengths.Y, angle, 0),
+            IntegerFields = new Point(0, 0)
+        };
+
+        return bodyPart;
     }
 
-    public CircleCollisionBodyPart(Vector2 center, float radius, int vertexCount)
+    /// <summary>
+    /// Creates a body part that represents a triangle.
+    /// </summary>
+    /// <param name="pointOne">The first point of the triangle.</param>
+    /// <param name="pointTwo">The second point of the triangle.</param>
+    /// <param name="pointThree">The third point of the triangle.</param>
+    /// <returns>The body part.</returns>
+    public static CollisionBodyPart CreateTriangle(Vector2 pointOne, Vector2 pointTwo, Vector2 pointThree)
     {
-        Center = center;
-        Radius = radius;
-        VertexCount = vertexCount;
+        var bodyPart = new CollisionBodyPart
+        {
+            ShapeType = 2,
+            BodyPartCenter = pointOne,
+            DecimalFields = new Vector4(pointTwo.X, pointTwo.Y, pointThree.X, pointThree.Y),
+            IntegerFields = new Point(0, 0)
+        };
+
+        return bodyPart;
     }
-
-    public readonly int ShapeType => 0;
-    public readonly Vector2 BodyPartCenter => Center;
-    public readonly Vector4 DecimalFields => new Vector4(_radius, 0, 0, 0);
-    public readonly Point IntegerFields => new Point(_vertexCount, 0);
-}
-
-/// <summary>
-/// A body part that represents a rectangle that can freely be rotated.
-/// </summary>
-public struct RectangleCollisionBodyPart : ICollisionBodyPart
-{
-    public Vector2 Center;
-    public float Angle;
-    public Vector2 SideLengths;
-
-    public RectangleCollisionBodyPart(Vector2 center, float angle, Vector2 sideLengths)
-    {
-        Center = center;
-        Angle = angle;
-        SideLengths = sideLengths;
-    }
-
-    public readonly int ShapeType => 1;
-    public readonly Vector2 BodyPartCenter => Center;
-    public readonly Vector4 DecimalFields => new Vector4(Angle, SideLengths.X, SideLengths.Y, 0);
-    public readonly Point IntegerFields => new Point(0, 0);
-}
-
-/// <summary>
-/// A body part that represents a triangle composed of any three points.
-/// </summary>
-public struct TriangleCollisionBodyPart : ICollisionBodyPart
-{
-    public Vector2 PointOne;
-    public Vector2 PointTwo;
-    public Vector2 PointThree;
-
-    public TriangleCollisionBodyPart(Vector2 pointOne, Vector2 pointTwo, Vector2 pointThree)
-    {
-        PointOne = pointOne;
-        PointTwo = pointTwo;
-        PointThree = pointThree;
-    }
-
-    public readonly int ShapeType => 2;
-    public readonly Vector2 BodyPartCenter => PointOne;
-    public readonly Vector4 DecimalFields => new Vector4(PointTwo, PointThree.X, PointThree.Y);
-    public readonly Point IntegerFields => new Point(0, 0);
 }

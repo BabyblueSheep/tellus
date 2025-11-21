@@ -185,14 +185,14 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                             int _230;
                             if (BodyPartDataBuffer._m0[_154].ShapeType == 1)
                             {
-                                float _192 = sin(BodyPartDataBuffer._m0[_154].DecimalFields.x);
-                                float _193 = cos(BodyPartDataBuffer._m0[_154].DecimalFields.x);
-                                float _196 = BodyPartDataBuffer._m0[_154].DecimalFields.y * (-0.5);
-                                float _197 = BodyPartDataBuffer._m0[_154].DecimalFields.z * (-0.5);
+                                float _192 = sin(BodyPartDataBuffer._m0[_154].DecimalFields.z);
+                                float _193 = cos(BodyPartDataBuffer._m0[_154].DecimalFields.z);
+                                float _196 = BodyPartDataBuffer._m0[_154].DecimalFields.x * (-0.5);
+                                float _197 = BodyPartDataBuffer._m0[_154].DecimalFields.y * (-0.5);
                                 _78[0] = float2(_196, _197);
-                                float _200 = BodyPartDataBuffer._m0[_154].DecimalFields.y * 0.5;
+                                float _200 = BodyPartDataBuffer._m0[_154].DecimalFields.x * 0.5;
                                 _78[1] = float2(_200, _197);
-                                float _203 = BodyPartDataBuffer._m0[_154].DecimalFields.z * 0.5;
+                                float _203 = BodyPartDataBuffer._m0[_154].DecimalFields.y * 0.5;
                                 _78[2] = float2(_200, _203);
                                 _78[3] = float2(_196, _203);
                                 for (int _209 = 0; _209 < 4; )

@@ -7,37 +7,43 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
+    /// <summary>
+    /// Provides a convenient way to download information about body resolutions to GPU buffers.
+    /// </summary>
     public sealed class ResolutionResultBufferStorage : GraphicsResource
     {
         private readonly TransferBuffer _uploadBuffer;
         private readonly TransferBuffer _downloadBuffer;
         public Buffer Buffer { get; }
 
-        public int CollisionResultAmount { get; private set; }
+        /// <summary>
+        /// The total amount of hit results that can be stored in the buffer.
+        /// </summary>
+        public int ResolutionAmount { get; private set; }
 
-        public ResolutionResultBufferStorage(GraphicsDevice device, uint collisionResultAmount = 512) : base(device)
+        public ResolutionResultBufferStorage(GraphicsDevice device, uint resolutionAmount = 512) : base(device)
         {
             _uploadBuffer = TransferBuffer.Create<CollisionResolutionData>(
                 Device,
                 TransferBufferUsage.Upload,
-                collisionResultAmount + 1
+                resolutionAmount + 1
             );
 
             _downloadBuffer = TransferBuffer.Create<CollisionResolutionData>(
                 Device,
                 TransferBufferUsage.Download,
-                collisionResultAmount + 1
+                resolutionAmount + 1
             );
 
             Buffer = Buffer.Create<CollisionResolutionData>
             (
                 Device,
                 BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite,
-                collisionResultAmount + 1
+                resolutionAmount + 1
             );
 
             var transferUploadSpan = _uploadBuffer.Map<int>(false);
-            for (int i = 0; i < collisionResultAmount + 1; i += 1)
+            for (int i = 0; i < resolutionAmount + 1; i += 1)
             {
                 transferUploadSpan[i * 3] = 0;
                 transferUploadSpan[i * 3 + 1] = 0;
@@ -45,9 +51,13 @@ public sealed partial class CollisionHandler : GraphicsResource
             }
             _uploadBuffer.Unmap();
 
-            CollisionResultAmount = (int)collisionResultAmount;
+            ResolutionAmount = (int)resolutionAmount;
         }
 
+        /// <summary>
+        /// Sets the contents of the hit result buffer to zeros, clearing it.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
         public void ClearData(CommandBuffer commandBuffer)
         {
             var collisionResultCopyPass = commandBuffer.BeginCopyPass();
@@ -55,6 +65,10 @@ public sealed partial class CollisionHandler : GraphicsResource
             commandBuffer.EndCopyPass(collisionResultCopyPass);
         }
 
+        /// <summary>
+        /// Downloads hit results from the GPU to the CPU.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
         public void DownloadData(CommandBuffer commandBuffer)
         {
             var copyPass = commandBuffer.BeginCopyPass();
@@ -62,6 +76,11 @@ public sealed partial class CollisionHandler : GraphicsResource
             commandBuffer.EndCopyPass(copyPass);
         }
 
+        /// <summary>
+        /// Gives a pair of bodies and movement vectors needed to resolve collisions.
+        /// </summary>
+        /// <param name="bodyList">The list of bodies.</param>
+        /// <returns>A list of pairs of bodies and vectors.</returns>
         public IEnumerable<(ICollisionBody, Vector2)> GetData(IList<ICollisionBody> bodyList)
         {
             var tempTransferDownloadSpan = _downloadBuffer.Map<int>(false, 0);

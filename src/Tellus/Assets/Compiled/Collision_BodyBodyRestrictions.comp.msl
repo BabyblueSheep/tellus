@@ -162,14 +162,14 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                         int _228;
                         if (BodyPartDataBufferMovable._m0[_134].ShapeType == 1)
                         {
-                            float _177 = sin(BodyPartDataBufferMovable._m0[_134].DecimalFields.x);
-                            float _178 = cos(BodyPartDataBufferMovable._m0[_134].DecimalFields.x);
-                            float _181 = BodyPartDataBufferMovable._m0[_134].DecimalFields.y * (-0.5);
-                            float _182 = BodyPartDataBufferMovable._m0[_134].DecimalFields.z * (-0.5);
+                            float _177 = sin(BodyPartDataBufferMovable._m0[_134].DecimalFields.z);
+                            float _178 = cos(BodyPartDataBufferMovable._m0[_134].DecimalFields.z);
+                            float _181 = BodyPartDataBufferMovable._m0[_134].DecimalFields.x * (-0.5);
+                            float _182 = BodyPartDataBufferMovable._m0[_134].DecimalFields.y * (-0.5);
                             _80[0] = float2(_181, _182);
-                            float _185 = BodyPartDataBufferMovable._m0[_134].DecimalFields.y * 0.5;
+                            float _185 = BodyPartDataBufferMovable._m0[_134].DecimalFields.x * 0.5;
                             _80[1] = float2(_185, _182);
-                            float _188 = BodyPartDataBufferMovable._m0[_134].DecimalFields.z * 0.5;
+                            float _188 = BodyPartDataBufferMovable._m0[_134].DecimalFields.y * 0.5;
                             _80[2] = float2(_185, _188);
                             _80[3] = float2(_181, _188);
                             for (int _194 = 0; _194 < 4; )
@@ -252,14 +252,14 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                                 int _369;
                                 if (BodyPartDataBufferImmovable._m0[_275].ShapeType == 1)
                                 {
-                                    float _318 = sin(BodyPartDataBufferImmovable._m0[_275].DecimalFields.x);
-                                    float _319 = cos(BodyPartDataBufferImmovable._m0[_275].DecimalFields.x);
-                                    float _322 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.y * (-0.5);
-                                    float _323 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.z * (-0.5);
+                                    float _318 = sin(BodyPartDataBufferImmovable._m0[_275].DecimalFields.z);
+                                    float _319 = cos(BodyPartDataBufferImmovable._m0[_275].DecimalFields.z);
+                                    float _322 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.x * (-0.5);
+                                    float _323 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.y * (-0.5);
                                     _81[0] = float2(_322, _323);
-                                    float _326 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.y * 0.5;
+                                    float _326 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.x * 0.5;
                                     _81[1] = float2(_326, _323);
-                                    float _329 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.z * 0.5;
+                                    float _329 = BodyPartDataBufferImmovable._m0[_275].DecimalFields.y * 0.5;
                                     _81[2] = float2(_326, _329);
                                     _81[3] = float2(_322, _329);
                                     for (int _335 = 0; _335 < 4; )

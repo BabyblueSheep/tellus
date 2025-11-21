@@ -148,14 +148,14 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                     int _219;
                     if (BodyPartDataBufferOne._m0[_125].ShapeType == 1)
                     {
-                        float _168 = sin(BodyPartDataBufferOne._m0[_125].DecimalFields.x);
-                        float _169 = cos(BodyPartDataBufferOne._m0[_125].DecimalFields.x);
-                        float _172 = BodyPartDataBufferOne._m0[_125].DecimalFields.y * (-0.5);
-                        float _173 = BodyPartDataBufferOne._m0[_125].DecimalFields.z * (-0.5);
+                        float _168 = sin(BodyPartDataBufferOne._m0[_125].DecimalFields.z);
+                        float _169 = cos(BodyPartDataBufferOne._m0[_125].DecimalFields.z);
+                        float _172 = BodyPartDataBufferOne._m0[_125].DecimalFields.x * (-0.5);
+                        float _173 = BodyPartDataBufferOne._m0[_125].DecimalFields.y * (-0.5);
                         _72[0] = float2(_172, _173);
-                        float _176 = BodyPartDataBufferOne._m0[_125].DecimalFields.y * 0.5;
+                        float _176 = BodyPartDataBufferOne._m0[_125].DecimalFields.x * 0.5;
                         _72[1] = float2(_176, _173);
-                        float _179 = BodyPartDataBufferOne._m0[_125].DecimalFields.z * 0.5;
+                        float _179 = BodyPartDataBufferOne._m0[_125].DecimalFields.y * 0.5;
                         _72[2] = float2(_176, _179);
                         _72[3] = float2(_172, _179);
                         for (int _185 = 0; _185 < 4; )
@@ -222,14 +222,14 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
                             int _336;
                             if (BodyPartDataBufferTwo._m0[_242].ShapeType == 1)
                             {
-                                float _285 = sin(BodyPartDataBufferTwo._m0[_242].DecimalFields.x);
-                                float _286 = cos(BodyPartDataBufferTwo._m0[_242].DecimalFields.x);
-                                float _289 = BodyPartDataBufferTwo._m0[_242].DecimalFields.y * (-0.5);
-                                float _290 = BodyPartDataBufferTwo._m0[_242].DecimalFields.z * (-0.5);
+                                float _285 = sin(BodyPartDataBufferTwo._m0[_242].DecimalFields.z);
+                                float _286 = cos(BodyPartDataBufferTwo._m0[_242].DecimalFields.z);
+                                float _289 = BodyPartDataBufferTwo._m0[_242].DecimalFields.x * (-0.5);
+                                float _290 = BodyPartDataBufferTwo._m0[_242].DecimalFields.y * (-0.5);
                                 _73[0] = float2(_289, _290);
-                                float _293 = BodyPartDataBufferTwo._m0[_242].DecimalFields.y * 0.5;
+                                float _293 = BodyPartDataBufferTwo._m0[_242].DecimalFields.x * 0.5;
                                 _73[1] = float2(_293, _290);
-                                float _296 = BodyPartDataBufferTwo._m0[_242].DecimalFields.z * 0.5;
+                                float _296 = BodyPartDataBufferTwo._m0[_242].DecimalFields.y * 0.5;
                                 _73[2] = float2(_293, _296);
                                 _73[3] = float2(_289, _296);
                                 for (int _302 = 0; _302 < 4; )

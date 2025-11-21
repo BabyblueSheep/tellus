@@ -10,6 +10,9 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
+    /// <summary>
+    /// Provides a convenient way to upload information about line collections and lines to GPU buffers.
+    /// </summary>
     public sealed class LineCollectionBufferStorage : GraphicsResource
     {
         private readonly Dictionary<string, (int, int)> _lineCollectionListToRange;
@@ -21,6 +24,9 @@ public sealed partial class CollisionHandler : GraphicsResource
         private readonly TransferBuffer _lineCasterDataTransferBuffer;
         public Buffer LineCollectionDataBuffer { get; }
 
+        /// <summary>
+        /// The amount of lines in the line buffer that contain valid information.
+        /// </summary>
         public int ValidLineCollectionCount { get; private set; }
 
         public LineCollectionBufferStorage(GraphicsDevice device, uint lineCount = 1024, uint lineCollectionCount = 128, bool createDownloadBuffer = false) : base(device)
@@ -63,13 +69,23 @@ public sealed partial class CollisionHandler : GraphicsResource
             );
         }
 
-        public (int, int) GetLineCollectionRange(string? bodyName)
+        /// <summary>
+        /// Gets the offset and length of a body buffer segment.
+        /// </summary>
+        /// <param name="bufferSegmentName">The name of the buffer segment. <c>null</c> returns a range of the whole buffer.</param>
+        /// <returns>The offset and length.</returns>
+        public (int, int) GetLineCollectionRange(string? bufferSegmentName)
         {
-            if (bodyName == null)
+            if (bufferSegmentName == null)
                 return (0, ValidLineCollectionCount);
-            return _lineCollectionListToRange[bodyName];
+            return _lineCollectionListToRange[bufferSegmentName];
         }
 
+        /// <summary>
+        /// Uploads line collection and line information to the buffers and defines buffer segments.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+        /// <param name="lineCollectionListList">A list of pairs of segment names and line collection collections.</param>
         public void UploadData(CommandBuffer commandBuffer, (string, IEnumerable<ICollisionLineCollection>)[] lineCollectionListList)
         {
             _lineCollectionListToRange.Clear();

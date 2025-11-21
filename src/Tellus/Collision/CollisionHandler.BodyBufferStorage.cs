@@ -5,21 +5,32 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
-    public sealed class BodyBufferStorage : GraphicsResource
+    /// <summary>
+    /// Provides a convenient way to upload information about bodies and body parts to GPU buffers.
+    /// </summary>
+    public sealed class BodyStorageBufferBundle : GraphicsResource
     {
-        private readonly Dictionary<string, (int, int)> _bodyListToRange;
+        private readonly Dictionary<string, (int, int)> _bufferSegments;
 
         private readonly TransferBuffer _bodyPartDataTransferBuffer;
+
         public Buffer BodyPartDataBuffer { get; }
 
         private readonly TransferBuffer _bodyDataTransferBuffer;
+
         public Buffer BodyDataBuffer { get; }
 
+        private readonly int _bodyCount;
+        private readonly int _bodyPartCount;
+
+        /// <summary>
+        /// The amount of bodies in the body buffer that contain valid information.
+        /// </summary>
         public int ValidBodyCount { get; private set; }
 
-        public BodyBufferStorage(GraphicsDevice device, uint bodyPartCount = 1024, uint bodyCount = 128) : base(device)
+        public BodyStorageBufferBundle(GraphicsDevice device, uint bodyPartCount = 1024, uint bodyCount = 128) : base(device)
         {
-            _bodyListToRange = [];
+            _bufferSegments = [];
 
             _bodyPartDataTransferBuffer = TransferBuffer.Create<CollisionBodyPartData>(
                 Device,
@@ -46,18 +57,31 @@ public sealed partial class CollisionHandler : GraphicsResource
                 BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite,
                 bodyCount
             );
+
+            _bodyCount = (int)bodyCount;
+            _bodyPartCount = (int)bodyPartCount;
         }
 
-        public (int, int) GetBodyRange(string? bodyName)
+        /// <summary>
+        /// Gets the offset and length of a body buffer segment.
+        /// </summary>
+        /// <param name="bufferSegmentName">The name of the buffer segment. <c>null</c> returns a range of the whole buffer.</param>
+        /// <returns>The offset and length.</returns>
+        public (int, int) GetBodySegmentRange(string? bufferSegmentName)
         {
-            if (bodyName == null)
+            if (bufferSegmentName == null)
                 return (0, ValidBodyCount);
-            return _bodyListToRange[bodyName];
+            return _bufferSegments[bufferSegmentName];
         }
 
-        public void UploadData(CommandBuffer commandBuffer, (string, IEnumerable<ICollisionBody>)[] bodyListList)
+        /// <summary>
+        /// Uploads body and body part information to the buffers and defines buffer segments.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+        /// <param name="nameSegmentPairList">A list of pairs of segment names and body collections.</param>
+        public void UploadData(CommandBuffer commandBuffer, IEnumerable<(string, IEnumerable<ICollisionBody>)> nameSegmentPairList)
         {
-            _bodyListToRange.Clear();
+            _bufferSegments.Clear();
 
             var bodyDataUploadSpan = _bodyDataTransferBuffer.Map<CollisionBodyData>(true);
             var bodyPartDataUploadSpan = _bodyPartDataTransferBuffer.Map<CollisionBodyPartData>(true);
@@ -65,11 +89,11 @@ public sealed partial class CollisionHandler : GraphicsResource
             int bodyDataIndex = 0;
             int bodyPartDataIndex = 0;
 
-            foreach (var bodyListListItem in bodyListList)
+            foreach (var nameSegmentPair in nameSegmentPairList)
             {
                 int bodyListIndexStart = bodyDataIndex;
 
-                foreach (var body in bodyListListItem.Item2)
+                foreach (var body in nameSegmentPair.Item2)
                 {
                     bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart = bodyPartDataIndex;
 
@@ -90,7 +114,7 @@ public sealed partial class CollisionHandler : GraphicsResource
                     bodyDataIndex++;
                 }
 
-                _bodyListToRange.Add(bodyListListItem.Item1, (bodyListIndexStart, bodyDataIndex - bodyListIndexStart));
+                _bufferSegments.Add(nameSegmentPair.Item1, (bodyListIndexStart, bodyDataIndex - bodyListIndexStart));
             }
 
             _bodyDataTransferBuffer.Unmap();

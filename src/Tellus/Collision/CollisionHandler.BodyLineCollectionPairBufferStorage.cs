@@ -5,13 +5,20 @@ namespace Tellus.Collision;
 
 public sealed partial class CollisionHandler : GraphicsResource
 {
+    /// <summary>
+    /// Provides a convenient way to upload information about body-line connection pairs to GPU buffers.
+    /// </summary>
     public sealed class BodyLineCollectionPairBufferStorage : GraphicsResource
     {
         private readonly Dictionary<string, (int, int)> _pairListToRange;
 
         private readonly TransferBuffer _pairDataTransferBuffer;
+
         public Buffer PairDataBuffer { get; }
 
+        /// <summary>
+        /// The amount of pairs in the pair buffer that contain valid information.
+        /// </summary>
         public int ValidPairCount { get; private set; }
 
         public BodyLineCollectionPairBufferStorage(GraphicsDevice device, uint pairCount = 1024) : base(device)
@@ -33,13 +40,23 @@ public sealed partial class CollisionHandler : GraphicsResource
             );
         }
 
-        public (int, int) GetPairRange(string? bodyName)
+        /// <summary>
+        /// Gets the offset and length of a pair buffer segment.
+        /// </summary>
+        /// <param name="bufferSegmentName">The name of the buffer segment. <c>null</c> returns a range of the whole buffer.</param>
+        /// <returns>The offset and length.</returns>
+        public (int, int) GetPairRange(string? bufferSegmentName)
         {
-            if (bodyName == null)
+            if (bufferSegmentName == null)
                 return (0, ValidPairCount);
-            return _pairListToRange[bodyName];
+            return _pairListToRange[bufferSegmentName];
         }
 
+        /// <summary>
+        /// Uploads body and body part information to the buffers and defines buffer segments.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+        /// <param name="nameSegmentPairList">A list of triads of segment names, body collections and line collection collections.</param>
         public void UploadData(CommandBuffer commandBuffer, (string, IList<ICollisionBody>, IList<ICollisionLineCollection>)[] bodyLineCollectionListPairList)
         {
             _pairListToRange.Clear();
