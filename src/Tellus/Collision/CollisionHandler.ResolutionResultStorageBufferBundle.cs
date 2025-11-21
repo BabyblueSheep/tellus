@@ -77,7 +77,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         }
 
         /// <summary>
-        /// Gives a pair of bodies and movement vectors needed to resolve collisions.
+        /// Gives a pair of bodies and translation vectors needed to resolve collisions.
         /// </summary>
         /// <param name="bodyList">The list of bodies.</param>
         /// <returns>A list of pairs of bodies and vectors.</returns>

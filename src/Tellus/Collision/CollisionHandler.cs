@@ -113,14 +113,14 @@ public sealed partial class CollisionHandler : GraphicsResource
     }
 
     /// <summary>
-    /// Resolves body-body collisions and provides vectors to push bodies out.
+    /// Resolves body-body collisions and provides translation vectors to push bodies out.
     /// </summary>
     /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
     /// <param name="bodyListMovableBuffer">A buffer bundle with the group of bodies to push out.</param>
     /// <param name="bodyListMovableRange">The range of the movable bodies buffer bundle.</param>
     /// <param name="bodyListImmovableBuffer">A buffer bundle with the group of static bodies.</param>
     /// <param name="bodyListImmovableRange">The range of the static bodies buffer bundle.</param>
-    /// <param name="resultBuffer">A buffer to store resolution vectors in.</param>
+    /// <param name="resultBuffer">A buffer to store translation vectors in.</param>
     public void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListMovableBuffer, (int, int) bodyListMovableRange, BodyStorageBufferBundle bodyListImmovableBuffer, (int, int) bodyListImmovableRange, ResolutionResultStorageBufferBundle resultBuffer)
     {
         var uniforms = new ResolveBodyBodyCollisionsUniforms
