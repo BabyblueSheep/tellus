@@ -37,7 +37,7 @@ public struct CollisionBodyPart
     public int ShapeType { get; private set; }
 
     /// <summary>
-    /// The center of the body part.
+    /// The center of the body part in local space.
     /// </summary>
     public Vector2 BodyPartCenter { get; private set; }
 
@@ -54,7 +54,7 @@ public struct CollisionBodyPart
     /// <summary>
     /// Creates a body part that represents a polygon that approximates a circle.
     /// </summary>
-    /// <param name="center">The center of the body part.</param>
+    /// <param name="center">The center of the body part in local space.</param>
     /// <param name="radius">The radius of the "circle".</param>
     /// <param name="vertexCount">The amount of vertices the body part will use.</param>
     /// <returns>The body part.</returns>
@@ -77,7 +77,7 @@ public struct CollisionBodyPart
     /// <summary>
     /// Creates a body part that represents a rectangle arbitrarily rotated.
     /// </summary>
-    /// <param name="center">The center of the body part.</param>
+    /// <param name="center">The center of the body part in local space.</param>
     /// <param name="sideFullLengths">The full width and height of the rectangle.</param>
     /// <param name="angle">The angle to rotate the rectangle at.</param>
     /// <returns>The body part.</returns>
@@ -99,9 +99,9 @@ public struct CollisionBodyPart
     /// <summary>
     /// Creates a body part that represents a triangle.
     /// </summary>
-    /// <param name="pointOne">The first point of the triangle.</param>
-    /// <param name="pointTwo">The second point of the triangle.</param>
-    /// <param name="pointThree">The third point of the triangle.</param>
+    /// <param name="pointOne">The first point of the triangle in local space.</param>
+    /// <param name="pointTwo">The second point of the triangle in local space.</param>
+    /// <param name="pointThree">The third point of the triangle in local space.</param>
     /// <returns>The body part.</returns>
     public static CollisionBodyPart CreateTriangle(Vector2 pointOne, Vector2 pointTwo, Vector2 pointThree)
     {
