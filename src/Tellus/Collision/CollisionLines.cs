@@ -63,7 +63,7 @@ public struct CollisionLine
     public bool IsVectorFixedPoint;
 
     /// <summary>
-    /// Creates a ray with a direction and a fixed length.
+    /// Creates a ray with a direction and a finite length.
     /// </summary>
     /// <param name="origin">The origin of the ray in local space.</param>
     /// <param name="direction">The normalized direction of the ray.</param>
@@ -84,6 +84,13 @@ public struct CollisionLine
         return line;
     }
 
+    /// <summary>
+    /// Creates a line 
+    /// </summary>
+    /// <param name="startPoint"></param>
+    /// <param name="endPoint"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
     public static CollisionLine CreateFixedPointLineSegment(Vector2 startPoint, Vector2 endPoint, float length)
     {
         var line = new CollisionLine
