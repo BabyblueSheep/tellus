@@ -13,7 +13,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <summary>
     /// Provides a convenient way to download information about body-body or body-line hit results to GPU buffers.
     /// </summary>
-    public sealed class HitResultBufferStorage : GraphicsResource
+    public sealed class HitResultStorageBufferBundle : GraphicsResource
     {
         private readonly TransferBuffer _uploadBuffer;
         private readonly TransferBuffer _downloadBuffer;
@@ -24,7 +24,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         /// </summary>
         public int HitResultAmount { get; private set; }
 
-        public HitResultBufferStorage(GraphicsDevice device, uint hitResultAmount = 512) : base(device)
+        public HitResultStorageBufferBundle(GraphicsDevice device, uint hitResultAmount = 512) : base(device)
         {
             _uploadBuffer = TransferBuffer.Create<CollisionHitData>(
                 Device,

@@ -8,7 +8,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <summary>
     /// Provides a convenient way to upload information about body-line connection pairs to GPU buffers.
     /// </summary>
-    public sealed class BodyLineCollectionPairBufferStorage : GraphicsResource
+    public sealed class BodyLineCollectionPairStorageBufferBundle : GraphicsResource
     {
         private readonly Dictionary<string, (int, int)> _pairListToRange;
 
@@ -21,7 +21,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         /// </summary>
         public int ValidPairCount { get; private set; }
 
-        public BodyLineCollectionPairBufferStorage(GraphicsDevice device, uint pairCount = 1024) : base(device)
+        public BodyLineCollectionPairStorageBufferBundle(GraphicsDevice device, uint pairCount = 1024) : base(device)
         {
             _pairListToRange = [];
 

@@ -90,7 +90,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="bodyListTwoBuffer">A buffer bundle with the second group of bodies.</param>
     /// <param name="bodyListTwoRange">The range of the second buffer bundle.</param>
     /// <param name="resultBuffer">A buffer to store hit results in.</param>
-    public void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListOneBuffer, (int, int) bodyListOneRange, BodyStorageBufferBundle bodyListTwoBuffer, (int, int) bodyListTwoRange, HitResultBufferStorage resultBuffer)
+    public void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListOneBuffer, (int, int) bodyListOneRange, BodyStorageBufferBundle bodyListTwoBuffer, (int, int) bodyListTwoRange, HitResultStorageBufferBundle resultBuffer)
     {
         var uniforms = new ComputeBodyBodyHitsUniforms
         {
@@ -121,7 +121,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="bodyListImmovableBuffer">A buffer bundle with the group of static bodies.</param>
     /// <param name="bodyListImmovableRange">The range of the static bodies buffer bundle.</param>
     /// <param name="resultBuffer">A buffer to store resolution vectors in.</param>
-    public void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListMovableBuffer, (int, int) bodyListMovableRange, BodyStorageBufferBundle bodyListImmovableBuffer, (int, int) bodyListImmovableRange, ResolutionResultBufferStorage resultBuffer)
+    public void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListMovableBuffer, (int, int) bodyListMovableRange, BodyStorageBufferBundle bodyListImmovableBuffer, (int, int) bodyListImmovableRange, ResolutionResultStorageBufferBundle resultBuffer)
     {
         var uniforms = new ResolveBodyBodyCollisionsUniforms
         {
@@ -156,7 +156,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="lineListRange">The range of the line collections buffer bundle.</param>
     /// <param name="resultBuffer">A buffer to store hit results in.</param>
-    public void ComputeLineBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionBufferStorage lineListBuffer, (int, int) lineListRange, HitResultBufferStorage resultBuffer)
+    public void ComputeLineBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineListRange, HitResultStorageBufferBundle resultBuffer)
     {
         var uniforms = new ComputeLineBodyHitsUniforms
         {
@@ -186,7 +186,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="bodyListRange">The range of the bodies buffer bundle.</param>
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="lineListRange">The range of the line collections buffer bundle.</param>
-    public void RestrictLines(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionBufferStorage lineListBuffer, (int, int) lineListRange)
+    public void RestrictLines(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineListRange)
     {
         var uniforms = new RestrictLinesUniforms
         {
@@ -213,7 +213,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="lineCollectionRange">A range of the line collections buffer bundle.</param>
-    public void IncrementLineCollectionOffsets(CommandBuffer commandBuffer, LineCollectionBufferStorage lineListBuffer, (int, int) lineCollectionRange)
+    public void IncrementLineCollectionOffsets(CommandBuffer commandBuffer, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineCollectionRange)
     {
         var uniforms = new IncrementLineCollectionOffsetsUniforms
         {
@@ -240,7 +240,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="pairBuffer">A buffer bundle with pairs of body and line collection buffer indices.</param>
     /// <param name="pairRange">The range of the pair buffer bundle.</param>
-    public void IncrementLineCollectionBodiesOffsets(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyBufer, LineCollectionBufferStorage lineListBuffer, BodyLineCollectionPairBufferStorage pairBuffer, (int, int) pairRange)
+    public void IncrementLineCollectionBodiesOffsets(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyBufer, LineCollectionStorageBufferBundle lineListBuffer, BodyLineCollectionPairStorageBufferBundle pairBuffer, (int, int) pairRange)
     {
         var uniforms = new IncrementLineCollectionBodiesOffsetsUniforms
         {

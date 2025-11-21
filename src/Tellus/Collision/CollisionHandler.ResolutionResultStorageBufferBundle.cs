@@ -10,7 +10,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <summary>
     /// Provides a convenient way to download information about body resolutions to GPU buffers.
     /// </summary>
-    public sealed class ResolutionResultBufferStorage : GraphicsResource
+    public sealed class ResolutionResultStorageBufferBundle : GraphicsResource
     {
         private readonly TransferBuffer _uploadBuffer;
         private readonly TransferBuffer _downloadBuffer;
@@ -21,7 +21,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         /// </summary>
         public int ResolutionAmount { get; private set; }
 
-        public ResolutionResultBufferStorage(GraphicsDevice device, uint resolutionAmount = 512) : base(device)
+        public ResolutionResultStorageBufferBundle(GraphicsDevice device, uint resolutionAmount = 512) : base(device)
         {
             _uploadBuffer = TransferBuffer.Create<CollisionResolutionData>(
                 Device,

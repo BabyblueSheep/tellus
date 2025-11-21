@@ -13,7 +13,7 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <summary>
     /// Provides a convenient way to upload information about line collections and lines to GPU buffers.
     /// </summary>
-    public sealed class LineCollectionBufferStorage : GraphicsResource
+    public sealed class LineCollectionStorageBufferBundle : GraphicsResource
     {
         private readonly Dictionary<string, (int, int)> _lineCollectionListToRange;
 
@@ -29,7 +29,7 @@ public sealed partial class CollisionHandler : GraphicsResource
         /// </summary>
         public int ValidLineCollectionCount { get; private set; }
 
-        public LineCollectionBufferStorage(GraphicsDevice device, uint lineCount = 1024, uint lineCollectionCount = 128, bool createDownloadBuffer = false) : base(device)
+        public LineCollectionStorageBufferBundle(GraphicsDevice device, uint lineCount = 1024, uint lineCollectionCount = 128, bool createDownloadBuffer = false) : base(device)
         {
             _lineCollectionListToRange = [];
 

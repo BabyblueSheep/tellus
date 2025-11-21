@@ -105,10 +105,10 @@ internal class CollisionGame : Game
     private readonly CollisionHandler _collisionHandler;
     private readonly CollisionHandler.BodyStorageBufferBundle _storageBufferStaticBodies;
     private readonly CollisionHandler.BodyStorageBufferBundle _storageBufferMovingBodies;
-    private readonly CollisionHandler.LineCollectionBufferStorage _lineBuffer;
-    private readonly CollisionHandler.HitResultBufferStorage _lineHitResultBuffer;
-    private readonly CollisionHandler.ResolutionResultBufferStorage _resolutionResultBuffer;
-    private readonly CollisionHandler.BodyLineCollectionPairBufferStorage _pairBuffer;
+    private readonly CollisionHandler.LineCollectionStorageBufferBundle _lineBuffer;
+    private readonly CollisionHandler.HitResultStorageBufferBundle _lineHitResultBuffer;
+    private readonly CollisionHandler.ResolutionResultStorageBufferBundle _resolutionResultBuffer;
+    private readonly CollisionHandler.BodyLineCollectionPairStorageBufferBundle _pairBuffer;
 
     private readonly PlayerObject _playerObject;
     private readonly List<WallObject> _staticObjects;
@@ -215,10 +215,10 @@ internal class CollisionGame : Game
         _collisionHandler = new CollisionHandler(GraphicsDevice);
         _storageBufferStaticBodies = new CollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
         _storageBufferMovingBodies = new CollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
-        _lineHitResultBuffer = new CollisionHandler.HitResultBufferStorage(GraphicsDevice);
-        _resolutionResultBuffer = new CollisionHandler.ResolutionResultBufferStorage(GraphicsDevice);
-        _lineBuffer = new CollisionHandler.LineCollectionBufferStorage(GraphicsDevice, createDownloadBuffer: true);
-        _pairBuffer = new CollisionHandler.BodyLineCollectionPairBufferStorage(GraphicsDevice);
+        _lineHitResultBuffer = new CollisionHandler.HitResultStorageBufferBundle(GraphicsDevice);
+        _resolutionResultBuffer = new CollisionHandler.ResolutionResultStorageBufferBundle(GraphicsDevice);
+        _lineBuffer = new CollisionHandler.LineCollectionStorageBufferBundle(GraphicsDevice, createDownloadBuffer: true);
+        _pairBuffer = new CollisionHandler.BodyLineCollectionPairStorageBufferBundle(GraphicsDevice);
 
         _storageBufferStaticBodies.UploadData
         (
