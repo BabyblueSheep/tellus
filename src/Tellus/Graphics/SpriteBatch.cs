@@ -47,7 +47,7 @@ public enum SpriteSortMode
     FrontToBack,
 }
 
-public sealed class SpriteBatch : GraphicsResource
+public sealed class Spriteatch : GraphicsResource
 {
     private struct DrawOperation
     {

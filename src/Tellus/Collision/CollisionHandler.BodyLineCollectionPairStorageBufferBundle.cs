@@ -3,7 +3,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
-public sealed partial class CollisionHandler : GraphicsResource
+public static partial class CollisionHandler
 {
     /// <summary>
     /// Provides a convenient way to upload information about body-line connection pairs to GPU buffers.
@@ -14,7 +14,7 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         private readonly TransferBuffer _pairDataTransferBuffer;
 
-        public Buffer PairDataBuffer { get; }
+        internal Buffer PairDataBuffer { get; }
 
         /// <summary>
         /// The amount of pairs in the pair buffer that contain valid information.

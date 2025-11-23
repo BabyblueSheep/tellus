@@ -3,7 +3,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
-public sealed partial class CollisionHandler : GraphicsResource
+public static partial class CollisionHandler
 {
     /// <summary>
     /// Provides a convenient way to upload information about bodies and body parts to GPU buffers.
@@ -14,11 +14,11 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         private readonly TransferBuffer _bodyPartDataTransferBuffer;
 
-        public Buffer BodyPartDataBuffer { get; }
+        internal Buffer BodyPartDataBuffer { get; }
 
         private readonly TransferBuffer _bodyDataTransferBuffer;
 
-        public Buffer BodyDataBuffer { get; }
+        internal Buffer BodyDataBuffer { get; }
 
         private readonly int _bodyCount;
         private readonly int _bodyPartCount;
@@ -106,12 +106,16 @@ public sealed partial class CollisionHandler : GraphicsResource
                         bodyPartDataUploadSpan[bodyPartDataIndex].IntegerFields = bodyPart.IntegerFields;
 
                         bodyPartDataIndex++;
+                        if (bodyPartDataIndex >= _bodyPartCount)
+                            throw new IndexOutOfRangeException("Attempting to store more body parts than can fit in the buffer!");
                     }
 
                     bodyDataUploadSpan[bodyDataIndex].BodyPartIndexLength = bodyPartDataIndex - bodyDataUploadSpan[bodyDataIndex].BodyPartIndexStart;
                     bodyDataUploadSpan[bodyDataIndex].Offset = body.BodyOffset;
 
                     bodyDataIndex++;
+                    if (bodyDataIndex >= _bodyCount)
+                        throw new IndexOutOfRangeException("Attempting to store more bodies than can fit in the buffer!");
                 }
 
                 _bufferSegments.Add(nameSegmentPair.Item1, (bodyListIndexStart, bodyDataIndex - bodyListIndexStart));

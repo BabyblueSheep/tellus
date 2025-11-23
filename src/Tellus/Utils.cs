@@ -47,7 +47,7 @@ public static class Utils
 
         ShaderCreateInfo properShaderCreateInfo = createInfo with { Format = shaderFormat };
         string filepath = $"Tellus.{shaderName}.{extension}";
-        var assembly = typeof(SpriteBatch).Assembly;
+        var assembly = typeof(Utils).Assembly;
         using var stream = assembly.GetManifestResourceStream(filepath);
         
         if (stream == null)
@@ -75,7 +75,7 @@ public static class Utils
 
         createInfo.Format = shaderFormat;
         string filepath = $"Tellus.{shaderName}.{extension}";
-        var assembly = typeof(SpriteBatch).Assembly;
+        var assembly = typeof(Utils).Assembly;
         using var stream = assembly.GetManifestResourceStream(filepath);
 
         if (stream == null)

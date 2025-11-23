@@ -8,7 +8,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
-public sealed partial class CollisionHandler : GraphicsResource
+public static partial class CollisionHandler
 {
     /// <summary>
     /// Provides a convenient way to upload information about line collections and lines to GPU buffers.
@@ -19,10 +19,10 @@ public sealed partial class CollisionHandler : GraphicsResource
 
         private readonly TransferBuffer _lineDataUploadBuffer;
         private readonly TransferBuffer? _lineDataDownloadBuffer;
-        public Buffer LineDataBuffer { get; }
+        internal Buffer LineDataBuffer { get; }
 
         private readonly TransferBuffer _lineCasterDataTransferBuffer;
-        public Buffer LineCollectionDataBuffer { get; }
+        internal Buffer LineCollectionDataBuffer { get; }
 
         /// <summary>
         /// The amount of lines in the line buffer that contain valid information.

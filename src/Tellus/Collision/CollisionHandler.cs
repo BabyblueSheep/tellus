@@ -7,20 +7,20 @@ namespace Tellus.Collision;
 /// <summary>
 /// Provides various functions that deal with collision detection and resolution.
 /// </summary>
-public sealed partial class CollisionHandler : GraphicsResource
+public static partial class CollisionHandler
 {
-    private readonly ComputePipeline _hitComputePipeline;
-    private readonly ComputePipeline _resolutionComputePipeline;
+    private static ComputePipeline? _hitComputePipeline;
+    private static ComputePipeline? _resolutionComputePipeline;
 
-    private readonly ComputePipeline _lineHitComputePipeline;
-    private readonly ComputePipeline _lineRestrictComputePipeline;
+    private static ComputePipeline? _lineHitComputePipeline;
+    private static ComputePipeline? _lineRestrictComputePipeline;
 
-    private readonly ComputePipeline _incrementLineCollectionPipeline;
-    private readonly ComputePipeline _incrementLineCollectionBodyPipeline;
+    private static ComputePipeline? _incrementLineCollectionPipeline;
+    private static ComputePipeline? _incrementLineCollectionBodyPipeline;
 
-    public CollisionHandler(GraphicsDevice graphicsDevice) : base(graphicsDevice)
+    public static void Initialize(GraphicsDevice device)
     {
-        Utils.LoadShaderFromManifest(Device, "Collision_BodyBodyHits.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(device, "Collision_BodyBodyHits.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 4,
             NumReadWriteStorageBuffers = 1,
@@ -30,7 +30,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _hitComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_BodyBodyRestrictions.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(device, "Collision_BodyBodyRestrictions.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 3,
             NumReadWriteStorageBuffers = 2,
@@ -40,7 +40,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _resolutionComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_LineBodyHits.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(device, "Collision_LineBodyHits.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 4,
             NumReadWriteStorageBuffers = 1,
@@ -50,7 +50,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _lineHitComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_LineBodyRestrictions.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(device, "Collision_LineBodyRestrictions.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 3,
             NumReadWriteStorageBuffers = 1,
@@ -60,7 +60,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _lineRestrictComputePipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_IncrementLineCollection.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(device, "Collision_IncrementLineCollection.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 1,
             NumReadWriteStorageBuffers = 1,
@@ -70,7 +70,7 @@ public sealed partial class CollisionHandler : GraphicsResource
             ThreadCountZ = 1
         }, out _incrementLineCollectionPipeline);
 
-        Utils.LoadShaderFromManifest(Device, "Collision_IncrementLineCollectionBody.comp", new ComputePipelineCreateInfo()
+        Utils.LoadShaderFromManifest(device, "Collision_IncrementLineCollectionBody.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 2,
             NumReadWriteStorageBuffers = 2,
@@ -90,8 +90,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="bodyListTwoBuffer">A buffer bundle with the second group of bodies.</param>
     /// <param name="bodyListTwoRange">The range of the second buffer bundle.</param>
     /// <param name="resultBuffer">A buffer to store hit results in.</param>
-    public void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListOneBuffer, (int, int) bodyListOneRange, BodyStorageBufferBundle bodyListTwoBuffer, (int, int) bodyListTwoRange, HitResultStorageBufferBundle resultBuffer)
+    public static void ComputeBodyBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListOneBuffer, (int, int) bodyListOneRange, BodyStorageBufferBundle bodyListTwoBuffer, (int, int) bodyListTwoRange, HitResultStorageBufferBundle resultBuffer)
     {
+        if (_hitComputePipeline is null)
+            throw new NullReferenceException($"{nameof(_hitComputePipeline)} is null. Did you forget to call {nameof(Initialize)}?");
+
         var uniforms = new ComputeBodyBodyHitsUniforms
         {
             BodyDataBufferOneStartIndex = bodyListOneRange.Item1,
@@ -121,8 +124,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="bodyListImmovableBuffer">A buffer bundle with the group of static bodies.</param>
     /// <param name="bodyListImmovableRange">The range of the static bodies buffer bundle.</param>
     /// <param name="resultBuffer">A buffer to store translation vectors in.</param>
-    public void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListMovableBuffer, (int, int) bodyListMovableRange, BodyStorageBufferBundle bodyListImmovableBuffer, (int, int) bodyListImmovableRange, ResolutionResultStorageBufferBundle resultBuffer)
+    public static void ResolveBodyBodyCollisions(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListMovableBuffer, (int, int) bodyListMovableRange, BodyStorageBufferBundle bodyListImmovableBuffer, (int, int) bodyListImmovableRange, ResolutionResultStorageBufferBundle resultBuffer)
     {
+        if (_resolutionComputePipeline is null)
+            throw new NullReferenceException($"{nameof(_resolutionComputePipeline)} is null. Did you forget to call {nameof(Initialize)}?");
+
         var uniforms = new ResolveBodyBodyCollisionsUniforms
         {
             BodyDataBufferOneStartIndex = bodyListMovableRange.Item1,
@@ -156,8 +162,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="lineListRange">The range of the line collections buffer bundle.</param>
     /// <param name="resultBuffer">A buffer to store hit results in.</param>
-    public void ComputeLineBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineListRange, HitResultStorageBufferBundle resultBuffer)
+    public static void ComputeLineBodyHits(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineListRange, HitResultStorageBufferBundle resultBuffer)
     {
+        if (_lineHitComputePipeline is null)
+            throw new NullReferenceException($"{nameof(_lineHitComputePipeline)} is null. Did you forget to call {nameof(Initialize)}?");
+
         var uniforms = new ComputeLineBodyHitsUniforms
         {
             BodyDataBufferStartIndex = bodyListRange.Item1,
@@ -186,8 +195,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="bodyListRange">The range of the bodies buffer bundle.</param>
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="lineListRange">The range of the line collections buffer bundle.</param>
-    public void RestrictLines(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineListRange)
+    public static void RestrictLines(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyListBuffer, (int, int) bodyListRange, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineListRange)
     {
+        if (_lineRestrictComputePipeline is null)
+            throw new NullReferenceException($"{nameof(_lineRestrictComputePipeline)} is null. Did you forget to call {nameof(Initialize)}?");
+
         var uniforms = new RestrictLinesUniforms
         {
             BodyDataBufferStartIndex = bodyListRange.Item1,
@@ -213,8 +225,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="lineCollectionRange">A range of the line collections buffer bundle.</param>
-    public void IncrementLineCollectionOffsets(CommandBuffer commandBuffer, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineCollectionRange)
+    public static void IncrementLineCollectionOffsets(CommandBuffer commandBuffer, LineCollectionStorageBufferBundle lineListBuffer, (int, int) lineCollectionRange)
     {
+        if (_incrementLineCollectionPipeline is null)
+            throw new NullReferenceException($"{nameof(_incrementLineCollectionPipeline)} is null. Did you forget to call {nameof(Initialize)}?");
+
         var uniforms = new IncrementLineCollectionOffsetsUniforms
         {
             LineCollectionDataBufferStartIndex = lineCollectionRange.Item1,
@@ -240,8 +255,11 @@ public sealed partial class CollisionHandler : GraphicsResource
     /// <param name="lineListBuffer">A buffer bundle with the group of line collections.</param>
     /// <param name="pairBuffer">A buffer bundle with pairs of body and line collection buffer indices.</param>
     /// <param name="pairRange">The range of the pair buffer bundle.</param>
-    public void IncrementLineCollectionBodiesOffsets(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyBufer, LineCollectionStorageBufferBundle lineListBuffer, BodyLineCollectionPairStorageBufferBundle pairBuffer, (int, int) pairRange)
+    public static void IncrementLineCollectionBodiesOffsets(CommandBuffer commandBuffer, BodyStorageBufferBundle bodyBufer, LineCollectionStorageBufferBundle lineListBuffer, BodyLineCollectionPairStorageBufferBundle pairBuffer, (int, int) pairRange)
     {
+        if (_incrementLineCollectionBodyPipeline is null)
+            throw new NullReferenceException($"{nameof(_incrementLineCollectionBodyPipeline)} is null. Did you forget to call {nameof(Initialize)}?");
+
         var uniforms = new IncrementLineCollectionBodiesOffsetsUniforms
         {
             PairDataBufferStartIndex = pairRange.Item1,
@@ -263,20 +281,13 @@ public sealed partial class CollisionHandler : GraphicsResource
         commandBuffer.EndComputePass(computePass);
     }
 
-    protected override void Dispose(bool disposing)
+    public static void Dispose()
     {
-        if (!IsDisposed)
-        {
-            if (disposing)
-            {
-                _hitComputePipeline.Dispose();
-                _lineHitComputePipeline.Dispose();
-                _resolutionComputePipeline.Dispose();
-                _lineRestrictComputePipeline.Dispose();
-                _incrementLineCollectionPipeline.Dispose();
-                _incrementLineCollectionBodyPipeline.Dispose();
-            }
-        }
-        base.Dispose(disposing);
+        _hitComputePipeline?.Dispose();
+        _lineHitComputePipeline?.Dispose();
+        _resolutionComputePipeline?.Dispose();
+        _lineRestrictComputePipeline?.Dispose();
+        _incrementLineCollectionPipeline?.Dispose();
+        _incrementLineCollectionBodyPipeline?.Dispose();
     }
-    }
+}
