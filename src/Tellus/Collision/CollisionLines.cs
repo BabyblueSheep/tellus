@@ -74,7 +74,7 @@ public struct CollisionLine
         var line = new CollisionLine
         {
             Origin = origin,
-            ArbitraryVector = Vector2.Normalize(direction),
+            ArbitraryVector = direction.SafeNormalize(Vector2.Zero),
             Length = Math.Abs(length),
 
             CanBeRestricted = false,

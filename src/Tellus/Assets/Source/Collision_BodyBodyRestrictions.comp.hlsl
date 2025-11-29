@@ -183,7 +183,6 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
             CollisionResultBuffer.Store(16 + collisionAmount * 16 + 8, totalMtvY);
             
             BodyDataBufferMovable[x + BodyDataBufferMovableStartIndex].Offset += totalMinimumTransitionVector;
-
         }
     }
 }

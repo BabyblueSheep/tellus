@@ -59,4 +59,7 @@ public sealed partial class SpriteBatch
             32
         ];
     }
+
+    record struct ComputeUniforms(Matrix4x4 TransformationMatrix, Vector2 TextureSize);
+    record struct VertexUniforms(Matrix4x4 CameraMatrix);
 }

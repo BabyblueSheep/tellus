@@ -17,6 +17,8 @@ using System.Runtime.InteropServices;
 using Tellus;
 using Tellus.Collision;
 using Tellus.Graphics;
+using Tellus.Graphics.SpriteBatch;
+using static Tellus.Graphics.SpriteBatch.SpriteBatch;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
@@ -102,7 +104,6 @@ file struct PositionColorVertex : IVertexType
 
 internal class CollisionGame : Game
 {
-    private readonly CollisionHandler _collisionHandler;
     private readonly CollisionHandler.BodyStorageBufferBundle _storageBufferStaticBodies;
     private readonly CollisionHandler.BodyStorageBufferBundle _storageBufferMovingBodies;
     private readonly CollisionHandler.LineCollectionStorageBufferBundle _lineBuffer;
@@ -117,6 +118,7 @@ internal class CollisionGame : Game
     private readonly Texture _circleSprite;
     private readonly Texture _squareSprite;
     private Texture _depthTexture;
+    private readonly SpriteBatch.SpriteOperationContainer _spriteOperationContainer;
     private readonly SpriteBatch _spriteBatch;
 
     private readonly Buffer _triangleVertexBuffer;
@@ -142,7 +144,23 @@ internal class CollisionGame : Game
         debugMode
     )
     {
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _spriteBatch = new SpriteBatch
+        (
+            GraphicsDevice,
+            ColorTargetBlendState.PremultipliedAlphaBlend,
+            SamplerCreateInfo.PointWrap,
+            new DepthStencilState()
+            {
+                EnableDepthTest = true,
+                EnableDepthWrite = true,
+                CompareOp = CompareOp.LessOrEqual,
+            },
+            RasterizerState.CCW_CullNone,
+            null, null,
+            MainWindow.SwapchainFormat, TextureFormat.D16Unorm
+        );
+        _spriteOperationContainer = new SpriteBatch.SpriteOperationContainer(GraphicsDevice);
+
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
@@ -169,6 +187,7 @@ internal class CollisionGame : Game
         #endregion
 
         #region Colliders
+
         _playerObject = new PlayerObject()
         {
             Radius = 16,
@@ -212,7 +231,7 @@ internal class CollisionGame : Game
             });
         }
 
-        _collisionHandler = new CollisionHandler(GraphicsDevice);
+        CollisionHandler.Initialize(GraphicsDevice);
         _storageBufferStaticBodies = new CollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
         _storageBufferMovingBodies = new CollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
         _lineHitResultBuffer = new CollisionHandler.HitResultStorageBufferBundle(GraphicsDevice);
@@ -399,13 +418,13 @@ internal class CollisionGame : Game
             [(nameof(_movingObjects), collisionBodies, collisionRayCasters)]
         );
 
-        _collisionHandler.RestrictLines
+        CollisionHandler.RestrictLines
         (
             commandBuffer,
             _storageBufferStaticBodies, _storageBufferStaticBodies.GetBodySegmentRange(null),
             _lineBuffer, _lineBuffer.GetLineCollectionRange(null)
         );
-        _collisionHandler.IncrementLineCollectionBodiesOffsets
+        CollisionHandler.IncrementLineCollectionBodiesOffsets
         (
             commandBuffer,
             _storageBufferMovingBodies,
@@ -414,8 +433,9 @@ internal class CollisionGame : Game
         );
         _lineBuffer.DownloadData(commandBuffer);
 
+        
         _resolutionResultBuffer.ClearData(commandBuffer);
-        _collisionHandler.ResolveBodyBodyCollisions
+        CollisionHandler.ResolveBodyBodyCollisions
         (
             commandBuffer,
             _storageBufferMovingBodies, _storageBufferMovingBodies.GetBodySegmentRange(null),
@@ -425,7 +445,7 @@ internal class CollisionGame : Game
         _resolutionResultBuffer.DownloadData(commandBuffer);
 
         _lineHitResultBuffer.ClearData(commandBuffer);
-        _collisionHandler.ComputeLineBodyHits
+        CollisionHandler.ComputeLineBodyHits
         (
             commandBuffer,
             _storageBufferMovingBodies, _storageBufferMovingBodies.GetBodySegmentRange(nameof(_movingObjects)),
@@ -462,6 +482,7 @@ internal class CollisionGame : Game
             }
         }
 
+        var t = _resolutionResultBuffer.GetData(collisionBodies);
         foreach (var collisionResult in _resolutionResultBuffer.GetData(collisionBodies))
         {
             ICollisionBody item = collisionResult.Item1;
@@ -516,20 +537,9 @@ internal class CollisionGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
-            _spriteBatch.Begin(
-                SpriteSortMode.FrontToBack,
-                ColorTargetBlendState.PremultipliedAlphaBlend,
-                SamplerCreateInfo.PointWrap,
-                new DepthStencilState()
-                {
-                    EnableDepthTest = true,
-                    EnableDepthWrite = true,
-                    CompareOp = CompareOp.LessOrEqual,
-                },
-                RasterizerState.CCW_CullNone,
-                null, null, null);
+            _spriteOperationContainer.ClearSprites();
 
-            _spriteBatch.Draw(
+            _spriteOperationContainer.PushSprite(
                 _circleSprite,
                 new Vector2(_playerObject.Radius),
                 new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
@@ -542,7 +552,7 @@ internal class CollisionGame : Game
 
             foreach (var objectCollider in _movingObjects)
             {
-                _spriteBatch.Draw(
+                _spriteOperationContainer.PushSprite(
                     _circleSprite,
                     new Vector2(objectCollider.Radius),
                     new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
@@ -556,7 +566,7 @@ internal class CollisionGame : Game
 
             foreach (var objectCollider in _staticObjects)
             {
-                _spriteBatch.Draw(
+                _spriteOperationContainer.PushSprite(
                     _circleSprite,
                     Vector2.One * 4,
                     new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
@@ -570,7 +580,7 @@ internal class CollisionGame : Game
                 {
                     if (rectangle.ShapeType == 1)
                     {
-                        _spriteBatch.Draw(
+                        _spriteOperationContainer.PushSprite(
                             _squareSprite,
                             new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y) * 0.5f,
                             new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
@@ -583,9 +593,9 @@ internal class CollisionGame : Game
                     }
                 }
             }
-            
 
-            _spriteBatch.End(commandBuffer, renderPass, swapchainTexture, swapchainTexture.Format, TextureFormat.D16Unorm);
+            _spriteOperationContainer.SortSprites(SpriteSortMode.FrontToBack);
+            _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
 
             commandBuffer.PushVertexUniformData(cameraMatrix);
 
@@ -631,6 +641,9 @@ internal class CollisionGame : Game
 
     protected override void Destroy()
     {
+        CollisionHandler.Dispose();
+        _spriteOperationContainer.Dispose();
+        _spriteBatch.Dispose();
         _depthTexture.Dispose();
     }
 }

@@ -1,24 +1,36 @@
 ﻿using MoonWorks.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Tellus.Graphics.SpriteBatch;
 
 public sealed partial class SpriteBatch : GraphicsResource
 {
+    public enum SpriteSortMode
+    {
+        Deferred,
+        Texture,
+        BackToFront,
+        FrontToBack,
+    }
+
     private readonly GraphicsPipeline _graphicsPipeline;
+    private readonly Sampler _sampler;
 
-    private static ComputePipeline? _computePipeline;
+    private readonly Shader _defaultVertexShader;
+    private readonly Shader _defaultFragmentShader;
 
-    private static Shader? _defaultVertexShader;
-    private static Shader? _defaultFragmentShader;
+    public SpriteBatch
+    (
+        GraphicsDevice device,
 
-    public static void Initialize(GraphicsDevice device)
+        ColorTargetBlendState? colorTargetBlendState,
+        SamplerCreateInfo? samplerCreateInfo,
+        DepthStencilState? depthStencilState,
+        RasterizerState? rasterizerState,
+        Shader? vertexShader, Shader? fragmentShader,
+
+        TextureFormat drawTextureFormat, TextureFormat? depthTextureFormat
+    ) : base(device)
     {
         Utils.LoadShaderFromManifest(device, "TexturedQuad.vert", new ShaderCreateInfo()
         {
@@ -33,44 +45,12 @@ public sealed partial class SpriteBatch : GraphicsResource
             NumSamplers = 1,
         }, out _defaultFragmentShader);
 
-        Utils.LoadShaderFromManifest(device, "SpriteBatch.comp", new ComputePipelineCreateInfo()
-        {
-            NumReadonlyStorageBuffers = 1,
-            NumReadWriteStorageBuffers = 1,
-            NumUniformBuffers = 1,
-            ThreadCountX = 64,
-            ThreadCountY = 1,
-            ThreadCountZ = 1
-        }, out _computePipeline);
-    }
-
-    public SpriteBatch
-    (
-        GraphicsDevice device,
-
-        SpriteSortMode? spriteSortMode,
-        ColorTargetBlendState? colorTargetBlendState,
-        SamplerCreateInfo? samplerCreateInfo,
-        DepthStencilState? depthStencilState,
-        RasterizerState? rasterizerState,
-        Shader? vertexShader,
-        Shader? fragmentShader,
-        Matrix4x4? transformationMatrix
-    ) : base(device)
-    {
-        if (_defaultVertexShader is null)
-            throw new NullReferenceException($"{nameof(_defaultVertexShader)} is null. Did you forget to call {nameof(Initialize)}?");
-        if (_defaultFragmentShader is null)
-            throw new NullReferenceException($"{nameof(_defaultFragmentShader)} is null. Did you forget to call {nameof(Initialize)}?");
-
-        SpriteSortMode actualSpriteSortMode = spriteSortMode ?? SpriteSortMode.Deferred;
         ColorTargetBlendState actualColorTargetBlendState = colorTargetBlendState ?? ColorTargetBlendState.PremultipliedAlphaBlend;
-        SamplerCreateInfo actualCamplerCreateInfo = samplerCreateInfo ?? SamplerCreateInfo.PointClamp;
+        SamplerCreateInfo actualSamplerCreateInfo = samplerCreateInfo ?? SamplerCreateInfo.PointClamp;
         DepthStencilState actualDepthStencilState = depthStencilState ?? DepthStencilState.Disable;
         RasterizerState actualRasterizerState = rasterizerState ?? RasterizerState.CCW_CullNone;
         Shader actualVertexShader = vertexShader ?? _defaultVertexShader;
         Shader actualFragmentShader = fragmentShader ?? _defaultFragmentShader;
-        Matrix4x4 actualTransformationMatrix = transformationMatrix ?? Matrix4x4.Identity;
 
         var graphicsPipelineCreateInfo = new GraphicsPipelineCreateInfo()
         {
@@ -95,26 +75,74 @@ public sealed partial class SpriteBatch : GraphicsResource
         };
         if (depthTextureFormat.HasValue)
         {
-            graphicsPipelineCreateInfo.DepthStencilState = _savedDepthStencilState;
+            graphicsPipelineCreateInfo.DepthStencilState = actualDepthStencilState;
             graphicsPipelineCreateInfo.TargetInfo.DepthStencilFormat = depthTextureFormat.Value;
             graphicsPipelineCreateInfo.TargetInfo.HasDepthStencilTarget = true;
         }
         _graphicsPipeline = GraphicsPipeline.Create(Device, graphicsPipelineCreateInfo);
+
+        _sampler = Sampler.Create(Device, actualSamplerCreateInfo);
     }
-    
-    public void Begin()
+
+    public void DrawBatch(CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteOperationContainer spriteContainer)
     {
+        var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
+        (
+            0,
+            textureToDrawTo.Width,
+            textureToDrawTo.Height,
+            0,
+            0,
+            -1f
+        );
 
+        var uniforms = new VertexUniforms()
+        {
+            CameraMatrix = cameraMatrix,
+        };
+
+        commandBuffer.PushVertexUniformData(uniforms);
+        renderPass.BindGraphicsPipeline(_graphicsPipeline);
+        renderPass.BindVertexBuffers(spriteContainer.VertexBuffer);
+        renderPass.BindIndexBuffer(spriteContainer.IndexBuffer, IndexElementSize.ThirtyTwo);
+        renderPass.BindFragmentSamplers(new TextureSamplerBinding(spriteContainer.TextureToSample, _sampler));
+        renderPass.DrawIndexedPrimitives(spriteContainer.SpriteAmount * 6, 1, 0, 0, 0);
     }
 
-    public void End(
-        CommandBuffer commandBuffer,
-        RenderPass renderPass,
-        Texture textureToDrawTo,
-        TextureFormat drawTextureFormat,
-        TextureFormat? depthTextureFormat
+    public void DrawFullBatch
+    (
+        CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteOperationContainer spriteContainer,
+        Matrix4x4? transformationMatrix
     )
     {
+        int offset = 0;
 
+        while (true)
+        {
+            int? nextSpriteIndex = spriteContainer.UploadData(commandBuffer, offset);
+
+            spriteContainer.CreateVertexInfo(commandBuffer, transformationMatrix);
+            DrawBatch(commandBuffer, renderPass, textureToDrawTo, spriteContainer);
+
+            if (nextSpriteIndex is null)
+                break;
+
+            offset = nextSpriteIndex.Value;
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!IsDisposed)
+        {
+            if (disposing)
+            {
+                _defaultFragmentShader.Dispose();
+                _defaultVertexShader.Dispose();
+                _graphicsPipeline.Dispose();
+                _sampler.Dispose();
+            }
+        }
+        base.Dispose(disposing);
     }
 }
