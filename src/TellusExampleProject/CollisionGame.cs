@@ -372,6 +372,11 @@ internal class CollisionGame : Game
         GraphicsDevice.Submit(commandBuffer);
     }
 
+    protected override void Step()
+    {
+        
+    }
+
     protected override void Update(TimeSpan delta)
     {
         _playerObject.HasCollidedThisFrame = false;
