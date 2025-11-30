@@ -15,19 +15,41 @@ namespace Tellus.Graphics.SpriteBatch;
 
 public sealed partial class SpriteBatch : GraphicsResource
 {
-    private struct DrawOperation
+    /// <summary>
+    /// Defines sprite sort rendering options.
+    /// </summary>
+    public enum SpriteSortMode
+    {
+        /// <summary>
+        /// Sprites are sorted by texture.
+        /// </summary>
+        Texture,
+        /// <summary>
+        /// Sprites are sorted by depth in back-to-front order.
+        /// </summary>
+        BackToFront,
+        /// <summary>
+        /// Sprites are sorted by depth in front-to-back order.
+        /// </summary>
+        FrontToBack,
+    }
+
+    private struct SpriteInstance
     {
         public int TextureIndex;
-        public Vector2 TextureOrigin;
         public Rectangle TextureSourceRectangle;
         public Vector2 Position;
         public float Rotation;
         public Vector2 Scale;
+        public Vector2 SpriteOrigin;
         public Color Color;
         public float Depth;
     }
 
-    public sealed class SpriteOperationContainer : GraphicsResource
+    /// <summary>
+    /// Contains a list of sprite instances to be drawn.
+    /// </summary>
+    public sealed class SpriteInstanceContainer : GraphicsResource
     {
         private readonly ComputePipeline _computePipeline;
 
@@ -41,11 +63,11 @@ public sealed partial class SpriteBatch : GraphicsResource
         internal Buffer VertexBuffer { get; }
         internal Buffer IndexBuffer { get; }
 
-        private readonly List<Texture> _drawOperationTextures;
-        private readonly Dictionary<Texture, int> _drawOperationTextureIndices;
-        private List<DrawOperation> _drawOperations;
+        private readonly List<Texture> _spriteTextures;
+        private readonly Dictionary<Texture, int> __spriteTextureIndices;
+        private List<SpriteInstance> _spriteInstances;
 
-        public SpriteOperationContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
+        public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
         {
             Utils.LoadShaderFromManifest(device, "SpriteBatch.comp", new ComputePipelineCreateInfo()
             {
@@ -116,86 +138,109 @@ public sealed partial class SpriteBatch : GraphicsResource
 
             indexTransferBuffer.Dispose();
 
-            _drawOperationTextures = [];
-            _drawOperationTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
-            _drawOperations = [];
+            _spriteTextures = [];
+            __spriteTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
+            _spriteInstances = [];
         }
 
+        /// <summary>
+        /// Clears all stored sprites.
+        /// </summary>
         public void ClearSprites()
         {
-            _drawOperations.Clear();
-            _drawOperationTextures.Clear();
-            _drawOperationTextureIndices.Clear();
+            _spriteInstances.Clear();
+            _spriteTextures.Clear();
+            __spriteTextureIndices.Clear();
+            TextureToSample = null;
         }
 
+        /// <summary>
+        /// Adds a sprite to the batch of sprites to be rendered.
+        /// </summary>
+        /// <param name="texture">The texture to use.</param>
+        /// <param name="textureSourceRectangle">An optional region on the texture which will be rendered.</param>
+        /// <param name="position">The position of the sprite.</param>
+        /// <param name="rotation">The rotation of the sprite.</param>
+        /// <param name="scale">The size of the sprite.</param>
+        /// <param name="spriteOrigin">The origin of the sprite, based on the size. Determines the point of rotation and position.</param>
+        /// <param name="color">The color of the sprite.</param>
+        /// <param name="depth">A depth of the layer of the sprite.</param>
         public void PushSprite
         (
             Texture texture,
-            Vector2 textureOrigin,
-            Rectangle textureSourceRectangle,
+            Rectangle? textureSourceRectangle,
             Vector2 position,
             float rotation,
             Vector2 scale,
+            Vector2 spriteOrigin,
             Color color,
             float depth
         )
         {
-            if (!_drawOperationTextureIndices.TryGetValue(texture, out int textureIndex))
+            if (!__spriteTextureIndices.TryGetValue(texture, out int textureIndex))
             {
-                textureIndex = _drawOperationTextures.Count;
-                _drawOperationTextures.Add(texture);
-                _drawOperationTextureIndices.Add(texture, textureIndex);
+                textureIndex = _spriteTextures.Count;
+                _spriteTextures.Add(texture);
+                __spriteTextureIndices.Add(texture, textureIndex);
             }
 
-            var drawOperation = new DrawOperation()
+            var drawOperation = new SpriteInstance()
             {
                 TextureIndex = textureIndex,
-                TextureOrigin = textureOrigin,
-                TextureSourceRectangle = textureSourceRectangle,
+                TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height),
                 Position = position,
                 Rotation = rotation,
                 Scale = scale,
+                SpriteOrigin = spriteOrigin,
                 Color = color,
                 Depth = depth
             };
-            _drawOperations.Add(drawOperation);
+            _spriteInstances.Add(drawOperation);
 
         }
 
+        /// <summary>
+        /// Sorts all contained sprites according to <see cref="SpriteSortMode"/>.
+        /// </summary>
+        /// <param name="spriteSortMode">The sorting mode to use.</param>
         public void SortSprites(SpriteSortMode spriteSortMode)
         {
             switch (spriteSortMode)
             {
-                case SpriteSortMode.Deferred:
-                    break;
                 case SpriteSortMode.Texture:
-                    _drawOperations = _drawOperations.OrderBy(x => x.TextureIndex).ToList();
+                    _spriteInstances = _spriteInstances.OrderBy(x => x.TextureIndex).ToList();
                     break;
                 case SpriteSortMode.BackToFront:
-                    _drawOperations = _drawOperations.OrderBy(x => x.Depth).ToList();
+                    _spriteInstances = _spriteInstances.OrderBy(x => x.Depth).ToList();
                     break;
                 case SpriteSortMode.FrontToBack:
-                    _drawOperations = _drawOperations.OrderByDescending(x => x.Depth).ToList();
+                    _spriteInstances = _spriteInstances.OrderByDescending(x => x.Depth).ToList();
                     break;
             }
         }
 
+        /// <summary>
+        /// Uploads sprites to the GPU.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+        /// <param name="indexToStartAt">The sprite instance index to start at.</param>
+        /// <returns>The index of the next batch to be drawn, or null if no batch is to be drawn next.</returns>
         public int? UploadData(CommandBuffer commandBuffer, int indexToStartAt = 0)
         {
-            if (_drawOperations.Count == 0)
+            if (_spriteInstances.Count == 0)
                 return null;
 
-            static void AddInstanceDataToBuffer(ref Span<SpriteInstanceData> span, int index, DrawOperation operation)
+            static void AddInstanceDataToBuffer(ref Span<SpriteInstanceData> span, int index, SpriteInstance operation)
             {
                 span[index].Position = new Vector3(operation.Position, operation.Depth);
                 span[index].Rotation = operation.Rotation;
                 span[index].Scale = operation.Scale;
                 span[index].Color = operation.Color.ToVector4();
-                span[index].TextureOrigin = operation.TextureOrigin;
+                span[index].SpriteOrigin = operation.SpriteOrigin;
                 span[index].TextureSourceRectangle = new Vector4(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y, operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Height);
             }
 
-            DrawOperation previousDrawOperation = _drawOperations[indexToStartAt];
+            SpriteInstance previousDrawOperation = _spriteInstances[indexToStartAt];
 
             var instanceDataSpan = _instanceTransferBuffer.Map<SpriteInstanceData>(true);
             var highestInstanceIndex = 0;
@@ -203,9 +248,9 @@ public sealed partial class SpriteBatch : GraphicsResource
             AddInstanceDataToBuffer(ref instanceDataSpan, highestInstanceIndex, previousDrawOperation);
             highestInstanceIndex++;
 
-            for (int i = indexToStartAt + 1; i < _drawOperations.Count; i++)
+            for (int i = indexToStartAt + 1; i < _spriteInstances.Count; i++)
             {
-                DrawOperation currentDrawOperation = _drawOperations[i];
+                SpriteInstance currentDrawOperation = _spriteInstances[i];
 
                 if (currentDrawOperation.TextureIndex != previousDrawOperation.TextureIndex || highestInstanceIndex >= _maximumSpriteAmount)
                 {
@@ -216,7 +261,7 @@ public sealed partial class SpriteBatch : GraphicsResource
                     commandBuffer.EndCopyPass(copyPass);
 
                     SpriteAmount = (uint)highestInstanceIndex;
-                    TextureToSample = _drawOperationTextures[previousDrawOperation.TextureIndex];
+                    TextureToSample = _spriteTextures[previousDrawOperation.TextureIndex];
 
                     return i;
                 }
@@ -234,12 +279,18 @@ public sealed partial class SpriteBatch : GraphicsResource
             commandBuffer.EndCopyPass(lastCopyPass);
 
             SpriteAmount = (uint)highestInstanceIndex;
-            DrawOperation lastDrawOperation = _drawOperations[^1];
-            TextureToSample = _drawOperationTextures[lastDrawOperation.TextureIndex];
+            SpriteInstance lastDrawOperation = _spriteInstances[^1];
+            TextureToSample = _spriteTextures[lastDrawOperation.TextureIndex];
 
             return null;
         }
 
+        /// <summary>
+        /// Turns sprite instance data into vertex data.
+        /// </summary>
+        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+        /// <param name="transformationMatrix">An optional transformation matrix to be applied to the vertices.</param>
+        /// <exception cref="NullReferenceException">Throws when no texture is to be sampled. Implies that no sprite instance data has been uploaded.</exception>
         public void CreateVertexInfo(CommandBuffer commandBuffer, Matrix4x4? transformationMatrix)
         {
             if (TextureToSample is null)

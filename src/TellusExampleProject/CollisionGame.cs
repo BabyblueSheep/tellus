@@ -118,7 +118,7 @@ internal class CollisionGame : Game
     private readonly Texture _circleSprite;
     private readonly Texture _squareSprite;
     private Texture _depthTexture;
-    private readonly SpriteBatch.SpriteOperationContainer _spriteOperationContainer;
+    private readonly SpriteBatch.SpriteInstanceContainer _spriteOperationContainer;
     private readonly SpriteBatch _spriteBatch;
 
     private readonly Buffer _triangleVertexBuffer;
@@ -159,7 +159,7 @@ internal class CollisionGame : Game
             null, null,
             MainWindow.SwapchainFormat, TextureFormat.D16Unorm
         );
-        _spriteOperationContainer = new SpriteBatch.SpriteOperationContainer(GraphicsDevice);
+        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice);
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
@@ -546,11 +546,11 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.PushSprite(
                 _circleSprite,
-                new Vector2(_playerObject.Radius),
                 new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
                 _playerObject.Center,
                 0f, 
                 new Vector2(_playerObject.Radius * 2f),
+                new Vector2(_playerObject.Radius),
                 _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
                 0.5f
             );
@@ -559,11 +559,11 @@ internal class CollisionGame : Game
             {
                 _spriteOperationContainer.PushSprite(
                     _circleSprite,
-                    new Vector2(objectCollider.Radius),
                     new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
                     objectCollider.Center,
                     0f,
                     new Vector2(objectCollider.Radius * 2f),
+                    new Vector2(objectCollider.Radius),
                     objectCollider.HasCollidedThisFrame ? Color.Magenta : Color.Blue,
                     0.3f
                 );
@@ -573,11 +573,11 @@ internal class CollisionGame : Game
             {
                 _spriteOperationContainer.PushSprite(
                     _circleSprite,
-                    Vector2.One * 4,
                     new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
                     objectCollider.Center,
                     0,
                     Vector2.One * 8,
+                    Vector2.One * 4,
                     Color.Black * 0.5f,
                     0.5f
                 );
@@ -587,11 +587,11 @@ internal class CollisionGame : Game
                     {
                         _spriteOperationContainer.PushSprite(
                             _squareSprite,
-                            new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y) * 0.5f,
                             new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
                             rectangle.BodyPartCenter + objectCollider.Center,
                             rectangle.DecimalFields.Z,
                             new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y),
+                            new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y) * 0.5f,
                             Color.White,
                             0.6f
                         );

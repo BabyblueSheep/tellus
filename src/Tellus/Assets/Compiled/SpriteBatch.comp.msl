@@ -8,7 +8,7 @@ struct SpriteInstanceData
     packed_float3 Position;
     float Rotation;
     float2 Scale;
-    float2 TextureOrigin;
+    float2 SpriteOrigin;
     float4 Color;
     float4 TextureSourceRectangle;
 };
@@ -41,7 +41,7 @@ kernel void main0(constant type_UniformBlock& UniformBlock [[buffer(0)]], const 
     SpriteInstanceData _53 = InstanceBuffer._m0[gl_GlobalInvocationID.x];
     float _65 = cos(_53.Rotation);
     float _66 = sin(_53.Rotation);
-    float4x4 _87 = (((float4x4(float4(1.0, 0.0, 0.0, 0.0), float4(0.0, 1.0, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(_53.Position[0], _53.Position[1], _53.Position[2], 1.0)) * float4x4(float4(_65, _66, 0.0, 0.0), float4(-_66, _65, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(0.0, 0.0, 0.0, 1.0))) * float4x4(float4(1.0, 0.0, 0.0, 0.0), float4(0.0, 1.0, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(-_53.TextureOrigin.x, -_53.TextureOrigin.y, 0.0, 1.0))) * float4x4(float4(_53.Scale.x, 0.0, 0.0, 0.0), float4(0.0, _53.Scale.y, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(0.0, 0.0, 0.0, 1.0))) * transpose(UniformBlock.TransformationMatrix);
+    float4x4 _87 = (((float4x4(float4(1.0, 0.0, 0.0, 0.0), float4(0.0, 1.0, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(_53.Position[0], _53.Position[1], _53.Position[2], 1.0)) * float4x4(float4(_65, _66, 0.0, 0.0), float4(-_66, _65, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(0.0, 0.0, 0.0, 1.0))) * float4x4(float4(1.0, 0.0, 0.0, 0.0), float4(0.0, 1.0, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(-_53.SpriteOrigin.x, -_53.SpriteOrigin.y, 0.0, 1.0))) * float4x4(float4(_53.Scale.x, 0.0, 0.0, 0.0), float4(0.0, _53.Scale.y, 0.0, 0.0), float4(0.0, 0.0, 1.0, 0.0), float4(0.0, 0.0, 0.0, 1.0))) * transpose(UniformBlock.TransformationMatrix);
     uint _89 = gl_GlobalInvocationID.x * 4u;
     VertexBuffer._m0[_89].Position = _87 * float4(0.0, 0.0, 0.0, 1.0);
     uint _92 = _89 + 1u;

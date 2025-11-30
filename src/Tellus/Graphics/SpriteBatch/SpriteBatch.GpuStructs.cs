@@ -24,7 +24,7 @@ public sealed partial class SpriteBatch
         public Vector2 Scale;
 
         [FieldOffset(24)]
-        public Vector2 TextureOrigin;
+        public Vector2 SpriteOrigin;
 
         [FieldOffset(32)]
         public Vector4 Color;

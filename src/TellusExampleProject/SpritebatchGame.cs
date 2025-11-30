@@ -29,7 +29,7 @@ internal class SpritebatchGame : Game
 
     private readonly Texture _squareSprite;
     private Texture _depthTexture;
-    private readonly SpriteBatch.SpriteOperationContainer _spriteOperationContainer;
+    private readonly SpriteBatch.SpriteInstanceContainer _spriteOperationContainer;
     private readonly SpriteBatch _spriteBatch;
 
     private readonly Font _sofiaSans;
@@ -70,7 +70,7 @@ internal class SpritebatchGame : Game
             null, null,
             MainWindow.SwapchainFormat, TextureFormat.D16Unorm
         );
-        _spriteOperationContainer = new SpriteBatch.SpriteOperationContainer(GraphicsDevice, 8192);
+        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 8192);
 
         _textBatch = new TextBatch(GraphicsDevice);
 
@@ -78,7 +78,7 @@ internal class SpritebatchGame : Game
 
         _squareSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "Assets/image2.png",
+            "Assets/image_circle.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -165,11 +165,11 @@ internal class SpritebatchGame : Game
                 _spriteOperationContainer.PushSprite
                 (
                     _squareSprite,
-                    instance.Scale * 0.5f,
-                    new Rectangle(0, 0, (int)instance.Scale.X, (int)instance.Scale.Y),
+                    new Rectangle(0, 0, (int)_squareSprite.Width, (int)_squareSprite.Height),
                     instance.Position,
                     instance.Rotation,
                     instance.Scale,
+                    instance.Scale * 0.5f,
                     instance.Color,
                     1f
                 );

@@ -3,16 +3,11 @@ using System.Numerics;
 
 namespace Tellus.Graphics.SpriteBatch;
 
+/// <summary>
+/// Wraps settings about how sprites should be drawn and can draw a group of sprites under those settings.
+/// </summary>
 public sealed partial class SpriteBatch : GraphicsResource
 {
-    public enum SpriteSortMode
-    {
-        Deferred,
-        Texture,
-        BackToFront,
-        FrontToBack,
-    }
-
     private readonly GraphicsPipeline _graphicsPipeline;
     private readonly Sampler _sampler;
 
@@ -84,7 +79,14 @@ public sealed partial class SpriteBatch : GraphicsResource
         _sampler = Sampler.Create(Device, actualSamplerCreateInfo);
     }
 
-    public void DrawBatch(CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteOperationContainer spriteContainer)
+    /// <summary>
+    /// Draws a given batch of sprites.
+    /// </summary>
+    /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+    /// <param name="renderPass">The current <see cref="RenderPass"/>.</param>
+    /// <param name="textureToDrawTo">The texture to draw to (the render target).</param>
+    /// <param name="spriteContainer">The container with the sprite batch.</param>
+    public void DrawBatch(CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteInstanceContainer spriteContainer)
     {
         var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
         (
@@ -109,9 +111,17 @@ public sealed partial class SpriteBatch : GraphicsResource
         renderPass.DrawIndexedPrimitives(spriteContainer.SpriteAmount * 6, 1, 0, 0, 0);
     }
 
+    /// <summary>
+    /// Draws all contained batches of sprites.
+    /// </summary>
+    /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
+    /// <param name="renderPass">The current <see cref="RenderPass"/>.</param>
+    /// <param name="textureToDrawTo">The texture to draw to (the render target).</param>
+    /// <param name="spriteContainer">The container with the sprite batch.</param>
+    /// <param name="transformationMatrix">An optional transformation matrix to be applied to the vertices.</param>
     public void DrawFullBatch
     (
-        CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteOperationContainer spriteContainer,
+        CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteInstanceContainer spriteContainer,
         Matrix4x4? transformationMatrix
     )
     {

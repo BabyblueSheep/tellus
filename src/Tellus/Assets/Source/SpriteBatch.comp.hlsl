@@ -6,7 +6,7 @@ struct SpriteInstanceData
     float3 Position;
     float Rotation;
     float2 Scale;
-    float2 TextureOrigin;
+    float2 SpriteOrigin;
     float4 Color;
     float4 TextureSourceRectangle;
 };
@@ -62,14 +62,14 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
         float4(1.0f, 0.0f, 0.0f, 0.0f),
         float4(0.0f, 1.0f, 0.0f, 0.0f),
         float4(0.0f, 0.0f, 1.0f, 0.0f),
-        float4(currentSpriteData.TextureOrigin.x, currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
+        float4(currentSpriteData.SpriteOrigin.x, currentSpriteData.SpriteOrigin.y, 0.0f, 1.0f)
     );
     
     float4x4 ReverseOffsetTranslation = float4x4(
         float4(1.0f, 0.0f, 0.0f, 0.0f),
         float4(0.0f, 1.0f, 0.0f, 0.0f),
         float4(0.0f, 0.0f, 1.0f, 0.0f),
-        float4(-currentSpriteData.TextureOrigin.x, -currentSpriteData.TextureOrigin.y, 0.0f, 1.0f)
+        float4(-currentSpriteData.SpriteOrigin.x, -currentSpriteData.SpriteOrigin.y, 0.0f, 1.0f)
     );
 
     float4x4 Model = mul(Scale, mul(ReverseOffsetTranslation, mul(Rotation, Translation)));
