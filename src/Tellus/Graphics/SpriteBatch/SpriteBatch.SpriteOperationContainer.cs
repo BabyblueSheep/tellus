@@ -42,6 +42,8 @@ public sealed partial class SpriteBatch : GraphicsResource
         internal Buffer IndexBuffer { get; }
 
         private readonly List<Texture> _drawOperationTextures;
+        private readonly Dictionary<Texture, int> _drawOperationTextureIndices;
+        private int _drawOperationHighestTextureIndex;
         private List<DrawOperation> _drawOperations;
 
         public SpriteOperationContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
@@ -123,6 +125,8 @@ public sealed partial class SpriteBatch : GraphicsResource
         {
             _drawOperations.Clear();
             _drawOperationTextures.Clear();
+            _drawOperationTextureIndices.Clear();
+            _drawOperationHighestTextureIndex = 0;
         }
 
         public void PushSprite
@@ -137,11 +141,17 @@ public sealed partial class SpriteBatch : GraphicsResource
             float depth
         )
         {
-            int textureIndex = _drawOperationTextures.IndexOf(texture);
-            if (textureIndex == -1)
+            int textureIndex;
+            if (_drawOperationTextureIndices.TryGetValue(texture, out int value))
+            {
+                textureIndex = value;
+            }
+            else
             {
                 _drawOperationTextures.Add(texture);
-                textureIndex = _drawOperationTextures.Count - 1;
+                _drawOperationTextureIndices.Add(texture, _drawOperationHighestTextureIndex);
+                textureIndex = _drawOperationHighestTextureIndex;
+                _drawOperationHighestTextureIndex++;
             }
             var drawOperation = new DrawOperation()
             {

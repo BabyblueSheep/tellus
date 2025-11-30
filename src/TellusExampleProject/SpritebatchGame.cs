@@ -130,6 +130,11 @@ internal class SpritebatchGame : Game
         //_fps = 1 / accumulatedUpdateTime.TotalSeconds;
     }
 
+    protected override void Step()
+    {
+        
+    }
+
     protected override void Draw(double alpha)
     {
         CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer();
