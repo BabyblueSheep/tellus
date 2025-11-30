@@ -43,7 +43,6 @@ public sealed partial class SpriteBatch : GraphicsResource
 
         private readonly List<Texture> _drawOperationTextures;
         private readonly Dictionary<Texture, int> _drawOperationTextureIndices;
-        private int _drawOperationHighestTextureIndex;
         private List<DrawOperation> _drawOperations;
 
         public SpriteOperationContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
@@ -118,6 +117,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             indexTransferBuffer.Dispose();
 
             _drawOperationTextures = [];
+            _drawOperationTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
             _drawOperations = [];
         }
 
@@ -126,7 +126,6 @@ public sealed partial class SpriteBatch : GraphicsResource
             _drawOperations.Clear();
             _drawOperationTextures.Clear();
             _drawOperationTextureIndices.Clear();
-            _drawOperationHighestTextureIndex = 0;
         }
 
         public void PushSprite
@@ -141,18 +140,13 @@ public sealed partial class SpriteBatch : GraphicsResource
             float depth
         )
         {
-            int textureIndex;
-            if (_drawOperationTextureIndices.TryGetValue(texture, out int value))
+            if (!_drawOperationTextureIndices.TryGetValue(texture, out int textureIndex))
             {
-                textureIndex = value;
-            }
-            else
-            {
+                textureIndex = _drawOperationTextures.Count;
                 _drawOperationTextures.Add(texture);
-                _drawOperationTextureIndices.Add(texture, _drawOperationHighestTextureIndex);
-                textureIndex = _drawOperationHighestTextureIndex;
-                _drawOperationHighestTextureIndex++;
+                _drawOperationTextureIndices.Add(texture, textureIndex);
             }
+
             var drawOperation = new DrawOperation()
             {
                 TextureIndex = textureIndex,
@@ -165,6 +159,7 @@ public sealed partial class SpriteBatch : GraphicsResource
                 Depth = depth
             };
             _drawOperations.Add(drawOperation);
+
         }
 
         public void SortSprites(SpriteSortMode spriteSortMode)
@@ -197,7 +192,7 @@ public sealed partial class SpriteBatch : GraphicsResource
                 span[index].Scale = operation.Scale;
                 span[index].Color = operation.Color.ToVector4();
                 span[index].TextureOrigin = operation.TextureOrigin;
-                span[index].TextureSourceRectangle = new Vector4(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y, operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Height); ;
+                span[index].TextureSourceRectangle = new Vector4(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y, operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Height);
             }
 
             DrawOperation previousDrawOperation = _drawOperations[indexToStartAt];

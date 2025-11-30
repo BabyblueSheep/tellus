@@ -2,6 +2,7 @@
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
 using MoonWorks.Storage;
+using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using System.Reflection;
@@ -37,6 +38,7 @@ internal class SpritebatchGame : Game
 
     private readonly Object[] _objects;
     private double _fps;
+    private readonly Stopwatch _stopwatch;
 
     public SpritebatchGame
     (
@@ -68,7 +70,7 @@ internal class SpritebatchGame : Game
             null, null,
             MainWindow.SwapchainFormat, TextureFormat.D16Unorm
         );
-        _spriteOperationContainer = new SpriteBatch.SpriteOperationContainer(GraphicsDevice, 5000000);
+        _spriteOperationContainer = new SpriteBatch.SpriteOperationContainer(GraphicsDevice, 8192);
 
         _textBatch = new TextBatch(GraphicsDevice);
 
@@ -111,7 +113,7 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[1000000];
+        _objects = new Object[100000];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
@@ -123,11 +125,13 @@ internal class SpritebatchGame : Game
                 Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), 1f)
             };
         }
+
+        _stopwatch = new Stopwatch();
     }
 
     protected override void Update(TimeSpan delta)
     {
-        //_fps = 1 / accumulatedUpdateTime.TotalSeconds;
+        
     }
 
     protected override void Step()
@@ -152,6 +156,8 @@ internal class SpritebatchGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
+            _stopwatch.Restart();
+
             _spriteOperationContainer.ClearSprites();
             for (int i = 0; i < _objects.Length; i++)
             {
@@ -168,13 +174,19 @@ internal class SpritebatchGame : Game
                     1f
                 );
             }
+            //_spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.Texture);
 
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
+
+            if (_stopwatch.ElapsedMilliseconds == 0)
+                _fps = double.PositiveInfinity;
+            else
+                _fps = 1000 / _stopwatch.ElapsedMilliseconds;
 
             _textBatch.Start();
             _textBatch.Add(
                 _sofiaSans,
-                $"{_fps}",
+                $"{(int)_fps}",
                 32,
                 Matrix4x4.CreateTranslation(512, 32, 0),
                 Color.White,
