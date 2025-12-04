@@ -104,12 +104,12 @@ file struct PositionColorVertex : IVertexType
 
 internal class CollisionGame : Game
 {
-    private readonly CollisionHandler.BodyStorageBufferBundle _storageBufferStaticBodies;
-    private readonly CollisionHandler.BodyStorageBufferBundle _storageBufferMovingBodies;
-    private readonly CollisionHandler.LineCollectionStorageBufferBundle _lineBuffer;
-    private readonly CollisionHandler.HitResultStorageBufferBundle _lineHitResultBuffer;
-    private readonly CollisionHandler.ResolutionResultStorageBufferBundle _resolutionResultBuffer;
-    private readonly CollisionHandler.BodyLineCollectionPairStorageBufferBundle _pairBuffer;
+    private readonly BatchCollisionHandler.BodyStorageBufferBundle _storageBufferStaticBodies;
+    private readonly BatchCollisionHandler.BodyStorageBufferBundle _storageBufferMovingBodies;
+    private readonly BatchCollisionHandler.LineCollectionStorageBufferBundle _lineBuffer;
+    private readonly BatchCollisionHandler.HitResultStorageBufferBundle _lineHitResultBuffer;
+    private readonly BatchCollisionHandler.ResolutionResultStorageBufferBundle _resolutionResultBuffer;
+    private readonly BatchCollisionHandler.BodyLineCollectionPairStorageBufferBundle _pairBuffer;
 
     private readonly PlayerObject _playerObject;
     private readonly List<WallObject> _staticObjects;
@@ -231,13 +231,13 @@ internal class CollisionGame : Game
             });
         }
 
-        CollisionHandler.Initialize(GraphicsDevice);
-        _storageBufferStaticBodies = new CollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
-        _storageBufferMovingBodies = new CollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
-        _lineHitResultBuffer = new CollisionHandler.HitResultStorageBufferBundle(GraphicsDevice);
-        _resolutionResultBuffer = new CollisionHandler.ResolutionResultStorageBufferBundle(GraphicsDevice);
-        _lineBuffer = new CollisionHandler.LineCollectionStorageBufferBundle(GraphicsDevice, createDownloadBuffer: true);
-        _pairBuffer = new CollisionHandler.BodyLineCollectionPairStorageBufferBundle(GraphicsDevice);
+        BatchCollisionHandler.Initialize(GraphicsDevice);
+        _storageBufferStaticBodies = new BatchCollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
+        _storageBufferMovingBodies = new BatchCollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
+        _lineHitResultBuffer = new BatchCollisionHandler.HitResultStorageBufferBundle(GraphicsDevice);
+        _resolutionResultBuffer = new BatchCollisionHandler.ResolutionResultStorageBufferBundle(GraphicsDevice);
+        _lineBuffer = new BatchCollisionHandler.LineCollectionStorageBufferBundle(GraphicsDevice, createDownloadBuffer: true);
+        _pairBuffer = new BatchCollisionHandler.BodyLineCollectionPairStorageBufferBundle(GraphicsDevice);
 
         _storageBufferStaticBodies.UploadData
         (
@@ -423,13 +423,13 @@ internal class CollisionGame : Game
             [(nameof(_movingObjects), collisionBodies, collisionRayCasters)]
         );
 
-        CollisionHandler.RestrictLines
+        BatchCollisionHandler.RestrictLines
         (
             commandBuffer,
             _storageBufferStaticBodies, _storageBufferStaticBodies.GetBodySegmentRange(null),
             _lineBuffer, _lineBuffer.GetLineCollectionRange(null)
         );
-        CollisionHandler.IncrementLineCollectionBodiesOffsets
+        BatchCollisionHandler.IncrementLineCollectionBodiesOffsets
         (
             commandBuffer,
             _storageBufferMovingBodies,
@@ -440,7 +440,7 @@ internal class CollisionGame : Game
 
         
         _resolutionResultBuffer.ClearData(commandBuffer);
-        CollisionHandler.ResolveBodyBodyCollisions
+        BatchCollisionHandler.ResolveBodyBodyCollisions
         (
             commandBuffer,
             _storageBufferMovingBodies, _storageBufferMovingBodies.GetBodySegmentRange(null),
@@ -450,7 +450,7 @@ internal class CollisionGame : Game
         _resolutionResultBuffer.DownloadData(commandBuffer);
 
         _lineHitResultBuffer.ClearData(commandBuffer);
-        CollisionHandler.ComputeLineBodyHits
+        BatchCollisionHandler.ComputeLineBodyHits
         (
             commandBuffer,
             _storageBufferMovingBodies, _storageBufferMovingBodies.GetBodySegmentRange(nameof(_movingObjects)),
@@ -646,7 +646,7 @@ internal class CollisionGame : Game
 
     protected override void Destroy()
     {
-        CollisionHandler.Dispose();
+        BatchCollisionHandler.Dispose();
         _spriteOperationContainer.Dispose();
         _spriteBatch.Dispose();
         _depthTexture.Dispose();

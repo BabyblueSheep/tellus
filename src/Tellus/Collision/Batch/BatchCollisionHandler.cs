@@ -5,9 +5,9 @@ using Buffer = MoonWorks.Graphics.Buffer;
 namespace Tellus.Collision;
 
 /// <summary>
-/// Provides various functions that deal with collision detection and resolution.
+/// Provides various functions that deal with batched collision detection and resolution.
 /// </summary>
-public static partial class CollisionHandler
+public static partial class BatchCollisionHandler
 {
     private static ComputePipeline? _hitComputePipeline;
     private static ComputePipeline? _resolutionComputePipeline;

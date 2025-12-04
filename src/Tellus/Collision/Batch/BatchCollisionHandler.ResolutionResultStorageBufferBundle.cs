@@ -5,7 +5,7 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace Tellus.Collision;
 
-public static partial class CollisionHandler
+public static partial class BatchCollisionHandler
 {
     /// <summary>
     /// Provides a convenient way to download information about body resolutions to GPU buffers.

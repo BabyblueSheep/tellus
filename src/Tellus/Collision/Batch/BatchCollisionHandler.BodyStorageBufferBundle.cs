@@ -3,7 +3,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
-public static partial class CollisionHandler
+public static partial class BatchCollisionHandler
 {
     /// <summary>
     /// Provides a convenient way to upload information about bodies and body parts to GPU buffers.

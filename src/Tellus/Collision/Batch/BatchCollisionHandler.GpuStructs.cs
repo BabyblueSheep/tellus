@@ -14,7 +14,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Tellus.Collision;
 
-public static partial class CollisionHandler
+public static partial class BatchCollisionHandler
 {
     [StructLayout(LayoutKind.Explicit, Size = 48)]
     private struct CollisionBodyPartData
