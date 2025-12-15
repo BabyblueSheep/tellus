@@ -13,8 +13,8 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<Content Include="Assets\**\*.*">
-			<Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		<Content Include="resources\**\*.*">
+			<Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>

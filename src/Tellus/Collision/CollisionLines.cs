@@ -76,7 +76,7 @@ public struct CollisionLine
         {
             Origin = origin,
             ArbitraryVector = direction.SafeNormalize(Vector2.Zero),
-            Length = Math.Abs(length),
+            Length = System.Math.Abs(length),
 
             CanBeRestricted = false,
             IsVectorFixedPoint = false

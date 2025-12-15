@@ -169,14 +169,14 @@ internal class CollisionGame : Game
 
         _circleSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "Assets/image_circle.png",
+            "resources/image_circle.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
 
         _squareSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "Assets/image2.png",
+            "resources/image2.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -292,7 +292,7 @@ internal class CollisionGame : Game
         Shader vertexShader = ShaderCross.Create(
             GraphicsDevice,
             RootTitleStorage,
-            "Assets/Position.vert.hlsl",
+            "resources/Position.vert.hlsl",
             "main",
             ShaderCross.ShaderFormat.HLSL,
             ShaderStage.Vertex
@@ -300,7 +300,7 @@ internal class CollisionGame : Game
         Shader fragmentShader = ShaderCross.Create(
             GraphicsDevice,
             RootTitleStorage,
-            "Assets/SolidColor.frag.hlsl",
+            "resources/SolidColor.frag.hlsl",
             "main",
             ShaderCross.ShaderFormat.HLSL,
             ShaderStage.Fragment

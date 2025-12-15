@@ -78,12 +78,12 @@ internal class SpritebatchGame : Game
 
         _squareSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "Assets/image_circle.png",
+            "resources/image_circle.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
 
-        _sofiaSans = Font.Load(GraphicsDevice, RootTitleStorage, "Assets/SofiaSans.ttf");
+        _sofiaSans = Font.Load(GraphicsDevice, RootTitleStorage, "resources/SofiaSans.ttf");
 
         var fontPipelineCreateInfo = new GraphicsPipelineCreateInfo
         {

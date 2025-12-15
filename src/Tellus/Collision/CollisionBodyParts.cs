@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
+using System;
 
 namespace Tellus.Collision;
 
@@ -61,8 +62,8 @@ public struct CollisionBodyPart
     /// <remarks><paramref name="radius"/>'s absolute value is used, and <paramref name="vertexCount"/> is clamped between 3 and 16.</remarks>
     public static CollisionBodyPart CreateCircle(Vector2 center, float radius, int vertexCount)
     {
-        vertexCount = Math.Clamp(vertexCount, 3, 16);
-        radius = Math.Abs(radius);
+        vertexCount = System.Math.Clamp(vertexCount, 3, 16);
+        radius = System.Math.Abs(radius);
         var bodyPart = new CollisionBodyPart
         {
             ShapeType = 0,
