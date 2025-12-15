@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
+using Tellus.Math;
 
 namespace Tellus.Collision;
 

@@ -27,13 +27,13 @@ public sealed partial class SpriteBatch : GraphicsResource
         TextureFormat drawTextureFormat, TextureFormat? depthTextureFormat
     ) : base(device)
     {
-        Utils.LoadShaderFromManifest(device, "TexturedQuad.vert", new ShaderCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "TexturedQuad.vert", new ShaderCreateInfo()
         {
             Stage = ShaderStage.Vertex,
             NumUniformBuffers = 1,
         }, out _defaultVertexShader);
 
-        Utils.LoadShaderFromManifest(device, "TexturedQuad.frag", new ShaderCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "TexturedQuad.frag", new ShaderCreateInfo()
         {
             Stage = ShaderStage.Fragment,
             NumStorageTextures = 1,

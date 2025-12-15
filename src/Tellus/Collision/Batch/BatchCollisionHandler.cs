@@ -20,7 +20,7 @@ public static partial class BatchCollisionHandler
 
     public static void Initialize(GraphicsDevice device)
     {
-        Utils.LoadShaderFromManifest(device, "Collision_BodyBodyHits.comp", new ComputePipelineCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "Collision_BodyBodyHits.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 4,
             NumReadWriteStorageBuffers = 1,
@@ -30,7 +30,7 @@ public static partial class BatchCollisionHandler
             ThreadCountZ = 1
         }, out _hitComputePipeline);
 
-        Utils.LoadShaderFromManifest(device, "Collision_BodyBodyRestrictions.comp", new ComputePipelineCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "Collision_BodyBodyRestrictions.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 3,
             NumReadWriteStorageBuffers = 2,
@@ -40,7 +40,7 @@ public static partial class BatchCollisionHandler
             ThreadCountZ = 1
         }, out _resolutionComputePipeline);
 
-        Utils.LoadShaderFromManifest(device, "Collision_LineBodyHits.comp", new ComputePipelineCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "Collision_LineBodyHits.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 4,
             NumReadWriteStorageBuffers = 1,
@@ -50,7 +50,7 @@ public static partial class BatchCollisionHandler
             ThreadCountZ = 1
         }, out _lineHitComputePipeline);
 
-        Utils.LoadShaderFromManifest(device, "Collision_LineBodyRestrictions.comp", new ComputePipelineCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "Collision_LineBodyRestrictions.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 3,
             NumReadWriteStorageBuffers = 1,
@@ -60,7 +60,7 @@ public static partial class BatchCollisionHandler
             ThreadCountZ = 1
         }, out _lineRestrictComputePipeline);
 
-        Utils.LoadShaderFromManifest(device, "Collision_IncrementLineCollection.comp", new ComputePipelineCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "Collision_IncrementLineCollection.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 1,
             NumReadWriteStorageBuffers = 1,
@@ -70,7 +70,7 @@ public static partial class BatchCollisionHandler
             ThreadCountZ = 1
         }, out _incrementLineCollectionPipeline);
 
-        Utils.LoadShaderFromManifest(device, "Collision_IncrementLineCollectionBody.comp", new ComputePipelineCreateInfo()
+        InternalUtils.LoadShaderFromManifest(device, "Collision_IncrementLineCollectionBody.comp", new ComputePipelineCreateInfo()
         {
             NumReadonlyStorageBuffers = 2,
             NumReadWriteStorageBuffers = 2,

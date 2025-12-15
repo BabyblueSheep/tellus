@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Tellus;
+namespace Tellus.Math;
 
 public static class Vector2Extensions
 {

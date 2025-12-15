@@ -69,7 +69,7 @@ public sealed partial class SpriteBatch : GraphicsResource
 
         public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
         {
-            Utils.LoadShaderFromManifest(device, "SpriteBatch.comp", new ComputePipelineCreateInfo()
+            InternalUtils.LoadShaderFromManifest(device, "SpriteBatch.comp", new ComputePipelineCreateInfo()
             {
                 NumReadonlyStorageBuffers = 1,
                 NumReadWriteStorageBuffers = 1,

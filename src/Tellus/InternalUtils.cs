@@ -4,7 +4,7 @@ using Tellus.Graphics;
 
 namespace Tellus;
 
-public static class Utils
+public static class InternalUtils
 {
     private static void GenerateDataFromBackend(string backend, out ShaderFormat shaderFormat, out string extension, out string entryPointName)
     {
@@ -47,7 +47,7 @@ public static class Utils
 
         ShaderCreateInfo properShaderCreateInfo = createInfo with { Format = shaderFormat };
         string filepath = $"Tellus.{shaderName}.{extension}";
-        var assembly = typeof(Utils).Assembly;
+        var assembly = typeof(InternalUtils).Assembly;
         using var stream = assembly.GetManifestResourceStream(filepath);
         
         if (stream == null)
@@ -75,7 +75,7 @@ public static class Utils
 
         createInfo.Format = shaderFormat;
         string filepath = $"Tellus.{shaderName}.{extension}";
-        var assembly = typeof(Utils).Assembly;
+        var assembly = typeof(InternalUtils).Assembly;
         using var stream = assembly.GetManifestResourceStream(filepath);
 
         if (stream == null)
