@@ -6,17 +6,16 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
-  
-	<ItemGroup>
-		<ProjectReference Include="..\MoonWorks\MoonWorks.csproj" />
-		<ProjectReference Include="..\Tellus\Tellus.csproj" />
-	</ItemGroup>
 	
 	<ItemGroup>
 		<Content Include="resources\**\*.*">
 			<Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <ProjectReference Include="..\Tellus\Tellus.csproj" />
 	</ItemGroup>
 
 </Project>

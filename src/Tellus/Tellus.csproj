@@ -7,14 +7,14 @@
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
-  
-	<ItemGroup>
-		<ProjectReference Include="..\MoonWorks\MoonWorks.csproj" />
-	</ItemGroup>
 	
 	<ItemGroup>
 		<EmbeddedResource Include="$(ProjectDir)resources/Compiled/**" Visible="false">
 			<LogicalName>Tellus.%(Filename)%(Extension)</LogicalName>
 		</EmbeddedResource>
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <ProjectReference Include="..\MoonWorks\MoonWorks.csproj" />
 	</ItemGroup>
 </Project>
