@@ -544,27 +544,24 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.ClearSprites();
 
-            /*
+
             _spriteOperationContainer.PushSprite(
                 _circleSprite,
                 new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                _playerObject.Center,
-                0f, 
-                new Vector2(_playerObject.Radius * 2f),
-                new Vector2(_playerObject.Radius),
+                PlanarMatrix4x4.CreateScale(_playerObject.Radius * 2, Vector2.One * 0.5f) *
+                    PlanarMatrix4x4.CreateTranslation(_playerObject.Center),
                 _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
                 0.5f
             );
 
+            
             foreach (var objectCollider in _movingObjects)
             {
                 _spriteOperationContainer.PushSprite(
                     _circleSprite,
                     new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                    objectCollider.Center,
-                    0f,
-                    new Vector2(objectCollider.Radius * 2f),
-                    new Vector2(objectCollider.Radius),
+                    PlanarMatrix4x4.CreateScale(objectCollider.Radius * 2, Vector2.One * 0.5f) *
+                        PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
                     objectCollider.HasCollidedThisFrame ? Color.Magenta : Color.Blue,
                     0.3f
                 );
@@ -575,26 +572,26 @@ internal class CollisionGame : Game
                 _spriteOperationContainer.PushSprite(
                     _circleSprite,
                     new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                    objectCollider.Center,
-                    0,
-                    Vector2.One * 8,
-                    Vector2.One * 4,
+                    PlanarMatrix4x4.CreateScale(8, Vector2.One * 0.5f) *
+                        PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
                     Color.Black * 0.5f,
                     0.5f
                 );
+
                 foreach (var rectangle in objectCollider.Parts)
                 {
                     if (rectangle.ShapeType == 1)
                     {
+                        var scale = new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y);
+
                         _spriteOperationContainer.PushSprite(
                             _squareSprite,
-                            new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                            rectangle.BodyPartCenter + objectCollider.Center,
-                            rectangle.DecimalFields.Z,
-                            new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y),
-                            new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y) * 0.5f,
+                            new Rectangle(0, 0, (int)_squareSprite.Width, (int)_squareSprite.Height),
+                            PlanarMatrix4x4.CreateScale(scale, Vector2.One * 0.5f) *
+                                PlanarMatrix4x4.CreateRotation(rectangle.DecimalFields.Z, Vector2.One * 0.5f) *
+                                PlanarMatrix4x4.CreateTranslation(rectangle.BodyPartCenter + objectCollider.Center),
                             Color.White,
-                            0.6f
+                            0.5f
                         );
                     }
                 }
@@ -602,7 +599,7 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.SortSprites(SpriteSortMode.FrontToBack);
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
-            */
+            
             commandBuffer.PushVertexUniformData(cameraMatrix);
 
             renderPass.BindGraphicsPipeline(_trianglePipeline);

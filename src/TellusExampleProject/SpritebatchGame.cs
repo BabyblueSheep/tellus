@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Reflection;
 using Tellus.Graphics;
 using Tellus.Graphics.SpriteBatch;
+using Tellus.Math;
 using static WellspringCS.Wellspring;
 using Color = MoonWorks.Graphics.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
@@ -78,7 +79,7 @@ internal class SpritebatchGame : Game
 
         _squareSprite = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
-            "resources/image_circle.png",
+            "resources/image1.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -113,13 +114,13 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[20000];
+        _objects = new Object[1];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
             _objects[i] = new Object()
             {
-                Position = new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
+                Position = new Vector2(50, 50),//new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
                 Rotation = 0,
                 Scale = Vector2.One * 25,
                 Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), 1f)
@@ -127,6 +128,7 @@ internal class SpritebatchGame : Game
         }
 
         _stopwatch = new Stopwatch();
+        _stopwatch.Restart();
     }
 
     protected override void Update(TimeSpan delta)
@@ -156,7 +158,14 @@ internal class SpritebatchGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
-            _stopwatch.Restart();
+            //_stopwatch.Restart();
+
+            if (_stopwatch.ElapsedMilliseconds == 0)
+                _fps = double.PositiveInfinity;
+            else
+                _fps = 1000 / _stopwatch.ElapsedMilliseconds;
+
+            _fps = _stopwatch.ElapsedMilliseconds * 0.01;
 
             _spriteOperationContainer.ClearSprites();
             for (int i = 0; i < _objects.Length; i++)
@@ -166,22 +175,15 @@ internal class SpritebatchGame : Game
                 (
                     _squareSprite,
                     new Rectangle(0, 0, (int)_squareSprite.Width, (int)_squareSprite.Height),
-                    Matrix4x4.CreateScale(instance.Scale.X, instance.Scale.Y, 1f, new Vector3(instance.Scale, 1f) * 0.5f) * Matrix4x4.CreateTranslation(instance.Position.X, instance.Position.Y, 0),
+                    PlanarMatrix4x4.CreateScale(instance.Scale.X, instance.Scale.Y, Vector2.One * 0.5f) *
+                        PlanarMatrix4x4.CreateRotation((float)_fps, Vector2.One * 0.5f) *
+                        PlanarMatrix4x4.CreateTranslation(instance.Position),
                     instance.Color,
-                    0f
+                    1f
                 );
             }
             
-            //_spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.Texture);
-
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
-
-            if (_stopwatch.ElapsedMilliseconds == 0)
-                _fps = double.PositiveInfinity;
-            else
-                _fps = 1000 / _stopwatch.ElapsedMilliseconds;
-
-            _fps = this.accumulatedUpdateTime.TotalMilliseconds;
 
             _textBatch.Start();
             _textBatch.Add(
