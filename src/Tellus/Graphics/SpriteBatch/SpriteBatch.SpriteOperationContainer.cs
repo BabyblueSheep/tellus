@@ -40,8 +40,18 @@ public sealed partial class SpriteBatch : GraphicsResource
         public int TextureIndex;
         public Rectangle TextureSourceRectangle;
         public Matrix4x4 TransformationMatrix;
-        public Color Color;
+        public Color TintColor;
         public float Depth;
+    }
+
+    public struct SpriteParameters
+    {
+        public Matrix4x4 TransformationMatrix = Matrix4x4.Identity;
+        public Color TintColor = Color.White;
+        public Color OverlayColor = Color.Transparent;
+        public float Depth = 0f;
+
+        public SpriteParameters() { }
     }
 
     /// <summary>
@@ -137,16 +147,12 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// </summary>
         /// <param name="texture">The texture to use.</param>
         /// <param name="textureSourceRectangle">An optional region on the texture which will be rendered.</param>
-        /// <param name="transformationMatrix">A matrix defining affine transformations.</param>
-        /// <param name="color">The color of the sprite.</param>
-        /// <param name="depth">A depth of the layer of the sprite.</param>
+        /// <param name="parameters">All other sprite parameters.</param>
         public void PushSprite
         (
             Texture texture,
             Rectangle? textureSourceRectangle,
-            Matrix4x4 transformationMatrix,
-            Color color,
-            float depth
+            SpriteParameters parameters
         )
         {
             if (!__spriteTextureIndices.TryGetValue(texture, out int textureIndex))
@@ -160,9 +166,9 @@ public sealed partial class SpriteBatch : GraphicsResource
             {
                 TextureIndex = textureIndex,
                 TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height),
-                TransformationMatrix = transformationMatrix,
-                Color = color,
-                Depth = depth
+                TransformationMatrix = parameters.TransformationMatrix,
+                TintColor = parameters.TintColor,
+                Depth = parameters.Depth
             };
             _spriteInstances.Add(drawOperation);
 
@@ -202,19 +208,19 @@ public sealed partial class SpriteBatch : GraphicsResource
                 Vector2 textureSize = new Vector2(_spriteTextures[operation.TextureIndex].Width, _spriteTextures[operation.TextureIndex].Height);
 
                 span[index * 4 + 0].Position = new Vector4(Vector3.Transform(new Vector3(0, 0, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 0].Color = operation.Color.ToVector4();
+                span[index * 4 + 0].Color = operation.TintColor.ToVector4();
                 span[index * 4 + 0].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y) / textureSize;
 
                 span[index * 4 + 1].Position = new Vector4(Vector3.Transform(new Vector3(1, 0, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 1].Color = operation.Color.ToVector4();
+                span[index * 4 + 1].Color = operation.TintColor.ToVector4();
                 span[index * 4 + 1].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y) / textureSize;
 
                 span[index * 4 + 2].Position = new Vector4(Vector3.Transform(new Vector3(0, 1, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 2].Color = operation.Color.ToVector4();
+                span[index * 4 + 2].Color = operation.TintColor.ToVector4();
                 span[index * 4 + 2].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
 
                 span[index * 4 + 3].Position = new Vector4(Vector3.Transform(new Vector3(1, 1, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 3].Color = operation.Color.ToVector4();
+                span[index * 4 + 3].Color = operation.TintColor.ToVector4();
                 span[index * 4 + 3].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
             }
 

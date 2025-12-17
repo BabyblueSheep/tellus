@@ -174,12 +174,16 @@ internal class SpritebatchGame : Game
                 _spriteOperationContainer.PushSprite
                 (
                     _squareSprite,
-                    new Rectangle(0, 0, (int)_squareSprite.Width, (int)_squareSprite.Height),
-                    PlanarMatrix4x4.CreateScale(instance.Scale.X, instance.Scale.Y, Vector2.One * 0.5f) *
-                        PlanarMatrix4x4.CreateRotation((float)_fps, Vector2.One * 0.5f) *
-                        PlanarMatrix4x4.CreateTranslation(instance.Position),
-                    instance.Color,
-                    1f
+                    null,
+                    new SpriteBatch.SpriteParameters() with
+                    {
+                        TransformationMatrix = 
+                            PlanarMatrix4x4.CreateScale(instance.Scale.X, instance.Scale.Y, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateRotation((float)_fps, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateTranslation(instance.Position),
+                        TintColor = instance.Color,
+                        Depth = 1f
+                    }
                 );
             }
             

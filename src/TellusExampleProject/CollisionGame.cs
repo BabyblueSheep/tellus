@@ -18,7 +18,6 @@ using Tellus.Collision;
 using Tellus.Graphics;
 using Tellus.Graphics.SpriteBatch;
 using Tellus.Math;
-using static Tellus.Graphics.SpriteBatch.SpriteBatch;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = MoonWorks.Graphics.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
@@ -547,11 +546,15 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.PushSprite(
                 _circleSprite,
-                new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                PlanarMatrix4x4.CreateScale(_playerObject.Radius * 2, Vector2.One * 0.5f) *
-                    PlanarMatrix4x4.CreateTranslation(_playerObject.Center),
-                _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
-                0.5f
+                null,
+                new SpriteBatch.SpriteParameters() with
+                {
+                    TransformationMatrix =
+                        PlanarMatrix4x4.CreateScale(_playerObject.Radius * 2, Vector2.One * 0.5f) *
+                        PlanarMatrix4x4.CreateTranslation(_playerObject.Center),
+                    TintColor = _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
+                    Depth = 0.5f
+                }
             );
 
             
@@ -559,11 +562,15 @@ internal class CollisionGame : Game
             {
                 _spriteOperationContainer.PushSprite(
                     _circleSprite,
-                    new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                    PlanarMatrix4x4.CreateScale(objectCollider.Radius * 2, Vector2.One * 0.5f) *
-                        PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
-                    objectCollider.HasCollidedThisFrame ? Color.Magenta : Color.Blue,
-                    0.3f
+                    null,
+                    new SpriteBatch.SpriteParameters() with
+                    {
+                        TransformationMatrix =
+                            PlanarMatrix4x4.CreateScale(objectCollider.Radius * 2, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
+                        TintColor = objectCollider.HasCollidedThisFrame ? Color.Magenta : Color.Blue,
+                        Depth = 0.3f
+                    }
                 );
             }
 
@@ -571,11 +578,15 @@ internal class CollisionGame : Game
             {
                 _spriteOperationContainer.PushSprite(
                     _circleSprite,
-                    new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
-                    PlanarMatrix4x4.CreateScale(8, Vector2.One * 0.5f) *
-                        PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
-                    Color.Black * 0.5f,
-                    0.5f
+                    null,
+                    new SpriteBatch.SpriteParameters() with
+                    {
+                        TransformationMatrix =
+                            PlanarMatrix4x4.CreateScale(8, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
+                        TintColor = Color.Black * 0.5f,
+                        Depth = 0.5f
+                    }
                 );
 
                 foreach (var rectangle in objectCollider.Parts)
@@ -586,18 +597,22 @@ internal class CollisionGame : Game
 
                         _spriteOperationContainer.PushSprite(
                             _squareSprite,
-                            new Rectangle(0, 0, (int)_squareSprite.Width, (int)_squareSprite.Height),
-                            PlanarMatrix4x4.CreateScale(scale, Vector2.One * 0.5f) *
-                                PlanarMatrix4x4.CreateRotation(rectangle.DecimalFields.Z, Vector2.One * 0.5f) *
-                                PlanarMatrix4x4.CreateTranslation(rectangle.BodyPartCenter + objectCollider.Center),
-                            Color.White,
-                            0.5f
+                            null,
+                            new SpriteBatch.SpriteParameters() with
+                            {
+                                TransformationMatrix =
+                                    PlanarMatrix4x4.CreateScale(scale, Vector2.One * 0.5f) *
+                                    PlanarMatrix4x4.CreateRotation(rectangle.DecimalFields.Z, Vector2.One * 0.5f) *
+                                    PlanarMatrix4x4.CreateTranslation(rectangle.BodyPartCenter + objectCollider.Center),
+                                TintColor = Color.White,
+                                Depth = 0.5f
+                            }
                         );
                     }
                 }
             }
 
-            _spriteOperationContainer.SortSprites(SpriteSortMode.FrontToBack);
+            _spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.FrontToBack);
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
             
             commandBuffer.PushVertexUniformData(cameraMatrix);
