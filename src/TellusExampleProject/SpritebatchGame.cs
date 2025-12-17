@@ -178,8 +178,8 @@ internal class SpritebatchGame : Game
                     new SpriteBatch.SpriteParameters() with
                     {
                         TransformationMatrix = 
-                            PlanarMatrix4x4.CreateScale(instance.Scale.X, instance.Scale.Y, Vector2.One * 0.5f) *
-                            PlanarMatrix4x4.CreateRotation((float)_fps, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateScaleCentered(instance.Scale.X, instance.Scale.Y) *
+                            PlanarMatrix4x4.CreateRotationCentered((float)_fps) *
                             PlanarMatrix4x4.CreateTranslation(instance.Position),
                         TintColor = instance.Color,
                         Depth = 1f

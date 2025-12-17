@@ -550,7 +550,7 @@ internal class CollisionGame : Game
                 new SpriteBatch.SpriteParameters() with
                 {
                     TransformationMatrix =
-                        PlanarMatrix4x4.CreateScale(_playerObject.Radius * 2, Vector2.One * 0.5f) *
+                        PlanarMatrix4x4.CreateScaleCentered(_playerObject.Radius * 2) *
                         PlanarMatrix4x4.CreateTranslation(_playerObject.Center),
                     TintColor = _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
                     Depth = 0.5f
@@ -566,7 +566,7 @@ internal class CollisionGame : Game
                     new SpriteBatch.SpriteParameters() with
                     {
                         TransformationMatrix =
-                            PlanarMatrix4x4.CreateScale(objectCollider.Radius * 2, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateScaleCentered(objectCollider.Radius * 2) *
                             PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
                         TintColor = objectCollider.HasCollidedThisFrame ? Color.Magenta : Color.Blue,
                         Depth = 0.3f
@@ -582,7 +582,7 @@ internal class CollisionGame : Game
                     new SpriteBatch.SpriteParameters() with
                     {
                         TransformationMatrix =
-                            PlanarMatrix4x4.CreateScale(8, Vector2.One * 0.5f) *
+                            PlanarMatrix4x4.CreateScaleCentered(8) *
                             PlanarMatrix4x4.CreateTranslation(objectCollider.Center),
                         TintColor = Color.Black * 0.5f,
                         Depth = 0.5f
@@ -601,8 +601,8 @@ internal class CollisionGame : Game
                             new SpriteBatch.SpriteParameters() with
                             {
                                 TransformationMatrix =
-                                    PlanarMatrix4x4.CreateScale(scale, Vector2.One * 0.5f) *
-                                    PlanarMatrix4x4.CreateRotation(rectangle.DecimalFields.Z, Vector2.One * 0.5f) *
+                                    PlanarMatrix4x4.CreateScaleCentered(scale) *
+                                    PlanarMatrix4x4.CreateRotationCentered(rectangle.DecimalFields.Z) *
                                     PlanarMatrix4x4.CreateTranslation(rectangle.BodyPartCenter + objectCollider.Center),
                                 TintColor = Color.White,
                                 Depth = 0.5f
