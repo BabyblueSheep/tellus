@@ -86,8 +86,10 @@ public sealed partial class SpriteBatch : GraphicsResource
     /// <param name="renderPass">The current <see cref="RenderPass"/>.</param>
     /// <param name="textureToDrawTo">The texture to draw to (the render target).</param>
     /// <param name="spriteContainer">The container with the sprite batch.</param>
-    public void DrawBatch(CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteInstanceContainer spriteContainer)
+    /// <param name="transformationMatrix">An optional transformation matrix to be applied to the vertices.</param>
+    public void DrawBatch(CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteInstanceContainer spriteContainer, Matrix4x4? transformationMatrix)
     {
+        Matrix4x4 actualTransformationMatrix = transformationMatrix ?? Matrix4x4.Identity;
         var cameraMatrix = Matrix4x4.CreateOrthographicOffCenter
         (
             0,
@@ -100,7 +102,7 @@ public sealed partial class SpriteBatch : GraphicsResource
 
         var uniforms = new VertexUniforms()
         {
-            CameraMatrix = cameraMatrix,
+            TransformationMatrix = actualTransformationMatrix * cameraMatrix,
         };
 
         commandBuffer.PushVertexUniformData(uniforms);
@@ -129,10 +131,8 @@ public sealed partial class SpriteBatch : GraphicsResource
 
         while (true)
         {
-            int? nextSpriteIndex = spriteContainer.UploadData(commandBuffer, offset);
-
-            spriteContainer.CreateVertexInfo(commandBuffer, transformationMatrix);
-            DrawBatch(commandBuffer, renderPass, textureToDrawTo, spriteContainer);
+            int? nextSpriteIndex = spriteContainer.CreateVertexInfo(commandBuffer, offset);
+            DrawBatch(commandBuffer, renderPass, textureToDrawTo, spriteContainer, transformationMatrix);
 
             if (nextSpriteIndex is null)
                 break;

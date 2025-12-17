@@ -11,28 +11,6 @@ namespace Tellus.Graphics.SpriteBatch;
 
 public sealed partial class SpriteBatch
 {
-    [StructLayout(LayoutKind.Explicit, Size = 56)]
-    private struct SpriteInstanceData
-    {
-        [FieldOffset(0)]
-        public Vector3 Position;
-
-        [FieldOffset(12)]
-        public float Rotation;
-
-        [FieldOffset(16)]
-        public Vector2 Scale;
-
-        [FieldOffset(24)]
-        public Vector2 SpriteOrigin;
-
-        [FieldOffset(32)]
-        public Vector4 Color;
-
-        [FieldOffset(48)]
-        public Vector4 TextureSourceRectangle;
-    }
-
     [StructLayout(LayoutKind.Explicit, Size = 48)]
     private struct PositionTextureColorVertex : IVertexType
     {
@@ -60,6 +38,5 @@ public sealed partial class SpriteBatch
         ];
     }
 
-    record struct ComputeUniforms(Matrix4x4 TransformationMatrix, Vector2 TextureSize);
-    record struct VertexUniforms(Matrix4x4 CameraMatrix);
+    record struct VertexUniforms(Matrix4x4 TransformationMatrix);
 }

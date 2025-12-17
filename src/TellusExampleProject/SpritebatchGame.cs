@@ -113,7 +113,7 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[100000];
+        _objects = new Object[20000];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
@@ -166,14 +166,12 @@ internal class SpritebatchGame : Game
                 (
                     _squareSprite,
                     new Rectangle(0, 0, (int)_squareSprite.Width, (int)_squareSprite.Height),
-                    instance.Position,
-                    instance.Rotation,
-                    instance.Scale,
-                    instance.Scale * 0.5f,
+                    Matrix4x4.CreateScale(instance.Scale.X, instance.Scale.Y, 1f, new Vector3(instance.Scale, 1f) * 0.5f) * Matrix4x4.CreateTranslation(instance.Position.X, instance.Position.Y, 0),
                     instance.Color,
-                    1f
+                    0f
                 );
             }
+            
             //_spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.Texture);
 
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
@@ -182,6 +180,8 @@ internal class SpritebatchGame : Game
                 _fps = double.PositiveInfinity;
             else
                 _fps = 1000 / _stopwatch.ElapsedMilliseconds;
+
+            _fps = this.accumulatedUpdateTime.TotalMilliseconds;
 
             _textBatch.Start();
             _textBatch.Add(

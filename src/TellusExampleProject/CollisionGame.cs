@@ -544,6 +544,7 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.ClearSprites();
 
+            /*
             _spriteOperationContainer.PushSprite(
                 _circleSprite,
                 new Rectangle(0, 0, (int)_circleSprite.Width, (int)_circleSprite.Height),
@@ -601,7 +602,7 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.SortSprites(SpriteSortMode.FrontToBack);
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
-
+            */
             commandBuffer.PushVertexUniformData(cameraMatrix);
 
             renderPass.BindGraphicsPipeline(_trianglePipeline);

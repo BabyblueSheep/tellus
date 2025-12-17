@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -38,10 +39,7 @@ public sealed partial class SpriteBatch : GraphicsResource
     {
         public int TextureIndex;
         public Rectangle TextureSourceRectangle;
-        public Vector2 Position;
-        public float Rotation;
-        public Vector2 Scale;
-        public Vector2 SpriteOrigin;
+        public Matrix4x4 TransformationMatrix;
         public Color Color;
         public float Depth;
     }
@@ -51,15 +49,12 @@ public sealed partial class SpriteBatch : GraphicsResource
     /// </summary>
     public sealed class SpriteInstanceContainer : GraphicsResource
     {
-        private readonly ComputePipeline _computePipeline;
-
         private readonly int _maximumSpriteAmount;
         internal uint SpriteAmount { get; private set; }
 
         internal Texture? TextureToSample { get; private set; }
 
-        private readonly TransferBuffer _instanceTransferBuffer;
-        private readonly Buffer _spriteInstanceBuffer;
+        private readonly TransferBuffer _vertexTransferBuffer;
         internal Buffer VertexBuffer { get; }
         internal Buffer IndexBuffer { get; }
 
@@ -69,39 +64,22 @@ public sealed partial class SpriteBatch : GraphicsResource
 
         public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
         {
-            InternalUtils.LoadShaderFromManifest(device, "SpriteBatch.comp", new ComputePipelineCreateInfo()
-            {
-                NumReadonlyStorageBuffers = 1,
-                NumReadWriteStorageBuffers = 1,
-                NumUniformBuffers = 1,
-                ThreadCountX = 64,
-                ThreadCountY = 1,
-                ThreadCountZ = 1
-            }, out _computePipeline);
-
             _maximumSpriteAmount = (int)maxSpriteAmount;
 
             uint maxVertexAmount = maxSpriteAmount * 4;
             uint maxIndexAmount = maxSpriteAmount * 6;
 
-            _instanceTransferBuffer = TransferBuffer.Create<SpriteInstanceData>
+            _vertexTransferBuffer = TransferBuffer.Create<PositionTextureColorVertex>
             (
                 device,
                 TransferBufferUsage.Upload,
-                maxSpriteAmount
-            );
-
-            _spriteInstanceBuffer = Buffer.Create<SpriteInstanceData>
-            (
-                device,
-                BufferUsageFlags.ComputeStorageRead,
-                maxSpriteAmount
+                maxVertexAmount
             );
 
             VertexBuffer = Buffer.Create<PositionTextureColorVertex>
             (
                 device,
-                BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.Vertex,
+                BufferUsageFlags.Vertex,
                 maxVertexAmount
             );
 
@@ -159,20 +137,14 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// </summary>
         /// <param name="texture">The texture to use.</param>
         /// <param name="textureSourceRectangle">An optional region on the texture which will be rendered.</param>
-        /// <param name="position">The position of the sprite.</param>
-        /// <param name="rotation">The rotation of the sprite.</param>
-        /// <param name="scale">The size of the sprite.</param>
-        /// <param name="spriteOrigin">The origin of the sprite, based on the size. Determines the point of rotation and position.</param>
+        /// <param name="transformationMatrix">A matrix defining affine transformations.</param>
         /// <param name="color">The color of the sprite.</param>
         /// <param name="depth">A depth of the layer of the sprite.</param>
         public void PushSprite
         (
             Texture texture,
             Rectangle? textureSourceRectangle,
-            Vector2 position,
-            float rotation,
-            Vector2 scale,
-            Vector2 spriteOrigin,
+            Matrix4x4 transformationMatrix,
             Color color,
             float depth
         )
@@ -188,10 +160,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             {
                 TextureIndex = textureIndex,
                 TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height),
-                Position = position,
-                Rotation = rotation,
-                Scale = scale,
-                SpriteOrigin = spriteOrigin,
+                TransformationMatrix = transformationMatrix,
                 Color = color,
                 Depth = depth
             };
@@ -220,29 +189,39 @@ public sealed partial class SpriteBatch : GraphicsResource
         }
 
         /// <summary>
-        /// Uploads sprites to the GPU.
+        /// Converts sprites to vertex information and uploads them to the GPU.
         /// </summary>
         /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
-        /// <param name="indexToStartAt">The sprite instance index to start at.</param>
-        /// <returns>The index of the next batch to be drawn, or null if no batch is to be drawn next.</returns>
-        public int? UploadData(CommandBuffer commandBuffer, int indexToStartAt = 0)
+        public int? CreateVertexInfo(CommandBuffer commandBuffer, int indexToStartAt = 0)
         {
             if (_spriteInstances.Count == 0)
                 return null;
 
-            static void AddInstanceDataToBuffer(ref Span<SpriteInstanceData> span, int index, SpriteInstance operation)
+            void AddInstanceDataToBuffer(ref Span<PositionTextureColorVertex> span, int index, SpriteInstance operation)
             {
-                span[index].Position = new Vector3(operation.Position, operation.Depth);
-                span[index].Rotation = operation.Rotation;
-                span[index].Scale = operation.Scale;
-                span[index].Color = operation.Color.ToVector4();
-                span[index].SpriteOrigin = operation.SpriteOrigin;
-                span[index].TextureSourceRectangle = new Vector4(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y, operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Height);
+                Vector2 textureSize = new Vector2(_spriteTextures[operation.TextureIndex].Width, _spriteTextures[operation.TextureIndex].Height);
+
+                span[index * 4 + 0].Position = new Vector4(Vector3.Transform(new Vector3(0, 0, operation.Depth), operation.TransformationMatrix), 1);
+                span[index * 4 + 0].Color = operation.Color.ToVector4();
+                span[index * 4 + 0].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y) / textureSize;
+
+                span[index * 4 + 1].Position = new Vector4(Vector3.Transform(new Vector3(1, 0, operation.Depth), operation.TransformationMatrix), 1);
+                span[index * 4 + 1].Color = operation.Color.ToVector4();
+                span[index * 4 + 1].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y) / textureSize;
+
+                span[index * 4 + 2].Position = new Vector4(Vector3.Transform(new Vector3(0, 1, operation.Depth), operation.TransformationMatrix), 1);
+                span[index * 4 + 2].Color = operation.Color.ToVector4();
+                span[index * 4 + 2].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
+
+                span[index * 4 + 3].Position = new Vector4(Vector3.Transform(new Vector3(1, 1, operation.Depth), operation.TransformationMatrix), 1);
+                span[index * 4 + 3].Color = operation.Color.ToVector4();
+                span[index * 4 + 3].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
             }
+
+            var instanceDataSpan = _vertexTransferBuffer.Map<PositionTextureColorVertex>(true);
 
             SpriteInstance previousDrawOperation = _spriteInstances[indexToStartAt];
 
-            var instanceDataSpan = _instanceTransferBuffer.Map<SpriteInstanceData>(true);
             var highestInstanceIndex = 0;
 
             AddInstanceDataToBuffer(ref instanceDataSpan, highestInstanceIndex, previousDrawOperation);
@@ -254,10 +233,10 @@ public sealed partial class SpriteBatch : GraphicsResource
 
                 if (currentDrawOperation.TextureIndex != previousDrawOperation.TextureIndex || highestInstanceIndex >= _maximumSpriteAmount)
                 {
-                    _instanceTransferBuffer.Unmap();
+                    _vertexTransferBuffer.Unmap();
 
                     var copyPass = commandBuffer.BeginCopyPass();
-                    copyPass.UploadToBuffer(_instanceTransferBuffer, _spriteInstanceBuffer, true);
+                    copyPass.UploadToBuffer(_vertexTransferBuffer, VertexBuffer, true);
                     commandBuffer.EndCopyPass(copyPass);
 
                     SpriteAmount = (uint)highestInstanceIndex;
@@ -272,10 +251,10 @@ public sealed partial class SpriteBatch : GraphicsResource
                 previousDrawOperation = currentDrawOperation;
             }
 
-            _instanceTransferBuffer.Unmap();
+            _vertexTransferBuffer.Unmap();
 
             var lastCopyPass = commandBuffer.BeginCopyPass();
-            lastCopyPass.UploadToBuffer(_instanceTransferBuffer, _spriteInstanceBuffer, true);
+            lastCopyPass.UploadToBuffer(_vertexTransferBuffer, VertexBuffer, true);
             commandBuffer.EndCopyPass(lastCopyPass);
 
             SpriteAmount = (uint)highestInstanceIndex;
@@ -285,47 +264,13 @@ public sealed partial class SpriteBatch : GraphicsResource
             return null;
         }
 
-        /// <summary>
-        /// Turns sprite instance data into vertex data.
-        /// </summary>
-        /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
-        /// <param name="transformationMatrix">An optional transformation matrix to be applied to the vertices.</param>
-        /// <exception cref="NullReferenceException">Throws when no texture is to be sampled. Implies that no sprite instance data has been uploaded.</exception>
-        public void CreateVertexInfo(CommandBuffer commandBuffer, Matrix4x4? transformationMatrix)
-        {
-            if (TextureToSample is null)
-                throw new NullReferenceException($"{nameof(TextureToSample)} is null. Is {nameof(CreateVertexInfo)} being called before {nameof(UploadData)}?");
-
-            Matrix4x4 actualTransformationMatrix = transformationMatrix ?? Matrix4x4.Identity;
-
-            var computeUniforms = new ComputeUniforms()
-            {
-                TransformationMatrix = actualTransformationMatrix,
-                TextureSize = new Vector2(TextureToSample.Width, TextureToSample.Height),
-            };
-
-            var computePass = commandBuffer.BeginComputePass
-            (
-                new StorageBufferReadWriteBinding(VertexBuffer, true)
-            );
-
-            computePass.BindComputePipeline(_computePipeline);
-            computePass.BindStorageBuffers(_spriteInstanceBuffer);
-            commandBuffer.PushComputeUniformData(computeUniforms);
-            computePass.Dispatch((SpriteAmount + 63) / 64, 1, 1);
-            commandBuffer.EndComputePass(computePass);
-        }
-
         protected override void Dispose(bool disposing)
         {
             if (!IsDisposed)
             {
                 if (disposing)
                 {
-                    _computePipeline.Dispose();
-                    
-                    _spriteInstanceBuffer.Dispose();
-                    _instanceTransferBuffer.Dispose();
+                    _vertexTransferBuffer.Dispose();
                     VertexBuffer.Dispose();
                     IndexBuffer.Dispose();
                 }
