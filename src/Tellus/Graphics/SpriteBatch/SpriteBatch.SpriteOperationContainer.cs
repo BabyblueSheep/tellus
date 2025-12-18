@@ -41,6 +41,7 @@ public sealed partial class SpriteBatch : GraphicsResource
         public Rectangle TextureSourceRectangle;
         public Matrix4x4 TransformationMatrix;
         public Color TintColor;
+        public Color OffsetColor;
         public float Depth;
     }
 
@@ -48,7 +49,7 @@ public sealed partial class SpriteBatch : GraphicsResource
     {
         public Matrix4x4 TransformationMatrix = Matrix4x4.Identity;
         public Color TintColor = Color.White;
-        public Color OverlayColor = Color.Transparent;
+        public Color OffsetColor = Color.Transparent;
         public float Depth = 0f;
 
         public SpriteParameters() { }
@@ -168,6 +169,7 @@ public sealed partial class SpriteBatch : GraphicsResource
                 TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height),
                 TransformationMatrix = parameters.TransformationMatrix,
                 TintColor = parameters.TintColor,
+                OffsetColor = parameters.OffsetColor,
                 Depth = parameters.Depth
             };
             _spriteInstances.Add(drawOperation);
@@ -208,19 +210,23 @@ public sealed partial class SpriteBatch : GraphicsResource
                 Vector2 textureSize = new Vector2(_spriteTextures[operation.TextureIndex].Width, _spriteTextures[operation.TextureIndex].Height);
 
                 span[index * 4 + 0].Position = new Vector4(Vector3.Transform(new Vector3(0, 0, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 0].Color = operation.TintColor.ToVector4();
+                span[index * 4 + 0].TintColor = operation.TintColor.ToVector4();
+                span[index * 4 + 0].OffsetColor = operation.OffsetColor.ToVector4();
                 span[index * 4 + 0].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y) / textureSize;
 
                 span[index * 4 + 1].Position = new Vector4(Vector3.Transform(new Vector3(1, 0, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 1].Color = operation.TintColor.ToVector4();
+                span[index * 4 + 1].TintColor = operation.TintColor.ToVector4();
+                span[index * 4 + 1].OffsetColor = operation.OffsetColor.ToVector4();
                 span[index * 4 + 1].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y) / textureSize;
 
                 span[index * 4 + 2].Position = new Vector4(Vector3.Transform(new Vector3(0, 1, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 2].Color = operation.TintColor.ToVector4();
+                span[index * 4 + 2].TintColor = operation.TintColor.ToVector4();
+                span[index * 4 + 2].OffsetColor = operation.OffsetColor.ToVector4();
                 span[index * 4 + 2].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
 
                 span[index * 4 + 3].Position = new Vector4(Vector3.Transform(new Vector3(1, 1, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 3].Color = operation.TintColor.ToVector4();
+                span[index * 4 + 3].TintColor = operation.TintColor.ToVector4();
+                span[index * 4 + 3].OffsetColor = operation.OffsetColor.ToVector4();
                 span[index * 4 + 3].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
             }
 

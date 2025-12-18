@@ -11,7 +11,7 @@ namespace Tellus.Graphics.SpriteBatch;
 
 public sealed partial class SpriteBatch
 {
-    [StructLayout(LayoutKind.Explicit, Size = 48)]
+    [StructLayout(LayoutKind.Explicit, Size = 64)]
     private struct PositionTextureColorVertex : IVertexType
     {
         [FieldOffset(0)]
@@ -21,20 +21,25 @@ public sealed partial class SpriteBatch
         public Vector2 TexCoord;
 
         [FieldOffset(32)]
-        public Vector4 Color;
+        public Vector4 TintColor;
+
+        [FieldOffset(48)]
+        public Vector4 OffsetColor;
 
         public static VertexElementFormat[] Formats { get; } =
         [
             VertexElementFormat.Float4,
             VertexElementFormat.Float2,
-            VertexElementFormat.Float4
+            VertexElementFormat.Float4,
+            VertexElementFormat.Float4,
         ];
 
         public static uint[] Offsets { get; } =
         [
             0,
             16,
-            32
+            32,
+            48
         ];
     }
 

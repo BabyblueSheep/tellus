@@ -7,13 +7,15 @@ struct Input
 {
     float4 Position : TEXCOORD0;
     float2 TexCoord : TEXCOORD1;
-    float4 Color : TEXCOORD2;
+    float4 TintColor : TEXCOORD2;
+    float4 OffsetColor : TEXCOORD3;
 };
 
 struct Output
 {
     float2 TexCoord : TEXCOORD0;
-    float4 Color : TEXCOORD1;
+    float4 TintColor : TEXCOORD1;
+    float4 OffsetColor : TEXCOORD2;
     float4 Position : SV_Position;
 };
 
@@ -22,6 +24,7 @@ Output main(Input input)
     Output output;
     output.Position = mul(MatrixTransform, input.Position);
     output.TexCoord = input.TexCoord;
-    output.Color = input.Color;
+    output.TintColor = input.TintColor;
+    output.OffsetColor = input.OffsetColor;
     return output;
 }

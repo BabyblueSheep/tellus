@@ -103,6 +103,8 @@ file struct PositionColorVertex : IVertexType
 
 internal class CollisionGame : Game
 {
+    private float _timer;
+
     private readonly BatchCollisionHandler.BodyStorageBufferBundle _storageBufferStaticBodies;
     private readonly BatchCollisionHandler.BodyStorageBufferBundle _storageBufferMovingBodies;
     private readonly BatchCollisionHandler.LineCollectionStorageBufferBundle _lineBuffer;
@@ -378,6 +380,8 @@ internal class CollisionGame : Game
 
     protected override void Update(TimeSpan delta)
     {
+        _timer += 0.01f;
+
         _playerObject.HasCollidedThisFrame = false;
 
         _playerObject.Velocity = Vector2.Zero;
@@ -543,7 +547,6 @@ internal class CollisionGame : Game
 
             _spriteOperationContainer.ClearSprites();
 
-
             _spriteOperationContainer.PushSprite(
                 _circleSprite,
                 null,
@@ -552,7 +555,8 @@ internal class CollisionGame : Game
                     TransformationMatrix =
                         PlanarMatrix4x4.CreateScaleCentered(_playerObject.Radius * 2) *
                         PlanarMatrix4x4.CreateTranslation(_playerObject.Center),
-                    TintColor = _playerObject.HasCollidedThisFrame ? Color.Red : Color.White,
+                    TintColor = Color.Red,
+                    OffsetColor = Color.Lerp(Color.Lime with { A = 0 }, Color.Lime, MathF.Abs(MathF.Sin(_timer))),
                     Depth = 0.5f
                 }
             );
