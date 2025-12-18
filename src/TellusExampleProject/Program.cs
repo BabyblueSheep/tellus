@@ -25,9 +25,9 @@ internal class Program
 			highDPI: false
 		);
 
-		FramePacingSettings framePacingSettings = FramePacingSettings.CreateCapped(60, 6);
+		FramePacingSettings framePacingSettings = FramePacingSettings.CreateLatencyOptimized(60, 6);
 
-		var game = new CollisionGame(appInfo, windowCreateInfo, framePacingSettings);
+		var game = new SpritebatchGame(appInfo, windowCreateInfo, framePacingSettings);
 		game.Run();
 	}
 }

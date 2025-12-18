@@ -22,13 +22,16 @@ internal class SpritebatchGame : Game
 {
     private struct Object
     {
+        public int Texture;
         public Vector2 Position;
         public float Rotation;
         public Vector2 Scale;
         public Color Color;
     }
 
-    private readonly Texture _squareSprite;
+    private readonly Texture _squareSpriteOne;
+    private readonly Texture _squareSpriteTwo;
+    private readonly Texture _squareSpriteThree;
     private Texture _depthTexture;
     private readonly SpriteBatch.SpriteInstanceContainer _spriteOperationContainer;
     private readonly SpriteBatch _spriteBatch;
@@ -77,9 +80,21 @@ internal class SpritebatchGame : Game
 
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 
-        _squareSprite = resourceUploader.CreateTexture2DFromCompressed(
+        _squareSpriteOne = resourceUploader.CreateTexture2DFromCompressed(
             RootTitleStorage,
             "resources/image1.png",
+            TextureFormat.R8G8B8A8Unorm,
+            TextureUsageFlags.Sampler
+        );
+        _squareSpriteTwo = resourceUploader.CreateTexture2DFromCompressed(
+            RootTitleStorage,
+            "resources/image2.png",
+            TextureFormat.R8G8B8A8Unorm,
+            TextureUsageFlags.Sampler
+        );
+        _squareSpriteThree = resourceUploader.CreateTexture2DFromCompressed(
+            RootTitleStorage,
+            "resources/image3.png",
             TextureFormat.R8G8B8A8Unorm,
             TextureUsageFlags.Sampler
         );
@@ -114,13 +129,14 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[1];
+        _objects = new Object[20000];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
             _objects[i] = new Object()
             {
-                Position = new Vector2(50, 50),//new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
+                Texture = random.Next(4),
+                Position = new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
                 Rotation = 0,
                 Scale = Vector2.One * 25,
                 Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), 1f)
@@ -128,7 +144,7 @@ internal class SpritebatchGame : Game
         }
 
         _stopwatch = new Stopwatch();
-        _stopwatch.Restart();
+        _stopwatch.Start();
     }
 
     protected override void Update(TimeSpan delta)
@@ -138,7 +154,7 @@ internal class SpritebatchGame : Game
 
     protected override void Step()
     {
-        
+        _stopwatch.Restart();
     }
 
     protected override void Draw(double alpha)
@@ -158,14 +174,12 @@ internal class SpritebatchGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
-            //_stopwatch.Restart();
-
             if (_stopwatch.ElapsedMilliseconds == 0)
                 _fps = double.PositiveInfinity;
             else
                 _fps = 1000 / _stopwatch.ElapsedMilliseconds;
 
-            _fps = _stopwatch.ElapsedMilliseconds * 0.01;
+            _fps = _stopwatch.ElapsedMilliseconds;
 
             _spriteOperationContainer.ClearSprites();
             for (int i = 0; i < _objects.Length; i++)
@@ -173,20 +187,23 @@ internal class SpritebatchGame : Game
                 var instance = _objects[i];
                 _spriteOperationContainer.PushSprite
                 (
-                    _squareSprite,
+                    instance.Texture == 0 ? _squareSpriteOne : (instance.Texture == 1 ? _squareSpriteTwo : _squareSpriteThree),
                     null,
                     new SpriteBatch.SpriteParameters() with
                     {
                         TransformationMatrix = 
                             PlanarMatrix4x4.CreateScaleCentered(instance.Scale.X, instance.Scale.Y) *
-                            PlanarMatrix4x4.CreateRotationCentered((float)_fps) *
+                            //PlanarMatrix4x4.CreateRotationCentered((float)_fps) *
                             PlanarMatrix4x4.CreateTranslation(instance.Position),
                         TintColor = instance.Color,
                         Depth = 1f
                     }
                 );
             }
-            
+
+            _spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.Texture);
+
+
             _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
 
             _textBatch.Start();
