@@ -135,7 +135,7 @@ internal class SpritebatchGame : Game
         {
             _objects[i] = new Object()
             {
-                Texture = random.Next(4),
+                Texture = random.Next(3),
                 Position = new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
                 Rotation = random.NextSingle() * MathF.PI * 2,
                 Scale = Vector2.One * 25,
