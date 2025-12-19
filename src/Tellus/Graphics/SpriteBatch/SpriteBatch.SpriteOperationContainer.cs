@@ -45,6 +45,13 @@ public sealed partial class SpriteBatch : GraphicsResource
         public float Depth;
     }
 
+    internal struct BatchInformation
+    {
+        public int StartSpriteIndex;
+        public int Length;
+        public Texture Texture;
+    }
+
     public struct SpriteParameters
     {
         public Matrix4x4 TransformationMatrix = Matrix4x4.Identity;
@@ -61,9 +68,7 @@ public sealed partial class SpriteBatch : GraphicsResource
     public sealed class SpriteInstanceContainer : GraphicsResource
     {
         private readonly int _maximumSpriteAmount;
-        internal uint SpriteAmount { get; private set; }
 
-        internal Texture? TextureToSample { get; private set; }
 
         private readonly TransferBuffer _vertexTransferBuffer;
         internal Buffer VertexBuffer { get; }
@@ -72,6 +77,8 @@ public sealed partial class SpriteBatch : GraphicsResource
         private readonly List<Texture> _spriteTextures;
         private readonly Dictionary<Texture, int> __spriteTextureIndices;
         private List<SpriteInstance> _spriteInstances;
+
+        internal List<BatchInformation> BatchInformation;
 
         public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
         {
@@ -130,6 +137,8 @@ public sealed partial class SpriteBatch : GraphicsResource
             _spriteTextures = [];
             __spriteTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
             _spriteInstances = [];
+
+            BatchInformation = [];
         }
 
         /// <summary>
@@ -140,7 +149,6 @@ public sealed partial class SpriteBatch : GraphicsResource
             _spriteInstances.Clear();
             _spriteTextures.Clear();
             __spriteTextureIndices.Clear();
-            TextureToSample = null;
         }
 
         /// <summary>
@@ -200,10 +208,12 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// Converts sprites to vertex information and uploads them to the GPU.
         /// </summary>
         /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
-        public int? CreateVertexInfo(CommandBuffer commandBuffer, int indexToStartAt = 0)
+        public void CreateVertexInfo(CommandBuffer commandBuffer)
         {
+            BatchInformation.Clear();
+
             if (_spriteInstances.Count == 0)
-                return null;
+                return;
 
             void AddInstanceDataToBuffer(ref Span<PositionTextureColorVertex> span, int index, SpriteInstance operation)
             {
@@ -232,48 +242,42 @@ public sealed partial class SpriteBatch : GraphicsResource
 
             var instanceDataSpan = _vertexTransferBuffer.Map<PositionTextureColorVertex>(true);
 
-            SpriteInstance previousDrawOperation = _spriteInstances[indexToStartAt];
-
-            var highestInstanceIndex = 0;
-
-            AddInstanceDataToBuffer(ref instanceDataSpan, highestInstanceIndex, previousDrawOperation);
-            highestInstanceIndex++;
-
-            for (int i = indexToStartAt + 1; i < _spriteInstances.Count; i++)
+            int batchIndexStart = 0;
+            int previousTextureIndex = _spriteInstances[0].TextureIndex;
+            for (int i = 0; i < _spriteInstances.Count; i++)
             {
                 SpriteInstance currentDrawOperation = _spriteInstances[i];
 
-                if (currentDrawOperation.TextureIndex != previousDrawOperation.TextureIndex || highestInstanceIndex >= _maximumSpriteAmount)
+                AddInstanceDataToBuffer(ref instanceDataSpan, i, currentDrawOperation);
+
+                if (previousTextureIndex != currentDrawOperation.TextureIndex)
                 {
-                    _vertexTransferBuffer.Unmap();
-
-                    var copyPass = commandBuffer.BeginCopyPass();
-                    copyPass.UploadToBuffer(_vertexTransferBuffer, VertexBuffer, true);
-                    commandBuffer.EndCopyPass(copyPass);
-
-                    SpriteAmount = (uint)highestInstanceIndex;
-                    TextureToSample = _spriteTextures[previousDrawOperation.TextureIndex];
-
-                    return i;
+                    BatchInformation.Add(new BatchInformation()
+                    {
+                        StartSpriteIndex = batchIndexStart,
+                        Length = i - batchIndexStart,
+                        Texture = _spriteTextures[previousTextureIndex],
+                    });
                 }
 
-                AddInstanceDataToBuffer(ref instanceDataSpan, highestInstanceIndex, currentDrawOperation);
-                highestInstanceIndex++;
+                previousTextureIndex = currentDrawOperation.TextureIndex;
+            }
 
-                previousDrawOperation = currentDrawOperation;
+            if (_spriteInstances[^1].TextureIndex == _spriteInstances[^2].TextureIndex)
+            {
+                BatchInformation.Add(new BatchInformation()
+                {
+                    StartSpriteIndex = batchIndexStart,
+                    Length = BatchInformation.Count - 1 - batchIndexStart,
+                    Texture = _spriteTextures[previousTextureIndex],
+                });
             }
 
             _vertexTransferBuffer.Unmap();
 
-            var lastCopyPass = commandBuffer.BeginCopyPass();
-            lastCopyPass.UploadToBuffer(_vertexTransferBuffer, VertexBuffer, true);
-            commandBuffer.EndCopyPass(lastCopyPass);
-
-            SpriteAmount = (uint)highestInstanceIndex;
-            SpriteInstance lastDrawOperation = _spriteInstances[^1];
-            TextureToSample = _spriteTextures[lastDrawOperation.TextureIndex];
-
-            return null;
+            var copyPass = commandBuffer.BeginCopyPass();
+            copyPass.UploadToBuffer(_vertexTransferBuffer, VertexBuffer, true);
+            commandBuffer.EndCopyPass(copyPass);
         }
 
         protected override void Dispose(bool disposing)

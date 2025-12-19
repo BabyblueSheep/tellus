@@ -105,39 +105,14 @@ public sealed partial class SpriteBatch : GraphicsResource
             TransformationMatrix = actualTransformationMatrix * cameraMatrix,
         };
 
-        commandBuffer.PushVertexUniformData(uniforms);
-        renderPass.BindGraphicsPipeline(_graphicsPipeline);
-        renderPass.BindVertexBuffers(spriteContainer.VertexBuffer);
-        renderPass.BindIndexBuffer(spriteContainer.IndexBuffer, IndexElementSize.ThirtyTwo);
-        renderPass.BindFragmentSamplers(new TextureSamplerBinding(spriteContainer.TextureToSample, _sampler));
-        renderPass.DrawIndexedPrimitives(spriteContainer.SpriteAmount * 6, 1, 0, 0, 0);
-    }
-
-    /// <summary>
-    /// Draws all contained batches of sprites.
-    /// </summary>
-    /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
-    /// <param name="renderPass">The current <see cref="RenderPass"/>.</param>
-    /// <param name="textureToDrawTo">The texture to draw to (the render target).</param>
-    /// <param name="spriteContainer">The container with the sprite batch.</param>
-    /// <param name="transformationMatrix">An optional transformation matrix to be applied to the vertices.</param>
-    public void DrawFullBatch
-    (
-        CommandBuffer commandBuffer, RenderPass renderPass, Texture textureToDrawTo, SpriteInstanceContainer spriteContainer,
-        Matrix4x4? transformationMatrix
-    )
-    {
-        int offset = 0;
-
-        while (true)
+        foreach (var batchInformation in  spriteContainer.BatchInformation)
         {
-            int? nextSpriteIndex = spriteContainer.CreateVertexInfo(commandBuffer, offset);
-            DrawBatch(commandBuffer, renderPass, textureToDrawTo, spriteContainer, transformationMatrix);
-
-            if (nextSpriteIndex is null)
-                break;
-
-            offset = nextSpriteIndex.Value;
+            commandBuffer.PushVertexUniformData(uniforms);
+            renderPass.BindGraphicsPipeline(_graphicsPipeline);
+            renderPass.BindVertexBuffers(spriteContainer.VertexBuffer);
+            renderPass.BindIndexBuffer(spriteContainer.IndexBuffer, IndexElementSize.ThirtyTwo);
+            renderPass.BindFragmentSamplers(new TextureSamplerBinding(batchInformation.Texture, _sampler));
+            renderPass.DrawIndexedPrimitives((uint)batchInformation.Length * 6, 1, (uint)batchInformation.StartSpriteIndex * 6, 0, 0);
         }
     }
 

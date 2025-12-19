@@ -72,9 +72,9 @@ internal class SpritebatchGame : Game
             },
             RasterizerState.CCW_CullNone,
             null, null,
-            MainWindow.SwapchainFormat, TextureFormat.D16Unorm
+            MainWindow.SwapchainFormat, GraphicsDevice.SupportedDepthStencilFormat
         );
-        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 8192);
+        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 20000);
 
         _textBatch = new TextBatch(GraphicsDevice);
 
@@ -143,6 +143,8 @@ internal class SpritebatchGame : Game
             };
         }
 
+        GraphicsDevice.SetSwapchainParameters(MainWindow, SwapchainComposition.SDR, PresentMode.Immediate);
+
         _stopwatch = new Stopwatch();
         _stopwatch.Start();
     }
@@ -154,11 +156,13 @@ internal class SpritebatchGame : Game
 
     protected override void Step()
     {
-        _stopwatch.Restart();
+
     }
 
     protected override void Draw(double alpha)
     {
+        _stopwatch.Restart();
+
         CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer();
         Texture swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
         if (swapchainTexture != null)
@@ -179,7 +183,7 @@ internal class SpritebatchGame : Game
             else
                 _fps = 1000 / _stopwatch.ElapsedMilliseconds;
 
-            _fps = _stopwatch.ElapsedMilliseconds;
+            //_fps = _stopwatch.ElapsedMilliseconds;
 
             _spriteOperationContainer.ClearSprites();
             for (int i = 0; i < _objects.Length; i++)
@@ -203,8 +207,8 @@ internal class SpritebatchGame : Game
 
             _spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.Texture);
 
-
-            _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
+            _spriteOperationContainer.CreateVertexInfo(commandBuffer);
+            _spriteBatch.DrawBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
 
             _textBatch.Start();
             _textBatch.Add(

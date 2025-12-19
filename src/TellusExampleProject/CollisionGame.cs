@@ -617,7 +617,8 @@ internal class CollisionGame : Game
             }
 
             _spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.FrontToBack);
-            _spriteBatch.DrawFullBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
+            _spriteOperationContainer.CreateVertexInfo(commandBuffer);
+            _spriteBatch.DrawBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
             
             commandBuffer.PushVertexUniformData(cameraMatrix);
 
