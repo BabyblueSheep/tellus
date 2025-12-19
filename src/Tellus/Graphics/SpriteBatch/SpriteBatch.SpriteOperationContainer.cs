@@ -122,12 +122,15 @@ public sealed partial class SpriteBatch : GraphicsResource
 
         internal List<BatchInformation> BatchInformationList;
 
-        public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
+        public SpriteInstanceContainer(GraphicsDevice device, int maxSpriteAmount = 2048) : base(device)
         {
             _spriteInstances = new SpriteInstance[maxSpriteAmount];
             _spriteInstanceIndices = new int[maxSpriteAmount];
 
-            ResizeBuffers(device.AcquireCommandBuffer(), maxSpriteAmount);
+            _maximumSpriteAmount = maxSpriteAmount;
+            CommandBuffer commandBuffer = device.AcquireCommandBuffer();
+            ResizeBuffers(commandBuffer, (uint)maxSpriteAmount, false);
+            device.Submit(commandBuffer);
 
             _spriteTextures = [];
             __spriteTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
@@ -135,10 +138,8 @@ public sealed partial class SpriteBatch : GraphicsResource
             BatchInformationList = [];
         }
 
-        private void ResizeBuffers(CommandBuffer commandBuffer, uint size)
+        private void ResizeBuffers(CommandBuffer commandBuffer, uint size, bool cycle)
         {
-            _maximumSpriteAmount = (int)size;
-
             uint maxVertexAmount = size * 4;
             uint maxIndexAmount = size * 6;
 
@@ -172,7 +173,7 @@ public sealed partial class SpriteBatch : GraphicsResource
                 maxIndexAmount
             );
 
-            var indexSpan = indexTransferBuffer.Map<uint>(false);
+            var indexSpan = indexTransferBuffer.Map<uint>(cycle);
             for (int i = 0, j = 0; i < maxIndexAmount; i += 6, j += 4)
             {
                 indexSpan[i] = (uint)j;
@@ -185,9 +186,8 @@ public sealed partial class SpriteBatch : GraphicsResource
             indexTransferBuffer.Unmap();
 
             var copyPass = commandBuffer.BeginCopyPass();
-            copyPass.UploadToBuffer(indexTransferBuffer, IndexBuffer, false);
+            copyPass.UploadToBuffer(indexTransferBuffer, IndexBuffer, cycle);
             commandBuffer.EndCopyPass(copyPass);
-            Device.Submit(commandBuffer);
 
             indexTransferBuffer.Dispose();
         }
@@ -219,7 +219,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             if (_currentSpriteAmount >= _maximumSpriteAmount)
             {
                 int nextPowerOfTwo = 1;
-                while (nextPowerOfTwo < _currentSpriteAmount)
+                while (nextPowerOfTwo <= _currentSpriteAmount)
                     nextPowerOfTwo *= 2;
 
                 if (nextPowerOfTwo > MAXIMUM_SPRITE_AMOUNT)
@@ -295,7 +295,7 @@ public sealed partial class SpriteBatch : GraphicsResource
 
             if (_resizeBuffers)
             {
-                ResizeBuffers(commandBuffer, (uint)_maximumSpriteAmount);
+                ResizeBuffers(commandBuffer, (uint)_maximumSpriteAmount, true);
                 _resizeBuffers = false;
             }
 

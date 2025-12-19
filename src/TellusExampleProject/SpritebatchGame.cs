@@ -74,7 +74,7 @@ internal class SpritebatchGame : Game
             null, null,
             MainWindow.SwapchainFormat, GraphicsDevice.SupportedDepthStencilFormat
         );
-        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 30000);
+        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 32768);
 
         _textBatch = new TextBatch(GraphicsDevice);
 
@@ -121,7 +121,7 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[30000];
+        _objects = new Object[100000];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
