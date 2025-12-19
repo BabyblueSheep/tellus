@@ -36,11 +36,46 @@ public sealed partial class SpriteBatch : GraphicsResource
         FrontToBack,
     }
 
+    /// <summary>
+    /// Defines flags for flipping/mirroring sprites.
+    /// </summary>
+    [Flags]
+    public enum SpriteFlipOptions
+    {
+        /// <summary>
+        /// No flipping.
+        /// </summary>
+        None = 0,
+        /// <summary>
+        /// Render the sprite reversed along the X axis.
+        /// </summary>
+        FlipHorizontal = 1,
+        /// <summary>
+        /// Render the sprite reversed along the Y axis.
+        /// </summary>
+        FlipVertical = 2,
+    }
+
+    /// <summary>
+    /// Defines possible parameters a sprite could be drawn with.
+    /// </summary>
     public struct SpriteParameters
     {
+        /// <summary>
+        /// A matrix describing affine transformations to be applied to the sprite.
+        /// </summary>
         public Matrix4x4 TransformationMatrix = Matrix4x4.Identity;
+        /// <summary>
+        /// The color to tint the sprite with. Tint acts like a color multiplicator.
+        /// </summary>
         public Color TintColor = Color.White;
+        /// <summary>
+        /// The color to offset the sprite with. Offset gets added to the sprite after it's tinted.
+        /// </summary>
         public Color OffsetColor = Color.Transparent;
+        /// <summary>
+        /// The "depth value" of the sprite. Used for z-buffering and sorting.
+        /// </summary>
         public float Depth = 0f;
 
         public SpriteParameters() { }

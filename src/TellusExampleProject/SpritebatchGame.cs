@@ -121,7 +121,7 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[100000];
+        _objects = new Object[50000];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
