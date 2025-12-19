@@ -97,7 +97,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             textureToDrawTo.Height,
             0,
             0,
-            1f
+            -1
         );
 
         var uniforms = new VertexUniforms()

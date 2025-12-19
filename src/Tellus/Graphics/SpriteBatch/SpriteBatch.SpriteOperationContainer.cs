@@ -118,6 +118,8 @@ public sealed partial class SpriteBatch : GraphicsResource
         private static readonly SpriteInstanceDepthFrontToBackComparer _frontToBackComparer = new SpriteInstanceDepthFrontToBackComparer();
         private static readonly SpriteInstanceDepthBackToFrontComparer _backToFrontComparer = new SpriteInstanceDepthBackToFrontComparer();
 
+        private bool _resizeBuffers;
+
         internal List<BatchInformation> BatchInformationList;
 
         public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
@@ -228,6 +230,9 @@ public sealed partial class SpriteBatch : GraphicsResource
                 {
                     Array.Resize(ref _spriteInstances, nextPowerOfTwo);
                     Array.Resize(ref _spriteInstanceIndices, nextPowerOfTwo);
+
+                    _maximumSpriteAmount = nextPowerOfTwo;
+                    _resizeBuffers = true;
                 }
             }
 
@@ -288,20 +293,10 @@ public sealed partial class SpriteBatch : GraphicsResource
             if (_currentSpriteAmount == 0)
                 return;
 
-            if (_currentSpriteAmount >= _maximumSpriteAmount)
+            if (_resizeBuffers)
             {
-                int nextPowerOfTwo = 1;
-                while (nextPowerOfTwo < _currentSpriteAmount)
-                    nextPowerOfTwo *= 2;
-
-                if (nextPowerOfTwo > MAXIMUM_SPRITE_AMOUNT)
-                {
-                    throw new Exception("Buffers would be too large!");
-                }
-                else
-                {
-                    ResizeBuffers(commandBuffer, (uint)nextPowerOfTwo);
-                }
+                ResizeBuffers(commandBuffer, (uint)_maximumSpriteAmount);
+                _resizeBuffers = false;
             }
 
             void AddInstanceDataToBuffer(ref Span<PositionTextureColorVertex> span, int index, SpriteInstance operation)

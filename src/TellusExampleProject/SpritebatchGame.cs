@@ -27,11 +27,11 @@ internal class SpritebatchGame : Game
         public float Rotation;
         public Vector2 Scale;
         public Color Color;
+        public Color OffsetColor;
+        public float Depth;
     }
 
-    private readonly Texture _squareSpriteOne;
-    private readonly Texture _squareSpriteTwo;
-    private readonly Texture _squareSpriteThree;
+    private readonly Texture[] _squareSprites;
     private Texture _depthTexture;
     private readonly SpriteBatch.SpriteInstanceContainer _spriteOperationContainer;
     private readonly SpriteBatch _spriteBatch;
@@ -74,30 +74,22 @@ internal class SpritebatchGame : Game
             null, null,
             MainWindow.SwapchainFormat, GraphicsDevice.SupportedDepthStencilFormat
         );
-        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 20000);
+        _spriteOperationContainer = new SpriteBatch.SpriteInstanceContainer(GraphicsDevice, 30000);
 
         _textBatch = new TextBatch(GraphicsDevice);
 
         var resourceUploader = new ResourceUploader(GraphicsDevice);
 
-        _squareSpriteOne = resourceUploader.CreateTexture2DFromCompressed(
-            RootTitleStorage,
-            "resources/image1.png",
-            TextureFormat.R8G8B8A8Unorm,
-            TextureUsageFlags.Sampler
-        );
-        _squareSpriteTwo = resourceUploader.CreateTexture2DFromCompressed(
-            RootTitleStorage,
-            "resources/image2.png",
-            TextureFormat.R8G8B8A8Unorm,
-            TextureUsageFlags.Sampler
-        );
-        _squareSpriteThree = resourceUploader.CreateTexture2DFromCompressed(
-            RootTitleStorage,
-            "resources/image3.png",
-            TextureFormat.R8G8B8A8Unorm,
-            TextureUsageFlags.Sampler
-        );
+        _squareSprites = new Texture[8];
+        for (int i = 0; i < 8; i++)
+        {
+            _squareSprites[i] = resourceUploader.CreateTexture2DFromCompressed(
+                RootTitleStorage,
+                $"resources/image{i}.png",
+                TextureFormat.R8G8B8A8Unorm,
+                TextureUsageFlags.Sampler
+            );
+        }
 
         _sofiaSans = Font.Load(GraphicsDevice, RootTitleStorage, "resources/SofiaSans.ttf");
 
@@ -129,17 +121,19 @@ internal class SpritebatchGame : Game
 
         _depthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", 1, 1, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
 
-        _objects = new Object[20000];
+        _objects = new Object[30000];
         var random = new Random();
         for (int i = 0; i < _objects.Length; i++)
         {
             _objects[i] = new Object()
             {
-                Texture = random.Next(3),
+                Texture = random.Next(8),
                 Position = new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
                 Rotation = random.NextSingle() * MathF.PI * 2,
                 Scale = Vector2.One * 25,
-                Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), 1f)
+                Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), random.NextSingle() * 0.5f + 0.5f),
+                OffsetColor = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), random.NextSingle() * 0.5f),
+                Depth = random.NextSingle(),
             };
         }
 
@@ -191,7 +185,7 @@ internal class SpritebatchGame : Game
                 var instance = _objects[i];
                 _spriteOperationContainer.PushSprite
                 (
-                    instance.Texture == 0 ? _squareSpriteOne : (instance.Texture == 1 ? _squareSpriteTwo : _squareSpriteThree),
+                    _squareSprites[instance.Texture],
                     null,
                     new SpriteBatch.SpriteParameters() with
                     {
@@ -200,7 +194,8 @@ internal class SpritebatchGame : Game
                             //PlanarMatrix4x4.CreateRotationCentered(instance.Rotation) *
                             PlanarMatrix4x4.CreateTranslation(instance.Position),
                         TintColor = instance.Color,
-                        Depth = 1f
+                        OffsetColor = instance.OffsetColor,
+                        Depth = instance.Depth
                     }
                 );
             }
