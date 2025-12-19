@@ -128,9 +128,9 @@ internal class SpritebatchGame : Game
             _objects[i] = new Object()
             {
                 Texture = random.Next(8),
-                Position = new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
+                Position = new Vector2(random.NextSingle() * 800, random.NextSingle() * 800),
                 Rotation = random.NextSingle() * MathF.PI * 2,
-                Scale = Vector2.One * 25,
+                Scale = Vector2.One * 50,
                 Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), random.NextSingle() * 0.5f + 0.5f),
                 OffsetColor = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), random.NextSingle() * 0.5f),
                 Depth = random.NextSingle(),
@@ -195,6 +195,7 @@ internal class SpritebatchGame : Game
                             PlanarMatrix4x4.CreateTranslation(instance.Position),
                         TintColor = instance.Color,
                         OffsetColor = instance.OffsetColor,
+                        FlipOptions = SpriteBatch.SpriteFlipOptions.FlipVertical,
                         Depth = instance.Depth
                     }
                 );

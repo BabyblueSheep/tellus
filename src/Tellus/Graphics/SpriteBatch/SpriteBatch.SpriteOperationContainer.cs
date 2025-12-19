@@ -74,6 +74,10 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// </summary>
         public Color OffsetColor = Color.Transparent;
         /// <summary>
+        /// Options regarding sprite flipping to use.
+        /// </summary>
+        public SpriteFlipOptions FlipOptions = SpriteFlipOptions.None;
+        /// <summary>
         /// The "depth value" of the sprite. Used for z-buffering and sorting.
         /// </summary>
         public float Depth = 0f;
@@ -93,6 +97,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             public Matrix4x4 TransformationMatrix;
             public Color TintColor;
             public Color OffsetColor;
+            public SpriteFlipOptions FlipOptions;
             public float Depth;
         }
 
@@ -283,6 +288,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             _spriteInstances[_currentSpriteAmount].TransformationMatrix = parameters.TransformationMatrix;
             _spriteInstances[_currentSpriteAmount].TintColor = parameters.TintColor;
             _spriteInstances[_currentSpriteAmount].OffsetColor = parameters.OffsetColor;
+            _spriteInstances[_currentSpriteAmount].FlipOptions = parameters.FlipOptions;
             _spriteInstances[_currentSpriteAmount].Depth = parameters.Depth;
 
             _spriteInstanceIndices[_currentSpriteAmount] = _currentSpriteAmount;
@@ -341,25 +347,39 @@ public sealed partial class SpriteBatch : GraphicsResource
                 var tintColorVector = operation.TintColor.ToVector4();
                 var offsetColorVector = operation.OffsetColor.ToVector4();
 
+                var textureMinX = operation.TextureSourceRectangle.X / textureSize.X;
+                var textureMinY = operation.TextureSourceRectangle.Y / textureSize.Y;
+                var textureMaxX = textureMinX + operation.TextureSourceRectangle.Width / textureSize.X;
+                var textureMaxY = textureMinY + operation.TextureSourceRectangle.Height / textureSize.Y;
+
+                if ((operation.FlipOptions & SpriteFlipOptions.FlipHorizontal) != 0)
+                {
+                    (textureMinX, textureMaxX) = (textureMaxX, textureMinX);
+                }
+                if ((operation.FlipOptions & SpriteFlipOptions.FlipVertical) != 0)
+                {
+                    (textureMinY, textureMaxY) = (textureMaxY, textureMinY);
+                }
+
                 span[index * 4 + 0].Position = new Vector4(Vector3.Transform(new Vector3(0, 0, operation.Depth), operation.TransformationMatrix), 1);
                 span[index * 4 + 0].TintColor = tintColorVector;
                 span[index * 4 + 0].OffsetColor = offsetColorVector;
-                span[index * 4 + 0].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y) / textureSize;
+                span[index * 4 + 0].TexCoord = new Vector2(textureMinX, textureMinY);
 
                 span[index * 4 + 1].Position = new Vector4(Vector3.Transform(new Vector3(1, 0, operation.Depth), operation.TransformationMatrix), 1);
                 span[index * 4 + 1].TintColor = tintColorVector;
                 span[index * 4 + 1].OffsetColor = offsetColorVector;
-                span[index * 4 + 1].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y) / textureSize;
+                span[index * 4 + 1].TexCoord = new Vector2(textureMaxX, textureMinY);
 
                 span[index * 4 + 2].Position = new Vector4(Vector3.Transform(new Vector3(0, 1, operation.Depth), operation.TransformationMatrix), 1);
                 span[index * 4 + 2].TintColor = tintColorVector;
                 span[index * 4 + 2].OffsetColor = offsetColorVector;
-                span[index * 4 + 2].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
+                span[index * 4 + 2].TexCoord = new Vector2(textureMinX, textureMaxY);
 
                 span[index * 4 + 3].Position = new Vector4(Vector3.Transform(new Vector3(1, 1, operation.Depth), operation.TransformationMatrix), 1);
                 span[index * 4 + 3].TintColor = tintColorVector;
                 span[index * 4 + 3].OffsetColor = offsetColorVector;
-                span[index * 4 + 3].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
+                span[index * 4 + 3].TexCoord = new Vector2(textureMaxX, textureMaxY);
             }
 
             var instanceDataSpan = _vertexTransferBuffer.Map<PositionTextureColorVertex>(true);
