@@ -41,8 +41,8 @@ internal class SpritebatchGame : Game
     private readonly GraphicsPipeline _fontPipeline;
 
     private readonly Object[] _objects;
-    private double _fps;
-    private readonly Stopwatch _stopwatch;
+    //private double _fps;
+    //private readonly Stopwatch _stopwatch;
 
     public SpritebatchGame
     (
@@ -137,7 +137,7 @@ internal class SpritebatchGame : Game
             {
                 Texture = random.Next(4),
                 Position = new Vector2(random.NextSingle() * 500, random.NextSingle() * 500),
-                Rotation = 0,
+                Rotation = random.NextSingle() * MathF.PI * 2,
                 Scale = Vector2.One * 25,
                 Color = new Color(random.NextSingle(), random.NextSingle(), random.NextSingle(), 1f)
             };
@@ -145,8 +145,8 @@ internal class SpritebatchGame : Game
 
         GraphicsDevice.SetSwapchainParameters(MainWindow, SwapchainComposition.SDR, PresentMode.Immediate);
 
-        _stopwatch = new Stopwatch();
-        _stopwatch.Start();
+        //_stopwatch = new Stopwatch();
+        //_stopwatch.Start();
     }
 
     protected override void Update(TimeSpan delta)
@@ -161,7 +161,7 @@ internal class SpritebatchGame : Game
 
     protected override void Draw(double alpha)
     {
-        _stopwatch.Restart();
+        //_stopwatch.Restart();
 
         CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer();
         Texture swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
@@ -178,12 +178,12 @@ internal class SpritebatchGame : Game
                 new ColorTargetInfo(swapchainTexture, Color.CornflowerBlue)
             );
 
-            if (_stopwatch.ElapsedMilliseconds == 0)
+            /*if (_stopwatch.ElapsedMilliseconds == 0)
                 _fps = double.PositiveInfinity;
             else
                 _fps = 1000 / _stopwatch.ElapsedMilliseconds;
 
-            //_fps = _stopwatch.ElapsedMilliseconds;
+            //_fps = _stopwatch.ElapsedMilliseconds;*/
 
             _spriteOperationContainer.ClearSprites();
             for (int i = 0; i < _objects.Length; i++)
@@ -197,7 +197,7 @@ internal class SpritebatchGame : Game
                     {
                         TransformationMatrix = 
                             PlanarMatrix4x4.CreateScaleCentered(instance.Scale.X, instance.Scale.Y) *
-                            //PlanarMatrix4x4.CreateRotationCentered((float)_fps) *
+                            //PlanarMatrix4x4.CreateRotationCentered(instance.Rotation) *
                             PlanarMatrix4x4.CreateTranslation(instance.Position),
                         TintColor = instance.Color,
                         Depth = 1f
@@ -210,7 +210,7 @@ internal class SpritebatchGame : Game
             _spriteOperationContainer.CreateVertexInfo(commandBuffer);
             _spriteBatch.DrawBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
 
-            _textBatch.Start();
+            /*_textBatch.Start();
             _textBatch.Add(
                 _sofiaSans,
                 $"{(int)_fps}",
@@ -232,8 +232,8 @@ internal class SpritebatchGame : Game
                 -1f
             );
 
-            renderPass.BindGraphicsPipeline(_fontPipeline);
-            _textBatch.Render(renderPass, cameraMatrix);
+            //renderPass.BindGraphicsPipeline(_fontPipeline);
+            //_textBatch.Render(renderPass, cameraMatrix);*/
 
             commandBuffer.EndRenderPass(renderPass);
         }
