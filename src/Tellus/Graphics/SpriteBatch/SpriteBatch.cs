@@ -97,7 +97,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             textureToDrawTo.Height,
             0,
             0,
-            -1f
+            1f
         );
 
         var uniforms = new VertexUniforms()
@@ -105,12 +105,13 @@ public sealed partial class SpriteBatch : GraphicsResource
             TransformationMatrix = actualTransformationMatrix * cameraMatrix,
         };
 
+        commandBuffer.PushVertexUniformData(uniforms);
+        renderPass.BindGraphicsPipeline(_graphicsPipeline);
+        renderPass.BindVertexBuffers(spriteContainer.VertexBuffer);
+        renderPass.BindIndexBuffer(spriteContainer.IndexBuffer, IndexElementSize.ThirtyTwo);
+
         foreach (var batchInformation in  spriteContainer.BatchInformationList)
         {
-            commandBuffer.PushVertexUniformData(uniforms);
-            renderPass.BindGraphicsPipeline(_graphicsPipeline);
-            renderPass.BindVertexBuffers(spriteContainer.VertexBuffer);
-            renderPass.BindIndexBuffer(spriteContainer.IndexBuffer, IndexElementSize.ThirtyTwo);
             renderPass.BindFragmentSamplers(new TextureSamplerBinding(batchInformation.Texture, _sampler));
             renderPass.DrawIndexedPrimitives((uint)batchInformation.Length * 6, 1, (uint)batchInformation.StartSpriteIndex * 6, 0, 0);
         }

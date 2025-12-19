@@ -69,7 +69,7 @@ public sealed partial class SpriteBatch : GraphicsResource
         }
 
         // arbitrary
-        private const int MAXIMUM_BUFFER_SIZE = 1048576;
+        private const int MAXIMUM_SPRITE_AMOUNT = 1048576;
 
         private int _maximumSpriteAmount;
 
@@ -214,15 +214,15 @@ public sealed partial class SpriteBatch : GraphicsResource
             SpriteParameters parameters
         )
         {
-            if (_currentSpriteAmount > _maximumSpriteAmount)
+            if (_currentSpriteAmount >= _maximumSpriteAmount)
             {
                 int nextPowerOfTwo = 1;
                 while (nextPowerOfTwo < _currentSpriteAmount)
                     nextPowerOfTwo *= 2;
 
-                if (nextPowerOfTwo > MAXIMUM_BUFFER_SIZE)
+                if (nextPowerOfTwo > MAXIMUM_SPRITE_AMOUNT)
                 {
-                    throw new ArgumentOutOfRangeException("Buffers would be too large!");
+                    throw new Exception("Buffers would be too large!");
                 }
                 else
                 {
@@ -237,16 +237,6 @@ public sealed partial class SpriteBatch : GraphicsResource
                 _spriteTextures.Add(texture);
                 __spriteTextureIndices.Add(texture, textureIndex);
             }
-
-            var drawOperation = new SpriteInstance()
-            {
-                TextureIndex = textureIndex,
-                TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height),
-                TransformationMatrix = parameters.TransformationMatrix,
-                TintColor = parameters.TintColor,
-                OffsetColor = parameters.OffsetColor,
-                Depth = parameters.Depth
-            };
 
             _spriteInstances[_currentSpriteAmount].TextureIndex = textureIndex;
             _spriteInstances[_currentSpriteAmount].TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height);
@@ -298,15 +288,15 @@ public sealed partial class SpriteBatch : GraphicsResource
             if (_currentSpriteAmount == 0)
                 return;
 
-            if (_currentSpriteAmount > _maximumSpriteAmount)
+            if (_currentSpriteAmount >= _maximumSpriteAmount)
             {
                 int nextPowerOfTwo = 1;
                 while (nextPowerOfTwo < _currentSpriteAmount)
                     nextPowerOfTwo *= 2;
 
-                if (nextPowerOfTwo > MAXIMUM_BUFFER_SIZE)
+                if (nextPowerOfTwo > MAXIMUM_SPRITE_AMOUNT)
                 {
-                    throw new ArgumentOutOfRangeException("Buffers would be too large!");
+                    throw new Exception("Buffers would be too large!");
                 }
                 else
                 {
@@ -316,7 +306,8 @@ public sealed partial class SpriteBatch : GraphicsResource
 
             void AddInstanceDataToBuffer(ref Span<PositionTextureColorVertex> span, int index, SpriteInstance operation)
             {
-                var textureSize = new Vector2(_spriteTextures[operation.TextureIndex].Width, _spriteTextures[operation.TextureIndex].Height);
+                var texture = _spriteTextures[operation.TextureIndex];
+                var textureSize = new Vector2(texture.Width, texture.Height);
                 var tintColorVector = operation.TintColor.ToVector4();
                 var offsetColorVector = operation.OffsetColor.ToVector4();
 
