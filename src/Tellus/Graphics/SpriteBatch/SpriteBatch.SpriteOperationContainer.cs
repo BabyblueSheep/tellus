@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
@@ -35,23 +36,6 @@ public sealed partial class SpriteBatch : GraphicsResource
         FrontToBack,
     }
 
-    private struct SpriteInstance
-    {
-        public int TextureIndex;
-        public Rectangle TextureSourceRectangle;
-        public Matrix4x4 TransformationMatrix;
-        public Color TintColor;
-        public Color OffsetColor;
-        public float Depth;
-    }
-
-    internal struct BatchInformation
-    {
-        public int StartSpriteIndex;
-        public int Length;
-        public Texture Texture;
-    }
-
     public struct SpriteParameters
     {
         public Matrix4x4 TransformationMatrix = Matrix4x4.Identity;
@@ -67,49 +51,121 @@ public sealed partial class SpriteBatch : GraphicsResource
     /// </summary>
     public sealed class SpriteInstanceContainer : GraphicsResource
     {
-        private readonly int _maximumSpriteAmount;
+        private struct SpriteInstance
+        {
+            public int TextureIndex;
+            public Rectangle TextureSourceRectangle;
+            public Matrix4x4 TransformationMatrix;
+            public Color TintColor;
+            public Color OffsetColor;
+            public float Depth;
+        }
 
+        internal struct BatchInformation
+        {
+            public int StartSpriteIndex;
+            public int Length;
+            public Texture Texture;
+        }
 
-        private readonly TransferBuffer _vertexTransferBuffer;
-        internal Buffer VertexBuffer { get; }
-        internal Buffer IndexBuffer { get; }
+        // arbitrary
+        private const int MAXIMUM_BUFFER_SIZE = 1048576;
+
+        private int _maximumSpriteAmount;
+
+        private TransferBuffer _vertexTransferBuffer;
+        internal Buffer VertexBuffer { get; private set; }
+        internal Buffer IndexBuffer { get; private set; }
 
         private readonly List<Texture> _spriteTextures;
         private readonly Dictionary<Texture, int> __spriteTextureIndices;
-        private List<SpriteInstance> _spriteInstances;
 
-        internal List<BatchInformation> BatchInformation;
+        private SpriteInstance[] _spriteInstances;
+        private int[] _spriteInstanceIndices;
+        private int _currentSpriteAmount;
+
+        private class SpriteInstanceTextureComparer : IComparer<int>
+        {
+            public SpriteInstance[] Instances;
+
+            public int Compare(int a, int b)
+            {
+                return Instances[a].TextureIndex.CompareTo(Instances[b].TextureIndex);
+            }
+        }
+
+        private class SpriteInstanceDepthFrontToBackComparer : IComparer<int>
+        {
+            public SpriteInstance[] Instances;
+
+            public int Compare(int a, int b)
+            {
+                return Instances[a].Depth.CompareTo(Instances[b].Depth);
+            }
+        }
+
+        private class SpriteInstanceDepthBackToFrontComparer : IComparer<int>
+        {
+            public SpriteInstance[] Instances;
+
+            public int Compare(int a, int b)
+            {
+                return Instances[b].Depth.CompareTo(Instances[a].Depth);
+            }
+        }
+
+        private static readonly SpriteInstanceTextureComparer _textureComparer = new SpriteInstanceTextureComparer();
+        private static readonly SpriteInstanceDepthFrontToBackComparer _frontToBackComparer = new SpriteInstanceDepthFrontToBackComparer();
+        private static readonly SpriteInstanceDepthBackToFrontComparer _backToFrontComparer = new SpriteInstanceDepthBackToFrontComparer();
+
+        internal List<BatchInformation> BatchInformationList;
 
         public SpriteInstanceContainer(GraphicsDevice device, uint maxSpriteAmount = 2048) : base(device)
         {
-            _maximumSpriteAmount = (int)maxSpriteAmount;
+            _spriteInstances = new SpriteInstance[maxSpriteAmount];
+            _spriteInstanceIndices = new int[maxSpriteAmount];
 
-            uint maxVertexAmount = maxSpriteAmount * 4;
-            uint maxIndexAmount = maxSpriteAmount * 6;
+            ResizeBuffers(device.AcquireCommandBuffer(), maxSpriteAmount);
 
+            _spriteTextures = [];
+            __spriteTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
+
+            BatchInformationList = [];
+        }
+
+        private void ResizeBuffers(CommandBuffer commandBuffer, uint size)
+        {
+            _maximumSpriteAmount = (int)size;
+
+            uint maxVertexAmount = size * 4;
+            uint maxIndexAmount = size * 6;
+
+            _vertexTransferBuffer?.Dispose();
             _vertexTransferBuffer = TransferBuffer.Create<PositionTextureColorVertex>
             (
-                device,
+                Device,
                 TransferBufferUsage.Upload,
                 maxVertexAmount
             );
 
+            VertexBuffer?.Dispose();
             VertexBuffer = Buffer.Create<PositionTextureColorVertex>
             (
-                device,
+                Device,
                 BufferUsageFlags.Vertex,
                 maxVertexAmount
             );
 
+            IndexBuffer?.Dispose();
             IndexBuffer = Buffer.Create<uint>
             (
-                device,
+                Device,
                 BufferUsageFlags.Index,
                 maxIndexAmount
             );
 
             TransferBuffer indexTransferBuffer = TransferBuffer.Create<uint>(
-                device,
+                Device,
                 TransferBufferUsage.Upload,
                 maxIndexAmount
             );
@@ -126,19 +182,12 @@ public sealed partial class SpriteBatch : GraphicsResource
             }
             indexTransferBuffer.Unmap();
 
-            var commandBuffer = device.AcquireCommandBuffer();
             var copyPass = commandBuffer.BeginCopyPass();
             copyPass.UploadToBuffer(indexTransferBuffer, IndexBuffer, false);
             commandBuffer.EndCopyPass(copyPass);
-            device.Submit(commandBuffer);
+            Device.Submit(commandBuffer);
 
             indexTransferBuffer.Dispose();
-
-            _spriteTextures = [];
-            __spriteTextureIndices = new Dictionary<Texture, int>(ReferenceEqualityComparer.Instance);
-            _spriteInstances = [];
-
-            BatchInformation = [];
         }
 
         /// <summary>
@@ -146,7 +195,8 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// </summary>
         public void ClearSprites()
         {
-            _spriteInstances.Clear();
+            _currentSpriteAmount = 0;
+            
             _spriteTextures.Clear();
             __spriteTextureIndices.Clear();
         }
@@ -164,6 +214,23 @@ public sealed partial class SpriteBatch : GraphicsResource
             SpriteParameters parameters
         )
         {
+            if (_currentSpriteAmount > _maximumSpriteAmount)
+            {
+                int nextPowerOfTwo = 1;
+                while (nextPowerOfTwo < _currentSpriteAmount)
+                    nextPowerOfTwo *= 2;
+
+                if (nextPowerOfTwo > MAXIMUM_BUFFER_SIZE)
+                {
+                    throw new ArgumentOutOfRangeException("Buffers would be too large!");
+                }
+                else
+                {
+                    Array.Resize(ref _spriteInstances, nextPowerOfTwo);
+                    Array.Resize(ref _spriteInstanceIndices, nextPowerOfTwo);
+                }
+            }
+
             if (!__spriteTextureIndices.TryGetValue(texture, out int textureIndex))
             {
                 textureIndex = _spriteTextures.Count;
@@ -180,8 +247,17 @@ public sealed partial class SpriteBatch : GraphicsResource
                 OffsetColor = parameters.OffsetColor,
                 Depth = parameters.Depth
             };
-            _spriteInstances.Add(drawOperation);
 
+            _spriteInstances[_currentSpriteAmount].TextureIndex = textureIndex;
+            _spriteInstances[_currentSpriteAmount].TextureSourceRectangle = textureSourceRectangle ?? new Rectangle(0, 0, (int)texture.Width, (int)texture.Height);
+            _spriteInstances[_currentSpriteAmount].TransformationMatrix = parameters.TransformationMatrix;
+            _spriteInstances[_currentSpriteAmount].TintColor = parameters.TintColor;
+            _spriteInstances[_currentSpriteAmount].OffsetColor = parameters.OffsetColor;
+            _spriteInstances[_currentSpriteAmount].Depth = parameters.Depth;
+
+            _spriteInstanceIndices[_currentSpriteAmount] = _currentSpriteAmount;
+
+            _currentSpriteAmount++;
         }
 
         /// <summary>
@@ -190,18 +266,25 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// <param name="spriteSortMode">The sorting mode to use.</param>
         public void SortSprites(SpriteSortMode spriteSortMode)
         {
+            IComparer<int> comparer = _textureComparer;
+
             switch (spriteSortMode)
             {
                 case SpriteSortMode.Texture:
-                    _spriteInstances = _spriteInstances.OrderBy(x => x.TextureIndex).ToList();
-                    break;
-                case SpriteSortMode.BackToFront:
-                    _spriteInstances = _spriteInstances.OrderBy(x => x.Depth).ToList();
+                    _textureComparer.Instances = _spriteInstances;
+                    comparer = _textureComparer;
                     break;
                 case SpriteSortMode.FrontToBack:
-                    _spriteInstances = _spriteInstances.OrderByDescending(x => x.Depth).ToList();
+                    _frontToBackComparer.Instances = _spriteInstances;
+                    comparer = _frontToBackComparer;
+                    break;
+                case SpriteSortMode.BackToFront:
+                    _backToFrontComparer.Instances = _spriteInstances;
+                    comparer = _backToFrontComparer;
                     break;
             }
+
+            Array.Sort(_spriteInstanceIndices, 0, _currentSpriteAmount, comparer);
         }
 
         /// <summary>
@@ -210,68 +293,85 @@ public sealed partial class SpriteBatch : GraphicsResource
         /// <param name="commandBuffer">The <see cref="CommandBuffer"/> to attach commands to.</param>
         public void CreateVertexInfo(CommandBuffer commandBuffer)
         {
-            BatchInformation.Clear();
+            BatchInformationList.Clear();
 
-            if (_spriteInstances.Count == 0)
+            if (_currentSpriteAmount == 0)
                 return;
+
+            if (_currentSpriteAmount > _maximumSpriteAmount)
+            {
+                int nextPowerOfTwo = 1;
+                while (nextPowerOfTwo < _currentSpriteAmount)
+                    nextPowerOfTwo *= 2;
+
+                if (nextPowerOfTwo > MAXIMUM_BUFFER_SIZE)
+                {
+                    throw new ArgumentOutOfRangeException("Buffers would be too large!");
+                }
+                else
+                {
+                    ResizeBuffers(commandBuffer, (uint)nextPowerOfTwo);
+                }
+            }
 
             void AddInstanceDataToBuffer(ref Span<PositionTextureColorVertex> span, int index, SpriteInstance operation)
             {
-                Vector2 textureSize = new Vector2(_spriteTextures[operation.TextureIndex].Width, _spriteTextures[operation.TextureIndex].Height);
+                var textureSize = new Vector2(_spriteTextures[operation.TextureIndex].Width, _spriteTextures[operation.TextureIndex].Height);
+                var tintColorVector = operation.TintColor.ToVector4();
+                var offsetColorVector = operation.OffsetColor.ToVector4();
 
                 span[index * 4 + 0].Position = new Vector4(Vector3.Transform(new Vector3(0, 0, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 0].TintColor = operation.TintColor.ToVector4();
-                span[index * 4 + 0].OffsetColor = operation.OffsetColor.ToVector4();
+                span[index * 4 + 0].TintColor = tintColorVector;
+                span[index * 4 + 0].OffsetColor = offsetColorVector;
                 span[index * 4 + 0].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y) / textureSize;
 
                 span[index * 4 + 1].Position = new Vector4(Vector3.Transform(new Vector3(1, 0, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 1].TintColor = operation.TintColor.ToVector4();
-                span[index * 4 + 1].OffsetColor = operation.OffsetColor.ToVector4();
+                span[index * 4 + 1].TintColor = tintColorVector;
+                span[index * 4 + 1].OffsetColor = offsetColorVector;
                 span[index * 4 + 1].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y) / textureSize;
 
                 span[index * 4 + 2].Position = new Vector4(Vector3.Transform(new Vector3(0, 1, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 2].TintColor = operation.TintColor.ToVector4();
-                span[index * 4 + 2].OffsetColor = operation.OffsetColor.ToVector4();
+                span[index * 4 + 2].TintColor = tintColorVector;
+                span[index * 4 + 2].OffsetColor = offsetColorVector;
                 span[index * 4 + 2].TexCoord = new Vector2(operation.TextureSourceRectangle.X, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
 
                 span[index * 4 + 3].Position = new Vector4(Vector3.Transform(new Vector3(1, 1, operation.Depth), operation.TransformationMatrix), 1);
-                span[index * 4 + 3].TintColor = operation.TintColor.ToVector4();
-                span[index * 4 + 3].OffsetColor = operation.OffsetColor.ToVector4();
+                span[index * 4 + 3].TintColor = tintColorVector;
+                span[index * 4 + 3].OffsetColor = offsetColorVector;
                 span[index * 4 + 3].TexCoord = new Vector2(operation.TextureSourceRectangle.X + operation.TextureSourceRectangle.Width, operation.TextureSourceRectangle.Y + operation.TextureSourceRectangle.Height) / textureSize;
             }
 
             var instanceDataSpan = _vertexTransferBuffer.Map<PositionTextureColorVertex>(true);
 
             int batchIndexStart = 0;
-            int previousTextureIndex = _spriteInstances[0].TextureIndex;
-            for (int i = 0; i < _spriteInstances.Count; i++)
+            int previousTextureIndex = _spriteInstances[_spriteInstanceIndices[0]].TextureIndex;
+            for (int i = 0; i < _currentSpriteAmount; i++)
             {
-                SpriteInstance currentDrawOperation = _spriteInstances[i];
+                SpriteInstance currentDrawOperation = _spriteInstances[_spriteInstanceIndices[i]];
 
                 AddInstanceDataToBuffer(ref instanceDataSpan, i, currentDrawOperation);
 
                 if (previousTextureIndex != currentDrawOperation.TextureIndex)
                 {
-                    BatchInformation.Add(new BatchInformation()
+                    BatchInformationList.Add(new BatchInformation()
                     {
                         StartSpriteIndex = batchIndexStart,
                         Length = i - batchIndexStart,
                         Texture = _spriteTextures[previousTextureIndex],
                     });
+
+                    batchIndexStart = i;
                 }
 
                 previousTextureIndex = currentDrawOperation.TextureIndex;
             }
 
-            if (_spriteInstances[^1].TextureIndex == _spriteInstances[^2].TextureIndex)
+            BatchInformationList.Add(new BatchInformation()
             {
-                BatchInformation.Add(new BatchInformation()
-                {
-                    StartSpriteIndex = batchIndexStart,
-                    Length = BatchInformation.Count - 1 - batchIndexStart,
-                    Texture = _spriteTextures[previousTextureIndex],
-                });
-            }
+                StartSpriteIndex = batchIndexStart,
+                Length = _currentSpriteAmount - batchIndexStart,
+                Texture = _spriteTextures[previousTextureIndex],
+            });
 
             _vertexTransferBuffer.Unmap();
 

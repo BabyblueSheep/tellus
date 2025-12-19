@@ -105,7 +105,7 @@ public sealed partial class SpriteBatch : GraphicsResource
             TransformationMatrix = actualTransformationMatrix * cameraMatrix,
         };
 
-        foreach (var batchInformation in  spriteContainer.BatchInformation)
+        foreach (var batchInformation in  spriteContainer.BatchInformationList)
         {
             commandBuffer.PushVertexUniformData(uniforms);
             renderPass.BindGraphicsPipeline(_graphicsPipeline);
