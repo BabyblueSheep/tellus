@@ -10,7 +10,7 @@ namespace Tellus.Math;
 
 public static class Vector2Extensions
 {
-    public static Vector2 FromAngle(this float angle)
+    public static Vector2 ToVector2(this float angle)
     {
         return new Vector2(MathF.Cos(angle), MathF.Sin(angle));
     }
