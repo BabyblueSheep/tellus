@@ -271,7 +271,7 @@ internal class CollisionGame : Game
         {
             foreach (var triangle in colliderObject.Parts)
             {
-                if (triangle.ShapeType == 2)
+                if (triangle.ShapeType == CollisionBodyPartShapeType.Triangle)
                 {
                     vertexSpan[_triangleCount * 3].Position = new Vector4(triangle.BodyPartCenter + colliderObject.Center, 0f, 1f);
                     vertexSpan[_triangleCount * 3 + 1].Position = new Vector4(new Vector2(triangle.DecimalFields.X, triangle.DecimalFields.Y) + colliderObject.Center, 0f, 1f);
@@ -637,7 +637,7 @@ internal class CollisionGame : Game
 
                 foreach (var rectangle in objectCollider.Parts)
                 {
-                    if (rectangle.ShapeType == 1)
+                    if (rectangle.ShapeType == CollisionBodyPartShapeType.Rectangle)
                     {
                         var scale = new Vector2(rectangle.DecimalFields.X, rectangle.DecimalFields.Y);
 
@@ -658,7 +658,7 @@ internal class CollisionGame : Game
                 }
             }
 
-            _spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.FrontToBack);
+            _spriteOperationContainer.SortSprites(SpriteBatch.SpriteSortMode.BackToFront);
             _spriteOperationContainer.CreateVertexInfo(commandBuffer);
             _spriteBatch.DrawBatch(commandBuffer, renderPass, swapchainTexture, _spriteOperationContainer, null);
             

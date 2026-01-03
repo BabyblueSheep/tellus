@@ -100,7 +100,7 @@ public static partial class BatchCollisionHandler
                     foreach (var bodyPart in body.BodyParts)
                     {
                         bodyPartDataUploadSpan[bodyPartDataIndex].CollisionBodyIndex = bodyDataIndex;
-                        bodyPartDataUploadSpan[bodyPartDataIndex].ShapeType = bodyPart.ShapeType;
+                        bodyPartDataUploadSpan[bodyPartDataIndex].ShapeType = (int)bodyPart.ShapeType;
                         bodyPartDataUploadSpan[bodyPartDataIndex].Center = bodyPart.BodyPartCenter;
                         bodyPartDataUploadSpan[bodyPartDataIndex].DecimalFields = bodyPart.DecimalFields;
                         bodyPartDataUploadSpan[bodyPartDataIndex].IntegerFields = bodyPart.IntegerFields;

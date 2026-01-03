@@ -23,6 +23,12 @@ public interface ICollisionBody
     public IEnumerable<CollisionBodyPart> BodyParts { get; }
 }
 
+public enum CollisionBodyPartShapeType : int
+{
+    Circle = 0,
+    Rectangle = 1,
+    Triangle = 2,
+}
 
 /// <summary>
 /// Describes information needed to create a "body part", represented as a convex polygon.
@@ -35,7 +41,7 @@ public struct CollisionBodyPart
     /// <summary>
     /// The type, or "shape ID", of the body part. Used to figure out how to use fields.
     /// </summary>
-    public int ShapeType { get; private set; }
+    public CollisionBodyPartShapeType ShapeType { get; private set; }
 
     /// <summary>
     /// The center of the body part in local space.
@@ -66,7 +72,7 @@ public struct CollisionBodyPart
         radius = System.Math.Abs(radius);
         var bodyPart = new CollisionBodyPart
         {
-            ShapeType = 0,
+            ShapeType = CollisionBodyPartShapeType.Circle,
             BodyPartCenter = center,
             DecimalFields = new Vector4(radius, 0, 0, 0),
             IntegerFields = new Point(vertexCount, 0)
@@ -88,7 +94,7 @@ public struct CollisionBodyPart
         sideFullLengths = Vector2.Abs(sideFullLengths);
         var bodyPart = new CollisionBodyPart
         {
-            ShapeType = 1,
+            ShapeType = CollisionBodyPartShapeType.Rectangle,
             BodyPartCenter = center,
             DecimalFields = new Vector4(sideFullLengths.X, sideFullLengths.Y, angle, 0),
             IntegerFields = new Point(0, 0)
@@ -102,7 +108,7 @@ public struct CollisionBodyPart
         var sideFullLengths = new Vector2(rectangle.Width, rectangle.Height);
         var bodyPart = new CollisionBodyPart
         {
-            ShapeType = 1,
+            ShapeType = CollisionBodyPartShapeType.Rectangle,
             BodyPartCenter = new Vector2(rectangle.X, rectangle.Y) + sideFullLengths * 0.5f,
             DecimalFields = new Vector4(sideFullLengths.X, sideFullLengths.Y, angle, 0),
             IntegerFields = new Point(0, 0)
@@ -122,7 +128,7 @@ public struct CollisionBodyPart
     {
         var bodyPart = new CollisionBodyPart
         {
-            ShapeType = 2,
+            ShapeType = CollisionBodyPartShapeType.Triangle,
             BodyPartCenter = pointOne,
             DecimalFields = new Vector4(pointTwo.X, pointTwo.Y, pointThree.X, pointThree.Y),
             IntegerFields = new Point(0, 0)

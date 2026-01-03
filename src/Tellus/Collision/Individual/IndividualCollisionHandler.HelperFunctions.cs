@@ -19,7 +19,7 @@ public static partial class IndividualCollisionHandler
         
         switch (bodyPart.ShapeType)
         {
-            case 0:
+            case CollisionBodyPartShapeType.Circle:
                 var vertexAmount = bodyPart.IntegerFields.X;
                 var radius = bodyPart.DecimalFields.X;
                 for (int i = 0; i < vertexAmount; i++)
@@ -27,7 +27,7 @@ public static partial class IndividualCollisionHandler
                     vertices.Add(bodyPart.BodyPartCenter + new Vector2(MathF.Cos(MathF.Tau * i / vertexAmount), MathF.Sin(MathF.Tau * i / vertexAmount)) * radius);
                 }
                 break;
-            case 1:
+            case CollisionBodyPartShapeType.Rectangle:
                 var angle = bodyPart.DecimalFields.Z;
                 var sine = MathF.Sin(angle);
                 var cosine = MathF.Cos(angle);
@@ -48,7 +48,7 @@ public static partial class IndividualCollisionHandler
                     vertices[i] += bodyPart.BodyPartCenter;
                 }
                 break;
-            case 2:
+            case CollisionBodyPartShapeType.Triangle:
                 vertices.Add(bodyPart.BodyPartCenter);
                 vertices.Add(new Vector2(bodyPart.DecimalFields.X, bodyPart.DecimalFields.Y));
                 vertices.Add(new Vector2(bodyPart.DecimalFields.Z, bodyPart.DecimalFields.W));
