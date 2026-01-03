@@ -15,6 +15,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Tellus.Collision;
+using Tellus.Collision.Individual;
 using Tellus.Graphics;
 using Tellus.Graphics.SpriteBatch;
 using Tellus.Math;
@@ -41,10 +42,11 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionLineCollection
     public readonly List<CollisionLine> SavedLines = [];
 
     public Vector2 OriginOffset => Center;
-    public IEnumerable<CollisionLine> Lines => [
+    public List<CollisionLine> Lines => [
         CollisionLine.CreateFiniteLengthRay(Vector2.Zero, Velocity.SafeNormalize(Vector2.Zero), Velocity.Length()) with { CanBeRestricted = true },
         CollisionLine.CreateFixedPointLineSegment(Vector2.Zero, LaserEnd, (LaserEnd - Center).Length()),
     ];
+    public int LineVelocityIndex => 0;
 }
 
 internal sealed class WallObject : ICollisionBody
@@ -61,7 +63,7 @@ internal sealed class WallObject : ICollisionBody
 internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
 {
     public Vector2 Center;
-    public Vector2 Velocity;
+    public Vector2 ActualVelocity;
 
     public bool HasCollidedThisFrame;
     public float Radius;
@@ -74,9 +76,10 @@ internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
     ];
 
     public Vector2 OriginOffset => Center;
-    public IEnumerable<CollisionLine> Lines => [
-        CollisionLine.CreateFiniteLengthRay(Vector2.Zero, Velocity.SafeNormalize(Vector2.Zero), Velocity.Length()) with { CanBeRestricted = true },
+    public List<CollisionLine> Lines => [
+        CollisionLine.CreateFiniteLengthRay(Vector2.Zero, ActualVelocity.SafeNormalize(Vector2.Zero), ActualVelocity.Length()) with { CanBeRestricted = true },
     ];
+    public int LineVelocityIndex => 0;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
@@ -228,7 +231,7 @@ internal class CollisionGame : Game
             {
                 Center = new Vector2(random.NextSingle() * 300 + 200, random.NextSingle() * 250 + 100),
                 Radius = random.NextSingle() * 8 + 8,
-                Velocity = Vector2.Normalize(new Vector2(random.NextSingle() * 2 - 1, random.NextSingle() * 2 - 1)) * 8,
+                ActualVelocity = Vector2.Normalize(new Vector2(random.NextSingle() * 2 - 1, random.NextSingle() * 2 - 1)) * 8,
             });
         }
 
@@ -401,10 +404,48 @@ internal class CollisionGame : Game
             movingObject.HasCollidedThisFrame = false;
             if (movingObject.Random.Next(16) == 0)
             {
-                movingObject.Velocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * (movingObject.Random.NextSingle() * 8 + 0.1f);
+                movingObject.ActualVelocity = Vector2.Normalize(new Vector2(movingObject.Random.NextSingle() * 2 - 1, movingObject.Random.NextSingle() * 2 - 1)) * (movingObject.Random.NextSingle() * 8 + 0.1f);
             }
         }
 
+        for (int i = 0; i < _movingObjects.Count; i++)
+        {
+            var movingObject = _movingObjects[i];
+
+            var newLengths = IndividualCollisionHandler.RestrictLines(movingObject, _staticObjects);
+            var velocity = movingObject.Lines[movingObject.LineVelocityIndex];
+            var newVelocityLength = newLengths[movingObject.LineVelocityIndex];
+            movingObject.Center += velocity.ArbitraryVector * newVelocityLength;
+
+            movingObject.Center += IndividualCollisionHandler.ResolveBodyBodyCollisions(movingObject, _staticObjects);
+        }
+
+        var playerObject = _playerObject;
+
+        var newLengthsPlayer = IndividualCollisionHandler.RestrictLines(playerObject, _staticObjects);
+        var velocityPlayer = playerObject.Lines[playerObject.LineVelocityIndex];
+        var newVelocityLengthPlayer = newLengthsPlayer[playerObject.LineVelocityIndex];
+        playerObject.Center += velocityPlayer.ArbitraryVector * newVelocityLengthPlayer;
+
+        playerObject.SavedLines.Clear();
+        for (int i = 0; i < newLengthsPlayer.Count; i++)
+        {
+            playerObject.SavedLines.Add(playerObject.Lines[i] with { Length = newLengthsPlayer[i] });
+        }
+
+        playerObject.Center += IndividualCollisionHandler.ResolveBodyBodyCollisions(playerObject, _staticObjects);
+
+        for (int i = 0; i < _movingObjects.Count; i++)
+        {
+            var movingObject = _movingObjects[i];
+
+            if (IndividualCollisionHandler.ComputeLineBodyHits(movingObject, playerObject))
+            {
+                movingObject.HasCollidedThisFrame = true;
+            }
+        }
+
+        /*
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 
         var collisionBodies = _movingObjects.Cast<ICollisionBody>().Append(_playerObject).ToList();
@@ -516,6 +557,7 @@ internal class CollisionGame : Game
                 moving.HasCollidedThisFrame = true;
             }
         }
+        */
     }
 
     protected override void Draw(double alpha)

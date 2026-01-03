@@ -27,7 +27,7 @@ internal class Program
 
 		FramePacingSettings framePacingSettings = FramePacingSettings.CreateUncapped(60, 6);
 
-		var game = new SpritebatchGame(appInfo, windowCreateInfo, framePacingSettings);
+		var game = new CollisionGame(appInfo, windowCreateInfo, framePacingSettings);
 		game.Run();
 	}
 }

@@ -97,6 +97,20 @@ public struct CollisionBodyPart
         return bodyPart;
     }
 
+    public static CollisionBodyPart CreateRectangle(Rectangle rectangle, float angle)
+    {
+        var sideFullLengths = new Vector2(rectangle.Width, rectangle.Height);
+        var bodyPart = new CollisionBodyPart
+        {
+            ShapeType = 1,
+            BodyPartCenter = new Vector2(rectangle.X, rectangle.Y) + sideFullLengths * 0.5f,
+            DecimalFields = new Vector4(sideFullLengths.X, sideFullLengths.Y, angle, 0),
+            IntegerFields = new Point(0, 0)
+        };
+
+        return bodyPart;
+    }
+
     /// <summary>
     /// Creates a body part that represents a triangle.
     /// </summary>

@@ -22,7 +22,7 @@ public interface ICollisionLineCollection
     /// <summary>
     /// Gets all lines the object holds.
     /// </summary>
-    public IEnumerable<CollisionLine> Lines { get; }
+    public List<CollisionLine> Lines { get; }
 
     /// <summary>
     /// The index of the line that will be treated as the "velocity" of the line collection.
@@ -30,7 +30,12 @@ public interface ICollisionLineCollection
     /// <remarks>
     /// The velocity increments the offset of the line collection, used to update positions on the GPU without downloading data to the CPU.
     /// </remarks>
-    public int LineVelocityIndex => 0;
+    public int LineVelocityIndex { get; }
+
+    /// <summary>
+    /// The line that will be treated as the "velocity" of the line collection. See <see cref="LineVelocityIndex"/> for details.
+    /// </summary>
+    public CollisionLine Velocity => Lines[LineVelocityIndex];
 }
 
 /// <summary>
