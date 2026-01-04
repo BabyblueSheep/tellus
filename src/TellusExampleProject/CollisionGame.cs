@@ -202,6 +202,12 @@ internal class CollisionGame : Game
         _staticObjects = [];
 
         var wallObject = new WallObject();
+        wallObject.Center = new Vector2(300, 200);
+        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, 0), new Vector2(100, 150), 0f));
+        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(50, 100), new Vector2(50, 100), MathF.PI * 0.25f));
+        _staticObjects.Add(wallObject);
+
+        wallObject = new WallObject();
         wallObject.Center = new Vector2(200, 200);
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(-150, 0), new Vector2(50, 350), 0f));
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, -150), new Vector2(350, 50), 0f));
@@ -225,7 +231,7 @@ internal class CollisionGame : Game
 
         _movingObjects = [];
         var random = new Random();
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < 128; i++)
         {
             _movingObjects.Add(new MovingObject()
             {

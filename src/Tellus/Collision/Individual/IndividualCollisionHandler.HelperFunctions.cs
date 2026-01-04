@@ -15,45 +15,7 @@ public static partial class IndividualCollisionHandler
 
     private static List<Vector2> BodyPartToVertices(CollisionBodyPart bodyPart, ICollisionBody body)
     {
-        var vertices = new List<Vector2>();
-        
-        switch (bodyPart.ShapeType)
-        {
-            case CollisionBodyPartShapeType.Circle:
-                var vertexAmount = bodyPart.IntegerFields.X;
-                var radius = bodyPart.DecimalFields.X;
-                for (int i = 0; i < vertexAmount; i++)
-                {
-                    vertices.Add(bodyPart.BodyPartCenter + new Vector2(MathF.Cos(MathF.Tau * i / vertexAmount), MathF.Sin(MathF.Tau * i / vertexAmount)) * radius);
-                }
-                break;
-            case CollisionBodyPartShapeType.Rectangle:
-                var angle = bodyPart.DecimalFields.Z;
-                var sine = MathF.Sin(angle);
-                var cosine = MathF.Cos(angle);
-
-                var sideA = bodyPart.DecimalFields.X;
-                var sideB = bodyPart.DecimalFields.Y;
-
-                vertices.Add(new Vector2(-sideA * 0.5f, -sideB * 0.5f));
-                vertices.Add(new Vector2(sideA * 0.5f, -sideB * 0.5f));
-                vertices.Add(new Vector2(sideA * 0.5f, sideB * 0.5f));
-                vertices.Add(new Vector2(-sideA * 0.5f, sideB * 0.5f));
-                for (int i = 0; i < 4; i++)
-                {
-                    var newX = (vertices[i].X * cosine) + (vertices[i].Y * (-sine));
-                    var newY = (vertices[i].X * sine) + (vertices[i].Y * cosine);
-                    vertices[i] = new Vector2(newX, newY);
-
-                    vertices[i] += bodyPart.BodyPartCenter;
-                }
-                break;
-            case CollisionBodyPartShapeType.Triangle:
-                vertices.Add(bodyPart.BodyPartCenter);
-                vertices.Add(new Vector2(bodyPart.DecimalFields.X, bodyPart.DecimalFields.Y));
-                vertices.Add(new Vector2(bodyPart.DecimalFields.Z, bodyPart.DecimalFields.W));
-                break;
-        }
+        var vertices = bodyPart.ToVertices().ToList();
 
         for (int i = 0; i < vertices.Count; i++)
         {

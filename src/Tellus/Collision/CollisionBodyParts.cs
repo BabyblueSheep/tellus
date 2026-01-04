@@ -59,6 +59,64 @@ public struct CollisionBodyPart
     public Point IntegerFields { get; private set; }
 
     /// <summary>
+    /// Transforms the shape definition into a set of vertices.
+    /// </summary>
+    /// <returns>The set of vertices.</returns>
+    public readonly Vector2[] ToVertices()
+    {
+        Vector2[] vertices;
+
+        switch (ShapeType)
+        {
+            case CollisionBodyPartShapeType.Circle:
+                var vertexAmount = IntegerFields.X;
+                var radius = DecimalFields.X;
+
+                vertices = new Vector2[vertexAmount];
+                for (int i = 0; i < vertexAmount; i++)
+                {
+                    vertices[i] = BodyPartCenter + new Vector2(MathF.Cos(MathF.Tau * i / vertexAmount), MathF.Sin(MathF.Tau * i / vertexAmount)) * radius;
+                }
+                break;
+            case CollisionBodyPartShapeType.Rectangle:
+                var angle = DecimalFields.Z;
+                var sine = MathF.Sin(angle);
+                var cosine = MathF.Cos(angle);
+
+                var sideA = DecimalFields.X;
+                var sideB = DecimalFields.Y;
+
+                vertices = new Vector2[4];
+
+                vertices[0] = new Vector2(-sideA * 0.5f, -sideB * 0.5f);
+                vertices[1] = new Vector2(sideA * 0.5f, -sideB * 0.5f);
+                vertices[2] = new Vector2(sideA * 0.5f, sideB * 0.5f);
+                vertices[3] = new Vector2(-sideA * 0.5f, sideB * 0.5f);
+                for (int i = 0; i < 4; i++)
+                {
+                    var newX = (vertices[i].X * cosine) + (vertices[i].Y * (-sine));
+                    var newY = (vertices[i].X * sine) + (vertices[i].Y * cosine);
+                    vertices[i] = new Vector2(newX, newY);
+
+                    vertices[i] += BodyPartCenter;
+                }
+                break;
+            case CollisionBodyPartShapeType.Triangle:
+                vertices = new Vector2[3];
+
+                vertices[0] = BodyPartCenter;
+                vertices[1] = new Vector2(DecimalFields.X, DecimalFields.Y);
+                vertices[2] = new Vector2(DecimalFields.Z, DecimalFields.W);
+                break;
+            default:
+                vertices = [];
+                break;
+        }
+
+        return vertices;
+    }
+
+    /// <summary>
     /// Creates a body part that represents a polygon that approximates a circle.
     /// </summary>
     /// <param name="center">The center of the body part in local space.</param>
@@ -86,9 +144,10 @@ public struct CollisionBodyPart
     /// </summary>
     /// <param name="center">The center of the body part in local space.</param>
     /// <param name="sideFullLengths">The full width and height of the rectangle.</param>
-    /// <param name="angle">The angle to rotate the rectangle at.</param>
+    /// <param name="angle">The angle to rotate the rectangle with.</param>
     /// <returns>The body part.</returns>
-    /// <remarks>The absolute value of <paramref name="sideFullLengths"/>'s elements are used.</remarks>
+    /// <remarks>The absolute value of <paramref name="sideFullLengths"/>'s elements are used.<br/>
+    /// The center of the rectangle is used as the origin point for rotation.</remarks>
     public static CollisionBodyPart CreateRectangle(Vector2 center, Vector2 sideFullLengths, float angle)
     {
         sideFullLengths = Vector2.Abs(sideFullLengths);
@@ -103,6 +162,14 @@ public struct CollisionBodyPart
         return bodyPart;
     }
 
+    /// <summary>
+    /// Creates a body part that represents a rectangle arbitrarily rotated.
+    /// </summary>
+    /// <param name="rectangle">The position and size of the rectangle.</param>
+    /// <param name="angle">The angle to rotate the rectangle with.</param>
+    /// <returns>The body part.</returns>
+    /// <remarks>The absolute value of <paramref name="sideFullLengths"/>'s elements are used.<br/>
+    /// The center of the rectangle is used as the origin point for rotation.</remarks>
     public static CollisionBodyPart CreateRectangle(Rectangle rectangle, float angle)
     {
         var sideFullLengths = new Vector2(rectangle.Width, rectangle.Height);
