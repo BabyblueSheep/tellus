@@ -51,6 +51,9 @@ public static partial class IndividualCollisionHandler
             bodyVerticesTwo.Add(vertexList);
         }
 
+        var bodyOneBroadRadius = ICollisionBody.CalculateBroadRadius(bodyOne);
+        var bodyTwoBroadRadius = ICollisionBody.CalculateBroadRadius(bodyTwo);
+
         foreach (var bodyPartsOne in bodyVerticesOne)
         {
             foreach (var bodyPartsTwo in bodyVerticesTwo)

@@ -21,6 +21,74 @@ public interface ICollisionBody
     /// Gets all body parts that compose the body.
     /// </summary>
     public IEnumerable<CollisionBodyPart> BodyParts { get; }
+
+    public float BroadRadius { get; }
+
+    public static float CalculateBroadRadius(ICollisionBody body)
+    {
+        var longestDistance = 0f;
+        foreach (var bodyPart in body.BodyParts)
+        {
+            var vertexList = bodyPart.ToVertices();
+            foreach (var vertex in vertexList)
+            {
+                longestDistance = MathF.Max(longestDistance, vertex.Length());
+            }
+        }
+        return longestDistance;
+    }
+}
+
+public readonly record struct CollisionCircle(Vector2 Center, float Radius, uint VertexCount);
+public readonly record struct CollisionRectangle(Vector2 Center, float Width, float Height, float Angle);
+public readonly record struct CollisionTriangle(Vector2 PointOne, Vector2 PointTwo, Vector2 PointThree);
+
+public class IndividualCollisionPolygon
+{
+    public Vector2[] Vertices { get; }
+
+    public IndividualCollisionPolygon(CollisionCircle circle)
+    {
+        uint vertexCount = uint.Max(circle.VertexCount, 3);
+        Vertices = new Vector2[vertexCount];
+
+        for (int i = 0; i < vertexCount; i++)
+        {
+            Vertices[i] = circle.Center + new Vector2(MathF.Cos(MathF.Tau * i / vertexCount), MathF.Sin(MathF.Tau * i / vertexCount)) * circle.Radius;
+        }
+    }
+
+    public IndividualCollisionPolygon(CollisionRectangle rectangle)
+    {
+        var sine = MathF.Sin(rectangle.Angle);
+        var cosine = MathF.Cos(rectangle.Angle);
+
+        var sideA = rectangle.Width;
+        var sideB = rectangle.Height;
+
+        Vertices = new Vector2[4];
+
+        Vertices[0] = new Vector2(-sideA * 0.5f, -sideB * 0.5f);
+        Vertices[1] = new Vector2(sideA * 0.5f, -sideB * 0.5f);
+        Vertices[2] = new Vector2(sideA * 0.5f, sideB * 0.5f);
+        Vertices[3] = new Vector2(-sideA * 0.5f, sideB * 0.5f);
+        for (int i = 0; i < 4; i++)
+        {
+            var newX = (Vertices[i].X * cosine) + (Vertices[i].Y * (-sine));
+            var newY = (Vertices[i].X * sine) + (Vertices[i].Y * cosine);
+            Vertices[i] = new Vector2(newX, newY);
+
+            Vertices[i] += rectangle.Center;
+        }
+    }
+
+    public IndividualCollisionPolygon(CollisionTriangle triangle)
+    {
+        Vertices = new Vector2[3];
+        Vertices[0] = triangle.PointOne;
+        Vertices[1] = triangle.PointTwo;
+        Vertices[2] = triangle.PointThree;
+    }
 }
 
 public enum CollisionBodyPartShapeType : int
@@ -28,6 +96,11 @@ public enum CollisionBodyPartShapeType : int
     Circle = 0,
     Rectangle = 1,
     Triangle = 2,
+}
+
+public class BatchCollisionBodyPart
+{
+
 }
 
 /// <summary>
@@ -58,11 +131,13 @@ public struct CollisionBodyPart
     /// </summary>
     public Point IntegerFields { get; private set; }
 
+    public IList<Vector2> BodyVertices { get; private set; }
+
     /// <summary>
     /// Transforms the shape definition into a set of vertices.
     /// </summary>
     /// <returns>The set of vertices.</returns>
-    public readonly Vector2[] ToVertices()
+    public readonly IList<Vector2> ToVertices()
     {
         Vector2[] vertices;
 
@@ -135,6 +210,7 @@ public struct CollisionBodyPart
             DecimalFields = new Vector4(radius, 0, 0, 0),
             IntegerFields = new Point(vertexCount, 0)
         };
+        bodyPart.BodyVertices = bodyPart.ToVertices();
 
         return bodyPart;
     }
@@ -158,6 +234,7 @@ public struct CollisionBodyPart
             DecimalFields = new Vector4(sideFullLengths.X, sideFullLengths.Y, angle, 0),
             IntegerFields = new Point(0, 0)
         };
+        bodyPart.BodyVertices = bodyPart.ToVertices();
 
         return bodyPart;
     }
@@ -180,6 +257,7 @@ public struct CollisionBodyPart
             DecimalFields = new Vector4(sideFullLengths.X, sideFullLengths.Y, angle, 0),
             IntegerFields = new Point(0, 0)
         };
+        bodyPart.BodyVertices = bodyPart.ToVertices();
 
         return bodyPart;
     }
@@ -200,6 +278,7 @@ public struct CollisionBodyPart
             DecimalFields = new Vector4(pointTwo.X, pointTwo.Y, pointThree.X, pointThree.Y),
             IntegerFields = new Point(0, 0)
         };
+        bodyPart.BodyVertices = bodyPart.ToVertices();
 
         return bodyPart;
     }

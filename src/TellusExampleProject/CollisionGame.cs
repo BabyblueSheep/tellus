@@ -38,6 +38,7 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionLineCollection
     public IEnumerable<CollisionBodyPart> BodyParts => [
         CollisionBodyPart.CreateCircle(Vector2.Zero, Radius, 16),
     ];
+    public float BroadRadius { get; set; }
 
     public readonly List<CollisionLine> SavedLines = [];
 
@@ -56,8 +57,9 @@ internal sealed class WallObject : ICollisionBody
     public List<CollisionBodyPart> Parts = [];
 
     public Vector2 BodyOffset => Center;
-
     public IEnumerable<CollisionBodyPart> BodyParts => Parts;
+
+    public float BroadRadius { get; set; }
 }
 
 internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
@@ -74,6 +76,7 @@ internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
     public IEnumerable<CollisionBodyPart> BodyParts => [
         CollisionBodyPart.CreateCircle(Vector2.Zero, Radius, 16),
     ];
+    public float BroadRadius { get; set; }
 
     public Vector2 OriginOffset => Center;
     public List<CollisionLine> Lines => [
@@ -198,6 +201,7 @@ internal class CollisionGame : Game
             Center = new Vector2(150, 150),
             Velocity = Vector2.Zero,
         };
+        _playerObject.BroadRadius = ICollisionBody.CalculateBroadRadius(_playerObject);
 
         _staticObjects = [];
 
@@ -205,6 +209,7 @@ internal class CollisionGame : Game
         wallObject.Center = new Vector2(300, 200);
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, 0), new Vector2(100, 150), 0f));
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(50, 100), new Vector2(50, 100), MathF.PI * 0.25f));
+        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
         _staticObjects.Add(wallObject);
 
         wallObject = new WallObject();
@@ -212,6 +217,7 @@ internal class CollisionGame : Game
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(-150, 0), new Vector2(50, 350), 0f));
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, -150), new Vector2(350, 50), 0f));
         wallObject.Parts.Add(CollisionBodyPart.CreateTriangle(new Vector2(-125, -125), new Vector2(-125, -125 + 50), new Vector2(-125 + 50, -125)));
+        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
         _staticObjects.Add(wallObject);
 
         wallObject = new WallObject();
@@ -221,24 +227,28 @@ internal class CollisionGame : Game
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(150, 75), new Vector2(50, 200), 0f));
         wallObject.Parts.Add(CollisionBodyPart.CreateTriangle(new Vector2(0, -76), new Vector2(100, -76), new Vector2(100, -26)));
         wallObject.Parts.Add(CollisionBodyPart.CreateTriangle(new Vector2(100, -26), new Vector2(125, -26), new Vector2(125, 48)));
+        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
         _staticObjects.Add(wallObject);
 
         wallObject = new WallObject();
         wallObject.Center = new Vector2(300, 400);
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(150, 0), new Vector2(500, 50), -MathF.PI * 0.125f));
         wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(-150, 0), new Vector2(500, 75), MathF.PI * 0.25f));
+        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
         _staticObjects.Add(wallObject);
 
         _movingObjects = [];
         var random = new Random();
-        for (int i = 0; i < 128; i++)
+        for (int i = 0; i < 256; i++)
         {
-            _movingObjects.Add(new MovingObject()
+            var movingObject = new MovingObject()
             {
                 Center = new Vector2(random.NextSingle() * 300 + 200, random.NextSingle() * 250 + 100),
                 Radius = random.NextSingle() * 8 + 8,
                 ActualVelocity = Vector2.Normalize(new Vector2(random.NextSingle() * 2 - 1, random.NextSingle() * 2 - 1)) * 8,
-            });
+            };
+            movingObject.BroadRadius = ICollisionBody.CalculateBroadRadius(movingObject);
+            _movingObjects.Add(movingObject);
         }
 
         BatchCollisionHandler.Initialize(GraphicsDevice);
@@ -380,6 +390,8 @@ internal class CollisionGame : Game
         #endregion
 
         GraphicsDevice.Submit(commandBuffer);
+
+        //GraphicsDevice.SetSwapchainParameters(MainWindow, SwapchainComposition.SDR, PresentMode.Immediate);
     }
 
     protected override void Step()
