@@ -1,23 +1,34 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Numerics;
-using System;
+using Tellus.Math;
 using Tellus.Math.Shapes;
 
 namespace Tellus.Collision;
 
 public sealed class CollisionPolygon
 {
-    public Vector2[] Vertices { get; }
+    private readonly Vector2[] _vertices;
+    private readonly Vector2[] _sides;
+    private readonly Vector2[] _normals;
+
+    public ReadOnlySpan<Vector2> Vertices => new(_vertices);
+    public ReadOnlySpan<Vector2> Sides => new(_sides);
+    public ReadOnlySpan<Vector2> Normals => new(_normals);
 
     public CollisionPolygon(Circle circle)
     {
         uint vertexCount = 32;
-        Vertices = new Vector2[vertexCount];
+        _vertices = new Vector2[vertexCount];
 
         for (int i = 0; i < vertexCount; i++)
         {
-            Vertices[i] = circle.Center + new Vector2(MathF.Cos(MathF.Tau * i / vertexCount), MathF.Sin(MathF.Tau * i / vertexCount)) * circle.Radius;
+            _vertices[i] = circle.Center + new Vector2(MathF.Cos(MathF.Tau * i / vertexCount), MathF.Sin(MathF.Tau * i / vertexCount)) * circle.Radius;
         }
+
+        _sides = new Vector2[_vertices.Length];
+        _normals = new Vector2[_vertices.Length];
+        FormSides();
     }
 
     public CollisionPolygon(Math.Shapes.Rectangle rectangle)
@@ -28,27 +39,48 @@ public sealed class CollisionPolygon
         var sideA = rectangle.Width;
         var sideB = rectangle.Height;
 
-        Vertices = new Vector2[4];
+        _vertices = new Vector2[4];
 
-        Vertices[0] = new Vector2(-sideA * 0.5f, -sideB * 0.5f);
-        Vertices[1] = new Vector2(sideA * 0.5f, -sideB * 0.5f);
-        Vertices[2] = new Vector2(sideA * 0.5f, sideB * 0.5f);
-        Vertices[3] = new Vector2(-sideA * 0.5f, sideB * 0.5f);
+        _vertices[0] = new Vector2(-sideA * 0.5f, -sideB * 0.5f);
+        _vertices[1] = new Vector2(sideA * 0.5f, -sideB * 0.5f);
+        _vertices[2] = new Vector2(sideA * 0.5f, sideB * 0.5f);
+        _vertices[3] = new Vector2(-sideA * 0.5f, sideB * 0.5f);
         for (int i = 0; i < 4; i++)
         {
-            var newX = (Vertices[i].X * cosine) + (Vertices[i].Y * (-sine));
-            var newY = (Vertices[i].X * sine) + (Vertices[i].Y * cosine);
-            Vertices[i] = new Vector2(newX, newY);
+            var newX = (_vertices[i].X * cosine) + (_vertices[i].Y * (-sine));
+            var newY = (_vertices[i].X * sine) + (_vertices[i].Y * cosine);
+            _vertices[i] = new Vector2(newX, newY);
 
-            Vertices[i] += rectangle.Center;
+            _vertices[i] += rectangle.Center;
         }
+
+        _sides = new Vector2[_vertices.Length];
+        _normals = new Vector2[_vertices.Length];
+        FormSides();
     }
 
     public CollisionPolygon(Triangle triangle)
     {
-        Vertices = new Vector2[3];
-        Vertices[0] = triangle.PointOne;
-        Vertices[1] = triangle.PointTwo;
-        Vertices[2] = triangle.PointThree;
+        _vertices = new Vector2[3];
+        _vertices[0] = triangle.PointOne;
+        _vertices[1] = triangle.PointTwo;
+        _vertices[2] = triangle.PointThree;
+
+        _sides = new Vector2[_vertices.Length];
+        _normals = new Vector2[_vertices.Length];
+        FormSides();
+    }
+
+    private void FormSides()
+    {
+        for (int i = 0; i < _vertices.Length; i++)
+        {
+            int j = (i == (_vertices.Length - 1)) ? 0 : (i + 1);
+            var vertexOne = _vertices[i];
+            var vertexTwo = _vertices[j];
+
+            _sides[i] = vertexTwo - vertexOne;
+            _normals[i] = new Vector2(-_sides[i].Y, _sides[i].X).SafeNormalize(Vector2.UnitX);
+        }
     }
 }
