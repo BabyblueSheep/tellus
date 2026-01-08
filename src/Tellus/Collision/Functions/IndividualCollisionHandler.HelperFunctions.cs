@@ -2,10 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using Tellus.Math;
-using static MoonWorks.Graphics.VertexStructs;
 
 namespace Tellus.Collision.Individual;
 
@@ -15,12 +11,12 @@ public static partial class IndividualCollisionHandler
 {
     const float EPSILON = 0.0001f;
 
-    private static bool DoProjectionsOverlap(Vector2 projectionOne, Vector2 projectionTwo)
+    private static bool DoProjectionsOverlap((float, float) projectionOne, (float, float) projectionTwo)
     {
-        return projectionOne.X <= projectionTwo.Y && projectionOne.Y >= projectionTwo.X;
+        return projectionOne.Item1 <= projectionTwo.Item2 && projectionOne.Item2 >= projectionTwo.Item1;
     }
 
-    private static Vector2 ProjectVerticesOnAxis(ReadOnlySpan<Vector2> vertices, Vector2 offset, Vector2 axis)
+    private static (float, float) ProjectVerticesOnAxis(ReadOnlySpan<Vector2> vertices, Vector2 offset, Vector2 axis)
     {
         float minProjectionPosition = Vector2.Dot(vertices[0] + offset, axis);
         float maxProjectionPosition = minProjectionPosition;
@@ -32,7 +28,7 @@ public static partial class IndividualCollisionHandler
             maxProjectionPosition = MathF.Max(maxProjectionPosition, currentProjectionPosition);
         }
 
-        return new Vector2(minProjectionPosition, maxProjectionPosition);
+        return (minProjectionPosition, maxProjectionPosition);
     }
 
     private static float Cross(Vector2 x, Vector2 y)

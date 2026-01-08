@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using Tellus.Math;
-using static MoonWorks.Graphics.VertexStructs;
+﻿using System.Numerics;
 
 namespace Tellus.Collision.Individual;
 
@@ -13,11 +6,88 @@ public static partial class IndividualCollisionHandler
 {
     public static Vector2 ResolveBodyBodyCollisions(CollisionBody bodyMovable, IEnumerable<CollisionBody> bodyListImmovable)
     {
+        static float GetProjectionOverlap(Vector2 projectionOne, Vector2 projectionTwo)
+        {
+            float start = MathF.Max(projectionOne.X, projectionTwo.X);
+            float end = MathF.Min(projectionOne.Y, projectionTwo.Y);
+
+            float result = end - start;
+            float direction = projectionOne.X > projectionTwo.X ? 1 : -1;
+            return result * direction;
+        }
+
+        static Vector4 DoBodyPartsOverlap(CollisionPolygon bodyPartMain, Vector2 offsetMain, CollisionPolygon bodyPartSub, Vector2 offsetSub)
+        {
+            var minimumTransitionVectorLength = 999999.9f;
+            Vector2 minimumTransitionVectorDirection = Vector2.Zero;
+
+            for (int i = 0; i < verticesOne.Count; i++)
+            {
+                int j = (i == (verticesOne.Count - 1)) ? 0 : (i + 1);
+                var vertexOne = verticesOne[i];
+                var vertexTwo = verticesOne[j];
+
+                var edge = vertexTwo - vertexOne;
+                var normal = new Vector2(-edge.Y, edge.X);
+                var axis = normal.SafeNormalize(Vector2.UnitX);
+
+                var shapeOneProjection = ProjectVerticesOnAxis(verticesOne, axis);
+                var shapeTwoProjection = ProjectVerticesOnAxis(verticesTwo, axis);
+
+                if (!DoProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
+                {
+                    return Vector4.Zero;
+                }
+
+                float currentMtvLength = GetProjectionOverlap(shapeOneProjection, shapeTwoProjection);
+                if (System.Math.Abs(minimumTransitionVectorLength) > System.Math.Abs(currentMtvLength))
+                {
+                    minimumTransitionVectorLength = currentMtvLength;
+                    minimumTransitionVectorDirection = axis;
+                }
+            }
+        }
+
         var totalMinimumTransitionVector = Vector2.Zero;
 
         for (int iteration = 0; iteration < 16; iteration++)
         {
+            foreach (var bodyImmovable in bodyListImmovable)
+            {
+                if (!bodyMovable.IsWithinNarrowRange(bodyImmovable))
+                    continue;
+
+                foreach (var bodyPartImmovable in bodyImmovable)
+                {
+                    foreach (var bodyPartMovable in bodyMovable)
+                    {
+                        var overlapInfo = DoBodyPartsOverlap(bodyPartsMovable, bodyPartsImmovable);
+
+                        var doBodyPartsCollide = overlapInfo.X != 0f;
+                        var minimumTransitionVectorLength = overlapInfo.Y;
+                        var minimumTransitionVectorDirection = new Vector2(overlapInfo.Z, overlapInfo.W);
+
+                        if (!doBodyPartsCollide)
+                            continue;
+
+                        if (System.Math.Abs(minimumTransitionVectorLength) < EPSILON)
+                            continue;
+
+                        hasCollidedWithAnythingThisIteration = true;
+
+                        if (System.Math.Abs(smallestCurrentMinimumTransitionVectorLength) > System.Math.Abs(minimumTransitionVectorLength))
+                        {
+                            var minimumTransitionVector = minimumTransitionVectorDirection * minimumTransitionVectorLength;
+
+                            smallestCurrentMinimumTransitionVectorLength = minimumTransitionVectorLength;
+                            smallestCurrentMinimumTransitionVector = minimumTransitionVector;
+                        }
+                    }
+                }
+            }
         }
+
+        return totalMinimumTransitionVector;
             /*
             static float GetProjectionOverlap(Vector2 projectionOne, Vector2 projectionTwo)
             {

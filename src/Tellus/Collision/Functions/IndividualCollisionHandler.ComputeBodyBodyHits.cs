@@ -14,7 +14,7 @@ public static partial class IndividualCollisionHandler
 {
     public static bool ComputeBodyBodyHits(CollisionBody bodyOne, CollisionBody bodyTwo)
     {
-        if (bodyOne.IsWithinNarrowRange(bodyTwo))
+        if (!bodyOne.IsWithinNarrowRange(bodyTwo))
         {
             return false;
         }
