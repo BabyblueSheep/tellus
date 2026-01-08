@@ -5,7 +5,7 @@ namespace Tellus.Collision.Individual;
 
 public static partial class IndividualCollisionHandler
 {
-    public static Vector2 ResolveBodyBodyCollisions(CollisionBody bodyMovable, IEnumerable<CollisionBody> bodyListImmovable)
+    public static Vector2 ResolveBodyBodyCollision(CollisionBody bodyMovable, IEnumerable<CollisionBody> bodyListImmovable)
     {
         static float GetProjectionOverlap((float, float) projectionOne, (float, float) projectionTwo)
         {
@@ -58,7 +58,7 @@ public static partial class IndividualCollisionHandler
                 }
             }
 
-            return (true, minimumTransitionVectorLength, minimumTransitionVectorDirection.);
+            return (true, minimumTransitionVectorLength, minimumTransitionVectorDirection);
         }
 
         var totalMinimumTransitionVector = Vector2.Zero;

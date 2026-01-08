@@ -11,13 +11,15 @@ namespace Tellus.Collision.Individual;
 
 public static partial class IndividualCollisionHandler
 {
-    public static bool ComputeLineBodyHits(CollisionBody body, CollisionLineCollection lineCollection)
+    public static float RestrictLine((Vector2, Vector2) line, IEnumerable<CollisionBody> bodyListImmovable)
     {
-        foreach (var line in lineCollection)
-        {
-            var lineStart = line.Start + lineCollection.Offset;
-            var lineEnd = line.End + lineCollection.Offset;
+        var lineStart = line.Item1;
+        var lineEnd = line.Item2;
 
+        var smallestNewLength = (lineEnd - lineStart).Length();
+
+        foreach (var body in bodyListImmovable)
+        {
             foreach (var bodyPart in body)
             {
                 foreach (var side in bodyPart.Sides)
@@ -25,15 +27,19 @@ public static partial class IndividualCollisionHandler
                     var bodyPartLineStart = side.Item1 + body.Offset;
                     var bodyPartLineEnd = side.Item2 + body.Offset;
 
-                    (bool, Vector2) didIntersect = GetLineLineIntersection(bodyPartLineStart, bodyPartLineEnd, lineStart, lineEnd);
+                    var didIntersect = GetLineLineIntersection(bodyPartLineStart, bodyPartLineEnd, lineStart, lineEnd);
                     if (didIntersect.Item1)
                     {
-                        return true;
+                        float newLength = (didIntersect.Item2 - lineStart).Length();
+                        if (newLength < smallestNewLength)
+                        {
+                            smallestNewLength = newLength;
+                        }
                     }
                 }
             }
         }
 
-        return false;
+        return smallestNewLength;
     }
 }

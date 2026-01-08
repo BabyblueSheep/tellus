@@ -12,7 +12,7 @@ namespace Tellus.Collision.Individual;
 
 public static partial class IndividualCollisionHandler
 {
-    public static bool ComputeBodyBodyHits(CollisionBody bodyOne, CollisionBody bodyTwo)
+    public static bool ComputeBodyBodyHit(CollisionBody bodyOne, CollisionBody bodyTwo)
     {
         if (!bodyOne.IsWithinNarrowRange(bodyTwo))
         {
