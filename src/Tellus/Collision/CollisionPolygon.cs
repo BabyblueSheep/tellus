@@ -1,6 +1,4 @@
-﻿using System;
-using System.Drawing;
-using System.Numerics;
+﻿using System.Numerics;
 using Tellus.Math;
 using Tellus.Math.Shapes;
 
@@ -9,16 +7,16 @@ namespace Tellus.Collision;
 public sealed class CollisionPolygon
 {
     private readonly Vector2[] _vertices;
-    private readonly Vector2[] _sides;
+    private readonly (Vector2, Vector2)[] _sides;
     private readonly Vector2[] _normals;
 
     public ReadOnlySpan<Vector2> Vertices => new(_vertices);
-    public ReadOnlySpan<Vector2> Sides => new(_sides);
+    public ReadOnlySpan<(Vector2, Vector2)> Sides => new(_sides);
     public ReadOnlySpan<Vector2> Normals => new(_normals);
 
-    public CollisionPolygon(Circle circle)
+    public CollisionPolygon(Circle circle, uint vertexCount = 16)
     {
-        uint vertexCount = 32;
+        vertexCount = uint.Max(vertexCount, 3);
         _vertices = new Vector2[vertexCount];
 
         for (int i = 0; i < vertexCount; i++)
@@ -26,7 +24,7 @@ public sealed class CollisionPolygon
             _vertices[i] = circle.Center + new Vector2(MathF.Cos(MathF.Tau * i / vertexCount), MathF.Sin(MathF.Tau * i / vertexCount)) * circle.Radius;
         }
 
-        _sides = new Vector2[_vertices.Length];
+        _sides = new (Vector2, Vector2)[_vertices.Length];
         _normals = new Vector2[_vertices.Length];
         FormSides();
     }
@@ -54,7 +52,7 @@ public sealed class CollisionPolygon
             _vertices[i] += rectangle.Center;
         }
 
-        _sides = new Vector2[_vertices.Length];
+        _sides = new (Vector2, Vector2)[_vertices.Length];
         _normals = new Vector2[_vertices.Length];
         FormSides();
     }
@@ -66,7 +64,7 @@ public sealed class CollisionPolygon
         _vertices[1] = triangle.PointTwo;
         _vertices[2] = triangle.PointThree;
 
-        _sides = new Vector2[_vertices.Length];
+        _sides = new (Vector2, Vector2)[_vertices.Length];
         _normals = new Vector2[_vertices.Length];
         FormSides();
     }
@@ -79,8 +77,10 @@ public sealed class CollisionPolygon
             var vertexOne = _vertices[i];
             var vertexTwo = _vertices[j];
 
-            _sides[i] = vertexTwo - vertexOne;
-            _normals[i] = new Vector2(-_sides[i].Y, _sides[i].X).SafeNormalize(Vector2.UnitX);
+            var edge = vertexTwo - vertexOne;
+            _sides[i] = (vertexOne, vertexTwo);
+            _normals[i] = new Vector2(-edge.Y, edge.X);
+            _normals[i] = Vector2.Normalize(_normals[i]);
         }
     }
 }

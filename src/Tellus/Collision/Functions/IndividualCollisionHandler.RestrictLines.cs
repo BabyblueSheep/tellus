@@ -11,8 +11,13 @@ namespace Tellus.Collision.Individual;
 
 public static partial class IndividualCollisionHandler
 {
-    public static List<float> RestrictLines(ICollisionLineCollection lineCollection, IEnumerable<ICollisionBody> bodyListImmovable)
+    public static float[] RestrictLines(CollisionLineCollection lineCollection, IEnumerable<CollisionBody> bodyListImmovable)
     {
+        foreach (var line in lineCollection)
+        {
+
+        }
+        /*
         List<(ICollisionBody, List<List<Vector2>>)> verticesListImmovable = [];
         foreach (var body in bodyListImmovable)
         {
@@ -64,5 +69,6 @@ public static partial class IndividualCollisionHandler
         }
 
         return newLengths;
+        */
     }
 }

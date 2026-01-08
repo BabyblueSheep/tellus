@@ -11,31 +11,19 @@ namespace Tellus.Collision.Individual;
 
 public static partial class IndividualCollisionHandler
 {
-    public static bool ComputeLineBodyHits(ICollisionBody body, ICollisionLineCollection lineCollection)
+    public static bool ComputeLineBodyHits(CollisionBody body, CollisionLineCollection lineCollection)
     {
-        var bodyVertices = new List<List<Vector2>>();
-        foreach (var bodyPart in body.BodyParts)
+        foreach (var line in lineCollection)
         {
-            var vertexList = BodyPartToVertices(bodyPart, body);
-            bodyVertices.Add(vertexList);
-        }
+            var lineStart = line.Start + lineCollection.Offset;
+            var lineEnd = line.End + lineCollection.Offset;
 
-        foreach (var originalLine in lineCollection.Lines)
-        {
-            var line = originalLine;
-            line.Origin += lineCollection.OriginOffset;
-
-            var lineStart = line.Origin;
-            var lineEnd = line.IsVectorFixedPoint ? line.ArbitraryVector : line.Origin + line.ArbitraryVector * line.Length;
-
-            foreach (var bodyPart in bodyVertices)
+            foreach (var bodyPart in body)
             {
-                for (int i = 0; i < bodyPart.Count; i++)
+                foreach (var side in bodyPart.Sides)
                 {
-                    int j = (i == (bodyPart.Count - 1)) ? 0 : (i + 1);
-
-                    var bodyPartLineStart = bodyPart[i];
-                    var bodyPartLineEnd = bodyPart[j];
+                    var bodyPartLineStart = side.Item1 + body.Offset;
+                    var bodyPartLineEnd = side.Item2 + body.Offset;
 
                     (bool, Vector2) didIntersect = GetLineLineIntersection(bodyPartLineStart, bodyPartLineEnd, lineStart, lineEnd);
                     if (didIntersect.Item1)

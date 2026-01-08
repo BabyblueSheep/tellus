@@ -13,8 +13,9 @@ namespace Tellus.Collision;
 public sealed class CollisionLineCollection : IEnumerable<CollisionLine>
 {
     public Vector2 Offset { get; }
-
     private readonly List<CollisionLine> _lines;
+
+    public float BroadRadius { get; private set; }
 
     public CollisionLineCollection()
     {
@@ -23,7 +24,6 @@ public sealed class CollisionLineCollection : IEnumerable<CollisionLine>
 
     public CollisionLineCollection(params CollisionLine[] lines) : this()
     {
-
         foreach (var line in lines)
         {
             Add(line);
@@ -33,6 +33,7 @@ public sealed class CollisionLineCollection : IEnumerable<CollisionLine>
     public void Add(CollisionLine line)
     {
         _lines.Add(line);
+        BroadRadius = MathF.Max(BroadRadius, (line.End - line.Start).Length());
     }
 
     public void Clear()

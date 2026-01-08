@@ -10,8 +10,7 @@ namespace Tellus.Collision;
 
 public sealed class CollisionLine
 {
-    public Vector2 Origin { get; set; }
-
+    public Vector2 Start { get; set; }
     public Vector2 End { get; set; }
 
     public bool CanBeRestrcited { get; set; }

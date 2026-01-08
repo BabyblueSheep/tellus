@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using MoonWorks.Input;
+using System.Numerics;
 
 namespace Tellus.Collision.Individual;
 
@@ -6,52 +7,69 @@ public static partial class IndividualCollisionHandler
 {
     public static Vector2 ResolveBodyBodyCollisions(CollisionBody bodyMovable, IEnumerable<CollisionBody> bodyListImmovable)
     {
-        static float GetProjectionOverlap(Vector2 projectionOne, Vector2 projectionTwo)
+        static float GetProjectionOverlap((float, float) projectionOne, (float, float) projectionTwo)
         {
-            float start = MathF.Max(projectionOne.X, projectionTwo.X);
-            float end = MathF.Min(projectionOne.Y, projectionTwo.Y);
+            float start = MathF.Max(projectionOne.Item1, projectionTwo.Item1);
+            float end = MathF.Min(projectionOne.Item2, projectionTwo.Item2);
 
             float result = end - start;
-            float direction = projectionOne.X > projectionTwo.X ? 1 : -1;
+            float direction = projectionOne.Item1 > projectionTwo.Item1 ? 1 : -1;
             return result * direction;
         }
 
-        static Vector4 DoBodyPartsOverlap(CollisionPolygon bodyPartMain, Vector2 offsetMain, CollisionPolygon bodyPartSub, Vector2 offsetSub)
+        static (bool, float, Vector2) DoBodyPartsOverlap(CollisionPolygon bodyPartMain, Vector2 offsetMain, CollisionPolygon bodyPartSub, Vector2 offsetSub)
         {
             var minimumTransitionVectorLength = 999999.9f;
             Vector2 minimumTransitionVectorDirection = Vector2.Zero;
 
-            for (int i = 0; i < verticesOne.Count; i++)
+            foreach (var normal in bodyPartMain.Normals)
             {
-                int j = (i == (verticesOne.Count - 1)) ? 0 : (i + 1);
-                var vertexOne = verticesOne[i];
-                var vertexTwo = verticesOne[j];
-
-                var edge = vertexTwo - vertexOne;
-                var normal = new Vector2(-edge.Y, edge.X);
-                var axis = normal.SafeNormalize(Vector2.UnitX);
-
-                var shapeOneProjection = ProjectVerticesOnAxis(verticesOne, axis);
-                var shapeTwoProjection = ProjectVerticesOnAxis(verticesTwo, axis);
+                var shapeOneProjection = ProjectVerticesOnAxis(bodyPartMain.Vertices, offsetMain, normal);
+                var shapeTwoProjection = ProjectVerticesOnAxis(bodyPartSub.Vertices, offsetSub, normal);
 
                 if (!DoProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
                 {
-                    return Vector4.Zero;
+                    return (false, 0f, Vector2.Zero);
                 }
 
                 float currentMtvLength = GetProjectionOverlap(shapeOneProjection, shapeTwoProjection);
                 if (System.Math.Abs(minimumTransitionVectorLength) > System.Math.Abs(currentMtvLength))
                 {
                     minimumTransitionVectorLength = currentMtvLength;
-                    minimumTransitionVectorDirection = axis;
+                    minimumTransitionVectorDirection = normal;
                 }
             }
+
+            foreach (var normal in bodyPartSub.Normals)
+            {
+                var shapeOneProjection = ProjectVerticesOnAxis(bodyPartMain.Vertices, offsetMain, normal);
+                var shapeTwoProjection = ProjectVerticesOnAxis(bodyPartSub.Vertices, offsetSub, normal);
+
+                if (!DoProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
+                {
+                    return (false, 0f, Vector2.Zero);
+                }
+
+                float currentMtvLength = GetProjectionOverlap(shapeOneProjection, shapeTwoProjection);
+                if (System.Math.Abs(minimumTransitionVectorLength) > System.Math.Abs(currentMtvLength))
+                {
+                    minimumTransitionVectorLength = currentMtvLength;
+                    minimumTransitionVectorDirection = normal;
+                }
+            }
+
+            return (true, minimumTransitionVectorLength, minimumTransitionVectorDirection.);
         }
 
         var totalMinimumTransitionVector = Vector2.Zero;
 
         for (int iteration = 0; iteration < 16; iteration++)
         {
+            var hasCollidedWithAnythingThisIteration = false;
+
+            var smallestCurrentMinimumTransitionVectorLength = 999999.9f;
+            var smallestCurrentMinimumTransitionVector = Vector2.Zero;
+
             foreach (var bodyImmovable in bodyListImmovable)
             {
                 if (!bodyMovable.IsWithinNarrowRange(bodyImmovable))
@@ -61,11 +79,11 @@ public static partial class IndividualCollisionHandler
                 {
                     foreach (var bodyPartMovable in bodyMovable)
                     {
-                        var overlapInfo = DoBodyPartsOverlap(bodyPartsMovable, bodyPartsImmovable);
+                        var overlapInfo = DoBodyPartsOverlap(bodyPartMovable, bodyMovable.Offset + totalMinimumTransitionVector, bodyPartImmovable, bodyImmovable.Offset);
 
-                        var doBodyPartsCollide = overlapInfo.X != 0f;
-                        var minimumTransitionVectorLength = overlapInfo.Y;
-                        var minimumTransitionVectorDirection = new Vector2(overlapInfo.Z, overlapInfo.W);
+                        var doBodyPartsCollide = overlapInfo.Item1;
+                        var minimumTransitionVectorLength = overlapInfo.Item2;
+                        var minimumTransitionVectorDirection = overlapInfo.Item3;
 
                         if (!doBodyPartsCollide)
                             continue;
@@ -85,157 +103,17 @@ public static partial class IndividualCollisionHandler
                     }
                 }
             }
+
+            if (!hasCollidedWithAnythingThisIteration)
+            {
+                break;
+            }
+            else
+            {
+                totalMinimumTransitionVector += smallestCurrentMinimumTransitionVector;
+            }
         }
 
         return totalMinimumTransitionVector;
-            /*
-            static float GetProjectionOverlap(Vector2 projectionOne, Vector2 projectionTwo)
-            {
-                float start = MathF.Max(projectionOne.X, projectionTwo.X);
-                float end = MathF.Min(projectionOne.Y, projectionTwo.Y);
-
-                float result = end - start;
-                float direction = projectionOne.X > projectionTwo.X ? 1 : -1;
-                return result * direction;
-            }
-
-            static Vector4 DoBodyPartsOverlap(List<Vector2> verticesOne, List<Vector2> verticesTwo)
-            {
-                var minimumTransitionVectorLength = 999999.9f;
-                Vector2 minimumTransitionVectorDirection = Vector2.Zero;
-
-                for (int i = 0; i < verticesOne.Count; i++)
-                {
-                    int j = (i == (verticesOne.Count - 1)) ? 0 : (i + 1);
-                    var vertexOne = verticesOne[i];
-                    var vertexTwo = verticesOne[j];
-
-                    var edge = vertexTwo - vertexOne;
-                    var normal = new Vector2(-edge.Y, edge.X);
-                    var axis = normal.SafeNormalize(Vector2.UnitX);
-
-                    var shapeOneProjection = ProjectVerticesOnAxis(verticesOne, axis);
-                    var shapeTwoProjection = ProjectVerticesOnAxis(verticesTwo, axis);
-
-                    if (!DoProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
-                    {
-                        return Vector4.Zero;
-                    }
-
-                    float currentMtvLength = GetProjectionOverlap(shapeOneProjection, shapeTwoProjection);
-                    if (System.Math.Abs(minimumTransitionVectorLength) > System.Math.Abs(currentMtvLength))
-                    {
-                        minimumTransitionVectorLength = currentMtvLength;
-                        minimumTransitionVectorDirection = axis;
-                    }
-                }
-
-                for (int i = 0; i < verticesTwo.Count; i++)
-                {
-                    int j = (i == (verticesTwo.Count - 1)) ? 0 : (i + 1);
-                    var vertexOne = verticesTwo[i];
-                    var vertexTwo = verticesTwo[j];
-
-                    var edge = vertexTwo - vertexOne;
-                    var normal = new Vector2(-edge.Y, edge.X);
-                    var axis = normal.SafeNormalize(Vector2.UnitX);
-
-                    var shapeOneProjection = ProjectVerticesOnAxis(verticesOne, axis);
-                    var shapeTwoProjection = ProjectVerticesOnAxis(verticesTwo, axis);
-
-                    if (!DoProjectionsOverlap(shapeOneProjection, shapeTwoProjection))
-                    {
-                        return Vector4.Zero;
-                    }
-
-                    float currentMtvLength = GetProjectionOverlap(shapeOneProjection, shapeTwoProjection);
-                    if (System.Math.Abs(minimumTransitionVectorLength) > System.Math.Abs(currentMtvLength))
-                    {
-                        minimumTransitionVectorLength = currentMtvLength;
-                        minimumTransitionVectorDirection = axis;
-                    }
-                }
-
-                return new Vector4(1f, minimumTransitionVectorLength, minimumTransitionVectorDirection.X, minimumTransitionVectorDirection.Y);
-            }
-
-            List<(ICollisionBody, List<List<Vector2>>)> verticesListImmovable = [];
-            foreach (var body in bodyListImmovable)
-            {
-                var bodyPartList = new List<List<Vector2>>();
-                foreach (var bodyPart in body.BodyParts)
-                {
-                    var vertexList = BodyPartToVertices(bodyPart, body);
-                    bodyPartList.Add(vertexList);
-                }
-                verticesListImmovable.Add((body, bodyPartList));
-            }
-
-            var bodyVerticesMovable = new List<List<Vector2>>();
-            foreach (var bodyPart in bodyMovable.BodyParts)
-            {
-                var vertexList = BodyPartToVertices(bodyPart, bodyMovable);
-                bodyVerticesMovable.Add(vertexList);
-            }
-
-            var totalMinimumTransitionVector = Vector2.Zero;
-
-            for (int iteration = 0; iteration < 16; iteration++)
-            {
-                var hasCollidedWithAnythingThisIteration = false;
-
-                var smallestCurrentMinimumTransitionVectorLength = 999999.9f;
-                var smallestCurrentMinimumTransitionVector = Vector2.Zero;
-
-                foreach (var bodyPartsMovable in bodyVerticesMovable)
-                {
-                    foreach (var bodiesImmovable in verticesListImmovable)
-                    {
-                        foreach (var bodyPartsImmovable in bodiesImmovable.Item2)
-                        {
-                            var overlapInfo = DoBodyPartsOverlap(bodyPartsMovable, bodyPartsImmovable);
-
-                            var doBodyPartsCollide = overlapInfo.X != 0f;
-                            var minimumTransitionVectorLength = overlapInfo.Y;
-                            var minimumTransitionVectorDirection = new Vector2(overlapInfo.Z, overlapInfo.W);
-
-                            if (!doBodyPartsCollide)
-                                continue;
-
-                            if (System.Math.Abs(minimumTransitionVectorLength) < EPSILON)
-                                continue;
-
-                            hasCollidedWithAnythingThisIteration = true;
-
-                            if (System.Math.Abs(smallestCurrentMinimumTransitionVectorLength) > System.Math.Abs(minimumTransitionVectorLength))
-                            {
-                                var minimumTransitionVector = minimumTransitionVectorDirection * minimumTransitionVectorLength;
-
-                                smallestCurrentMinimumTransitionVectorLength = minimumTransitionVectorLength;
-                                smallestCurrentMinimumTransitionVector = minimumTransitionVector;
-                            }
-                        }
-                    }
-                }
-
-                if (!hasCollidedWithAnythingThisIteration)
-                {
-                    break;
-                }
-                else
-                {
-                    totalMinimumTransitionVector += smallestCurrentMinimumTransitionVector;
-                    for (int i = 0; i < bodyVerticesMovable.Count; i++)
-                    {
-                        for (int j = 0; j < bodyVerticesMovable[i].Count; j++)
-                        {
-                            bodyVerticesMovable[i][j] += smallestCurrentMinimumTransitionVector;
-                        }
-                    }
-                }
-            }
-
-            return totalMinimumTransitionVector;
-            */
-        }
+    }
 }

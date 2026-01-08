@@ -25,7 +25,7 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace TellusExampleProject;
 
-internal sealed class PlayerObject : ICollisionBody, ICollisionLineCollection
+internal sealed class PlayerObject
 {
     public Vector2 Center;
     public Vector2 Velocity;
@@ -34,12 +34,15 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionLineCollection
 
     public Vector2 LaserEnd;
 
+    public CollisionBody CollisionBody;
+
     public Vector2 BodyOffset => Center;
     public IEnumerable<CollisionBodyPart> BodyParts => [
         CollisionBodyPart.CreateCircle(Vector2.Zero, Radius, 16),
     ];
     public float BroadRadius { get; set; }
 
+    /*
     public readonly List<CollisionLine> SavedLines = [];
 
     public Vector2 OriginOffset => Center;
@@ -48,6 +51,7 @@ internal sealed class PlayerObject : ICollisionBody, ICollisionLineCollection
         CollisionLine.CreateFixedPointLineSegment(Vector2.Zero, LaserEnd, (LaserEnd - Center).Length()),
     ];
     public int LineVelocityIndex => 0;
+    */
 }
 
 internal sealed class WallObject : ICollisionBody

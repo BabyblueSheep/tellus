@@ -45,7 +45,8 @@ public sealed class CollisionBody : IEnumerable<CollisionPolygon>
 
     public bool IsWithinNarrowRange(CollisionBody otherBody)
     {
-        return (this.Offset - otherBody.Offset).Length() > (this.BroadRadius + otherBody.BroadRadius);
+        var combinedBroadRadius = this.BroadRadius + otherBody.BroadRadius;
+        return (this.Offset - otherBody.Offset).LengthSquared() < (combinedBroadRadius * combinedBroadRadius);
     }
 
     public IEnumerator<CollisionPolygon> GetEnumerator()
