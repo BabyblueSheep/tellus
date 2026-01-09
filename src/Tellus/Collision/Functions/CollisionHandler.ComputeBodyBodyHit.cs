@@ -10,7 +10,7 @@ using static MoonWorks.Graphics.VertexStructs;
 
 namespace Tellus.Collision.Individual;
 
-public static partial class IndividualCollisionHandler
+public static partial class CollisionHandler
 {
     public static bool ComputeBodyBodyHit(CollisionBody bodyOne, CollisionBody bodyTwo)
     {

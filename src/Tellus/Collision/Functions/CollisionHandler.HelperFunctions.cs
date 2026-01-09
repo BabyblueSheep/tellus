@@ -7,7 +7,7 @@ namespace Tellus.Collision.Individual;
 
 // https://dyn4j.org/2010/01/sat/
 // https://www.metanetsoftware.com/technique/tutorialA.html
-public static partial class IndividualCollisionHandler
+public static partial class CollisionHandler
 {
     const float EPSILON = 0.0001f;
 

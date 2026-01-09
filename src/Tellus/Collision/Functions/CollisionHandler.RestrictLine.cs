@@ -9,14 +9,15 @@ using static MoonWorks.Graphics.VertexStructs;
 
 namespace Tellus.Collision.Individual;
 
-public static partial class IndividualCollisionHandler
+public static partial class CollisionHandler
 {
-    public static float RestrictLine((Vector2, Vector2) line, IEnumerable<CollisionBody> bodyListImmovable)
+    public static Vector2 RestrictLine((Vector2, Vector2) line, IEnumerable<CollisionBody> bodyListImmovable)
     {
         var lineStart = line.Item1;
         var lineEnd = line.Item2;
 
         var smallestNewLength = (lineEnd - lineStart).Length();
+        var newPoint = lineEnd;
 
         foreach (var body in bodyListImmovable)
         {
@@ -34,12 +35,13 @@ public static partial class IndividualCollisionHandler
                         if (newLength < smallestNewLength)
                         {
                             smallestNewLength = newLength;
+                            newPoint = didIntersect.Item2;
                         }
                     }
                 }
             }
         }
 
-        return smallestNewLength;
+        return newPoint;
     }
 }

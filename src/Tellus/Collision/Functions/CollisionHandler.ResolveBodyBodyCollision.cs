@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace Tellus.Collision.Individual;
 
-public static partial class IndividualCollisionHandler
+public static partial class CollisionHandler
 {
     public static Vector2 ResolveBodyBodyCollision(CollisionBody bodyMovable, IEnumerable<CollisionBody> bodyListImmovable)
     {
@@ -72,8 +72,8 @@ public static partial class IndividualCollisionHandler
 
             foreach (var bodyImmovable in bodyListImmovable)
             {
-                if (!bodyMovable.IsWithinNarrowRange(bodyImmovable))
-                    continue;
+                //if (!bodyMovable.IsWithinNarrowRange(bodyImmovable))
+                    //continue;
 
                 foreach (var bodyPartImmovable in bodyImmovable)
                 {
