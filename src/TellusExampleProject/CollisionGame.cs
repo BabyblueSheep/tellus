@@ -34,13 +34,7 @@ internal sealed class PlayerObject
 
     public Vector2 LaserEnd;
 
-    public CollisionBody CollisionBody;
-
-    public Vector2 BodyOffset => Center;
-    public IEnumerable<CollisionBodyPart> BodyParts => [
-        CollisionBodyPart.CreateCircle(Vector2.Zero, Radius, 16),
-    ];
-    public float BroadRadius { get; set; }
+    public required CollisionBody CollisionBody;
 
     /*
     public readonly List<CollisionLine> SavedLines = [];
@@ -54,19 +48,33 @@ internal sealed class PlayerObject
     */
 }
 
-internal sealed class WallObject : ICollisionBody
+internal sealed class WallObject
 {
     public Vector2 Center;
 
-    public List<CollisionBodyPart> Parts = [];
+    public List<Tellus.Math.Shapes.Rectangle> Rectangles;
+    public List<Tellus.Math.Shapes.Triangle> Triangles;
 
-    public Vector2 BodyOffset => Center;
-    public IEnumerable<CollisionBodyPart> BodyParts => Parts;
+    public CollisionBody CollisionBody;
 
-    public float BroadRadius { get; set; }
+    public WallObject(List<Tellus.Math.Shapes.Rectangle> rectangles, List<Tellus.Math.Shapes.Triangle> triangles)
+    {
+        Rectangles = rectangles;
+        Triangles = triangles;
+
+        CollisionBody = new CollisionBody();
+        foreach (var rectangle in rectangles)
+        {
+            CollisionBody.Add(new CollisionPolygon(rectangle));
+        }
+        foreach (var triangle in triangles)
+        {
+            CollisionBody.Add(new CollisionPolygon(triangle));
+        }
+    }
 }
 
-internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
+internal sealed class MovingObject
 {
     public Vector2 Center;
     public Vector2 ActualVelocity;
@@ -76,6 +84,9 @@ internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
 
     public Random Random = new Random();
 
+    public required CollisionBody CollisionBody;
+
+    /*
     public Vector2 BodyOffset => Center;
     public IEnumerable<CollisionBodyPart> BodyParts => [
         CollisionBodyPart.CreateCircle(Vector2.Zero, Radius, 16),
@@ -86,7 +97,7 @@ internal sealed class MovingObject : ICollisionBody, ICollisionLineCollection
     public List<CollisionLine> Lines => [
         CollisionLine.CreateFiniteLengthRay(Vector2.Zero, ActualVelocity.SafeNormalize(Vector2.Zero), ActualVelocity.Length()) with { CanBeRestricted = true },
     ];
-    public int LineVelocityIndex => 0;
+    public int LineVelocityIndex => 0;*/
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
@@ -114,13 +125,6 @@ file struct PositionColorVertex : IVertexType
 internal class CollisionGame : Game
 {
     private float _timer;
-
-    private readonly BatchCollisionHandler.BodyStorageBufferBundle _storageBufferStaticBodies;
-    private readonly BatchCollisionHandler.BodyStorageBufferBundle _storageBufferMovingBodies;
-    private readonly BatchCollisionHandler.LineCollectionStorageBufferBundle _lineBuffer;
-    private readonly BatchCollisionHandler.HitResultStorageBufferBundle _lineHitResultBuffer;
-    private readonly BatchCollisionHandler.ResolutionResultStorageBufferBundle _resolutionResultBuffer;
-    private readonly BatchCollisionHandler.BodyLineCollectionPairStorageBufferBundle _pairBuffer;
 
     private readonly PlayerObject _playerObject;
     private readonly List<WallObject> _staticObjects;
@@ -204,70 +208,74 @@ internal class CollisionGame : Game
             Radius = 16,
             Center = new Vector2(150, 150),
             Velocity = Vector2.Zero,
+            CollisionBody = new CollisionBody(new CollisionPolygon(new Tellus.Math.Shapes.Circle(16f)))
         };
-        _playerObject.BroadRadius = ICollisionBody.CalculateBroadRadius(_playerObject);
 
         _staticObjects = [];
 
-        var wallObject = new WallObject();
-        wallObject.Center = new Vector2(300, 200);
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, 0), new Vector2(100, 150), 0f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(50, 100), new Vector2(50, 100), MathF.PI * 0.25f));
-        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
+        var wallObject = new WallObject(
+        [
+            new Tellus.Math.Shapes.Rectangle(new Vector2(0, 0), 100f, 150f, 0.0),
+            new Tellus.Math.Shapes.Rectangle(new Vector2(50, 100), 50f, 100f, Math.PI * 0.25)
+        ], 
+        [])
+        {
+            Center = new Vector2(300, 200),
+        };
         _staticObjects.Add(wallObject);
 
-        wallObject = new WallObject();
-        wallObject.Center = new Vector2(200, 200);
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(-150, 0), new Vector2(50, 350), 0f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, -150), new Vector2(350, 50), 0f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateTriangle(new Vector2(-125, -125), new Vector2(-125, -125 + 50), new Vector2(-125 + 50, -125)));
-        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
+        wallObject = new WallObject(
+        [
+            new Tellus.Math.Shapes.Rectangle(new Vector2(-150, 0), 50f, 350f, 0.0),
+            new Tellus.Math.Shapes.Rectangle(new Vector2(50, 100), 50f, 100f, Math.PI * 0.25)
+        ],
+        [
+            new Tellus.Math.Shapes.Triangle(new Vector2(-125, -125), new Vector2(-125, -125 + 50), new Vector2(-125 + 50, -125))
+        ])
+        {
+            Center = new Vector2(200, 200),
+        };
         _staticObjects.Add(wallObject);
 
-        wallObject = new WallObject();
-        wallObject.Center = new Vector2(500, 150);
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(0, -100), new Vector2(300, 50), 0f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(125, -50), new Vector2(50, 50), 0f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(150, 75), new Vector2(50, 200), 0f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateTriangle(new Vector2(0, -76), new Vector2(100, -76), new Vector2(100, -26)));
-        wallObject.Parts.Add(CollisionBodyPart.CreateTriangle(new Vector2(100, -26), new Vector2(125, -26), new Vector2(125, 48)));
-        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
+        wallObject = new WallObject
+        {
+            Center = new Vector2(500, 150),
+            CollisionBody =
+            [
+                new CollisionPolygon(new Tellus.Math.Shapes.Rectangle(new Vector2(0, -100), 300f, 50f, 0.0)),
+                new CollisionPolygon(new Tellus.Math.Shapes.Rectangle(new Vector2(125, -50), 50f, 50f, 0.0)),
+                new CollisionPolygon(new Tellus.Math.Shapes.Rectangle(new Vector2(150, 75), 50f, 2000f, 0.0)),
+                new CollisionPolygon(new Tellus.Math.Shapes.Triangle(new Vector2(0, -76), new Vector2(100, -76), new Vector2(100, -26))),
+                new CollisionPolygon(new Tellus.Math.Shapes.Triangle(new Vector2(100, -26), new Vector2(125, -26), new Vector2(125, 48))),
+            ]
+        };
         _staticObjects.Add(wallObject);
 
-        wallObject = new WallObject();
-        wallObject.Center = new Vector2(300, 400);
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(150, 0), new Vector2(500, 50), -MathF.PI * 0.125f));
-        wallObject.Parts.Add(CollisionBodyPart.CreateRectangle(new Vector2(-150, 0), new Vector2(500, 75), MathF.PI * 0.25f));
-        wallObject.BroadRadius = ICollisionBody.CalculateBroadRadius(wallObject);
+        wallObject = new WallObject
+        {
+            Center = new Vector2(300, 400),
+            CollisionBody =
+            [
+                new CollisionPolygon(new Tellus.Math.Shapes.Rectangle(new Vector2(150, 0), 500f, 50f, -Math.PI * 0.125)),
+                new CollisionPolygon(new Tellus.Math.Shapes.Rectangle(new Vector2(-150, 0), 500f, 75f, Math.PI * 0.25)),
+            ]
+        };
         _staticObjects.Add(wallObject);
 
         _movingObjects = [];
         var random = new Random();
         for (int i = 0; i < 256; i++)
         {
+            var radius = random.NextSingle() * 8 + 8;
             var movingObject = new MovingObject()
             {
                 Center = new Vector2(random.NextSingle() * 300 + 200, random.NextSingle() * 250 + 100),
-                Radius = random.NextSingle() * 8 + 8,
+                Radius = radius,
                 ActualVelocity = Vector2.Normalize(new Vector2(random.NextSingle() * 2 - 1, random.NextSingle() * 2 - 1)) * 8,
+                CollisionBody = new CollisionBody(new CollisionPolygon(new Tellus.Math.Shapes.Circle(radius)))
             };
-            movingObject.BroadRadius = ICollisionBody.CalculateBroadRadius(movingObject);
             _movingObjects.Add(movingObject);
         }
-
-        BatchCollisionHandler.Initialize(GraphicsDevice);
-        _storageBufferStaticBodies = new BatchCollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
-        _storageBufferMovingBodies = new BatchCollisionHandler.BodyStorageBufferBundle(GraphicsDevice);
-        _lineHitResultBuffer = new BatchCollisionHandler.HitResultStorageBufferBundle(GraphicsDevice);
-        _resolutionResultBuffer = new BatchCollisionHandler.ResolutionResultStorageBufferBundle(GraphicsDevice);
-        _lineBuffer = new BatchCollisionHandler.LineCollectionStorageBufferBundle(GraphicsDevice, createDownloadBuffer: true);
-        _pairBuffer = new BatchCollisionHandler.BodyLineCollectionPairStorageBufferBundle(GraphicsDevice);
-
-        _storageBufferStaticBodies.UploadData
-        (
-            commandBuffer,
-            [(nameof(_staticObjects), _staticObjects)]
-        );
 
         #endregion
 
@@ -289,6 +297,7 @@ internal class CollisionGame : Game
         var vertexSpan = vertexBuffer.Map<PositionColorVertex>(false);
         foreach (var colliderObject in _staticObjects)
         {
+            /*
             foreach (var triangle in colliderObject.Parts)
             {
                 if (triangle.ShapeType == CollisionBodyPartShapeType.Triangle)
@@ -304,6 +313,7 @@ internal class CollisionGame : Game
                     _triangleCount++;
                 }
             }
+            */
         }
         vertexBuffer.Unmap();
 
@@ -430,6 +440,7 @@ internal class CollisionGame : Game
             }
         }
 
+        /*
         for (int i = 0; i < _movingObjects.Count; i++)
         {
             var movingObject = _movingObjects[i];
@@ -465,7 +476,7 @@ internal class CollisionGame : Game
             {
                 movingObject.HasCollidedThisFrame = true;
             }
-        }
+        }*/
 
         /*
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
